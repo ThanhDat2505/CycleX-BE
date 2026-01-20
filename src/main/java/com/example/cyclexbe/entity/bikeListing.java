@@ -14,7 +14,7 @@ public class bikeListing {
 
    @ManyToOne
    @JoinColumn(name = "seller_id")
-    private int sellerid;
+    private Users sellerid;
 
     @Column(name = "title")
     private String title;
@@ -34,7 +34,7 @@ public class bikeListing {
     @Column(name = "model")
     private String model;
 
-    @Column(name = "condition ")
+    @Column(name = "condition")
     private String condition;
 
     @Column(name = "usage_time")
@@ -56,7 +56,7 @@ public class bikeListing {
     private String status;
 
     @Column(name = "views_count")
-    private String viewscount;
+    private int viewscount;
 
     @Column(name = "created_at")
     private LocalDateTime createdat;
@@ -67,7 +67,7 @@ public class bikeListing {
     public bikeListing() {
     }
 
-    public bikeListing(int listingid, int sellerid, String title, String description, String biketype, String brand, int manufactureyear, String model, String condition, String usagetime, String reasonforsale, double price, String locationcity, String pickupaddress, String status, String viewscount, LocalDateTime createdat, LocalDateTime updatedat) {
+    public bikeListing(int listingid, Users sellerid, String title, String description, String biketype, String brand, int manufactureyear, String model, String condition, String usagetime, String reasonforsale, double price, String locationcity, String pickupaddress, String status, int viewscount, LocalDateTime createdat, LocalDateTime updatedat) {
         this.listingid = listingid;
         this.sellerid = sellerid;
         this.title = title;
@@ -88,7 +88,7 @@ public class bikeListing {
         this.updatedat = updatedat;
     }
 
-    public bikeListing(int sellerid, String title, String description, String biketype, String brand, int manufactureyear, String model, String condition, String usagetime, String reasonforsale, double price, String locationcity, String pickupaddress, String status, String viewscount, LocalDateTime createdat, LocalDateTime updatedat) {
+    public bikeListing(Users sellerid, String title, String description, String biketype, String brand, int manufactureyear, String model, String condition, String usagetime, String reasonforsale, double price, String locationcity, String pickupaddress, String status, int viewscount, LocalDateTime createdat, LocalDateTime updatedat) {
         this.sellerid = sellerid;
         this.title = title;
         this.description = description;
@@ -116,11 +116,11 @@ public class bikeListing {
         this.listingid = listingid;
     }
 
-    public int getSellerid() {
+    public Users getSellerid() {
         return sellerid;
     }
 
-    public void setSellerid(int sellerid) {
+    public void setSellerid(Users sellerid) {
         this.sellerid = sellerid;
     }
 
@@ -228,11 +228,11 @@ public class bikeListing {
         this.status = status;
     }
 
-    public String getViewscount() {
+    public int getViewscount() {
         return viewscount;
     }
 
-    public void setViewscount(String viewscount) {
+    public void setViewscount(int viewscount) {
         this.viewscount = viewscount;
     }
 
