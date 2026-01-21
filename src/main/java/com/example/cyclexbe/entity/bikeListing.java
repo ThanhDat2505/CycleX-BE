@@ -14,7 +14,7 @@ public class bikeListing {
 
    @ManyToOne
    @JoinColumn(name = "seller_id")
-    private Users sellerid;
+    private User seller;
 
     @Column(name = "title")
     private String title;
@@ -67,9 +67,9 @@ public class bikeListing {
     public bikeListing() {
     }
 
-    public bikeListing(int listingid, Users sellerid, String title, String description, String biketype, String brand, int manufactureyear, String model, String condition, String usagetime, String reasonforsale, double price, String locationcity, String pickupaddress, String status, int viewscount, LocalDateTime createdat, LocalDateTime updatedat) {
+    public bikeListing(int listingid, User seller, String title, String description, String biketype, String brand, int manufactureyear, String model, String condition, String usagetime, String reasonforsale, double price, String locationcity, String pickupaddress, String status, int viewscount, LocalDateTime createdat, LocalDateTime updatedat) {
         this.listingid = listingid;
-        this.sellerid = sellerid;
+        this.seller = seller;
         this.title = title;
         this.description = description;
         this.biketype = biketype;
@@ -88,8 +88,8 @@ public class bikeListing {
         this.updatedat = updatedat;
     }
 
-    public bikeListing(Users sellerid, String title, String description, String biketype, String brand, int manufactureyear, String model, String condition, String usagetime, String reasonforsale, double price, String locationcity, String pickupaddress, String status, int viewscount, LocalDateTime createdat, LocalDateTime updatedat) {
-        this.sellerid = sellerid;
+    public bikeListing(User seller, String title, String description, String biketype, String brand, int manufactureyear, String model, String condition, String usagetime, String reasonforsale, double price, String locationcity, String pickupaddress, String status, int viewscount, LocalDateTime createdat, LocalDateTime updatedat) {
+        this.seller = seller;
         this.title = title;
         this.description = description;
         this.biketype = biketype;
@@ -116,12 +116,12 @@ public class bikeListing {
         this.listingid = listingid;
     }
 
-    public Users getSellerid() {
-        return sellerid;
+    public User getSeller() {
+        return seller;
     }
 
-    public void setSellerid(Users sellerid) {
-        this.sellerid = sellerid;
+    public void setSeller(User seller) {
+        this.seller = seller;
     }
 
     public String getTitle() {
