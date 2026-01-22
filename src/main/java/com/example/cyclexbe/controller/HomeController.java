@@ -1,4 +1,4 @@
-package com.example.learnspringboot.controller;
+package com.example.cyclexbe.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
