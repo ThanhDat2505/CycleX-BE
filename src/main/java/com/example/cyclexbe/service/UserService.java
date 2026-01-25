@@ -54,6 +54,10 @@ public class UserService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         return toResponse(u);
     }
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    }
 
     public UserResponse update(Integer id, UserUpdateRequest req) {
         User u = userRepository.findById(id)
@@ -83,10 +87,12 @@ public class UserService {
     }
 
     public void delete(Integer id) {
-        if (!userRepository.existsById(id)) {
+        User user = userRepository.findById(id).isPresent() ? userRepository.findById(id).get() : null;
+        if (user == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
-        userRepository.deleteById(id);
+        user.setStatus("DELETED");
+        userRepository.save(user);
     }
 
     private UserResponse toResponse(User u) {

@@ -15,11 +15,17 @@ public class UserCreateRequest {
     @Size(min = 6, max = 100, message = "Password is invalid")
     public String password;
 
-    public String fullName;
+    @NotBlank(message = "Phone is required")
     public String phone;
+
+    @NotBlank(message = "CCCD is required")
+    public String cccd;
+
+    public String fullName;
+
     public String role;
     public String status;
-    public String cccd;
+
     public String avatarUrl;
 
     public Boolean isVerify; // optional
