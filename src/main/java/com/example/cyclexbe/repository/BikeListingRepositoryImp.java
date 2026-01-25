@@ -1,0 +1,37 @@
+package com.example.cyclexbe.repository;
+
+import com.example.cyclexbe.dto.BikeListingHomeDTO;
+import com.example.cyclexbe.entity.BikeListings;
+import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+@Repository
+public class BikeListingRepositoryImp implements BikeListingRepository {
+    private EntityManager entity;
+    @Autowired
+    public BikeListingRepositoryImp(EntityManager entity) {
+        this.entity = entity;
+    }
+
+    @Override
+    public List<BikeListingHomeDTO> findAll() {
+        String jpql = """
+    SELECT new com.example.cyclexbe.dto.BikeListingHomeDTO(
+        b.listingId,
+        b.title,
+        b.price,
+        b.locationCity,
+        b.imageUrl
+    )
+    FROM BikeListings b
+    WHERE b.status = :status
+""";
+
+        return entity
+                .createQuery(jpql, BikeListingHomeDTO.class)
+                .setParameter("status", "ACTIVE")
+                .getResultList();
+    }
+}
