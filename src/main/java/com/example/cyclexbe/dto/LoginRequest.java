@@ -6,6 +6,7 @@ import org.hibernate.validator.constraints.Length;
 
 public class LoginRequest {
     @Email(message = "Email is invalid")
+    @NotBlank(message = "Email is required")
     public String email;
 
     @NotBlank(message = "Password is required")
