@@ -1,5 +1,6 @@
 package com.example.cyclexbe.controller;
 
+
 import com.example.cyclexbe.dto.BikeListingHomeDTO;
 import com.example.cyclexbe.service.ListingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,20 +12,22 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/home")
-public class HomeController {
+@RequestMapping("/api/listings/")
+public class ListingController {
     private ListingService service;
 
     @Autowired
-    public HomeController(ListingService service) {
+    public ListingController(ListingService service) {
         this.service = service;
     }
+    @GetMapping("/pagination")
+    //Phân trang
+    public List<BikeListingHomeDTO> Pagination(@RequestParam(defaultValue = "0") int page){
+        return service.getFilterPage(page);
+    }
 
-
-
-    @GetMapping
-    //Danh sách sản phẩm có Active
-    public List<BikeListingHomeDTO> list() {
-    return service.getAllList();
+    @GetMapping("/search")
+    public List<BikeListingHomeDTO> search(@RequestParam String keyword,@RequestParam(defaultValue = "0") int page){
+        return service.getSearch(keyword,page);
     }
 }

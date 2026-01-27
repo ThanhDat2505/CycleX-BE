@@ -1,7 +1,6 @@
 package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.dto.BikeListingHomeDTO;
-import com.example.cyclexbe.entity.BikeListings;
 import com.example.cyclexbe.repository.BikeListingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -9,12 +8,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class HomeServiceImp implements HomeService{
+public class ListingServiceImp implements ListingService {
 
     private BikeListingRepository repository;
 
     @Autowired
-    public HomeServiceImp(BikeListingRepository repository) {
+    public ListingServiceImp(BikeListingRepository repository) {
         this.repository = repository;
     }
 
@@ -23,5 +22,17 @@ public class HomeServiceImp implements HomeService{
     @Override
     public List<BikeListingHomeDTO> getAllList() {
         return repository.findAll();
+    }
+
+    @Override
+    public List<BikeListingHomeDTO> getFilterPage(int page) {
+    int size=10;
+    return repository.filterPage(page,size);
+    }
+
+    @Override
+    public List<BikeListingHomeDTO> getSearch(String keyword, int page) {
+       int size=10;
+       return repository.search(keyword,page,size);
     }
 }

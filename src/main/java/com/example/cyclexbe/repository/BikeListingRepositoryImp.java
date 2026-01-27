@@ -22,16 +22,67 @@ public class BikeListingRepositoryImp implements BikeListingRepository {
         b.listingId,
         b.title,
         b.price,
-        b.locationCity,
-        b.imageUrl
+        i.imageUrl,
+        b.locationCity
     )
     FROM BikeListings b
+    JOIN b.images i
     WHERE b.status = :status
-""";
+      AND i.isMain = true
+    """;
 
         return entity
                 .createQuery(jpql, BikeListingHomeDTO.class)
                 .setParameter("status", "ACTIVE")
                 .getResultList();
     }
+
+    @Override
+    public List<BikeListingHomeDTO> filterPage(int page,int size) {
+        String jpql = """
+    SELECT new com.example.cyclexbe.dto.BikeListingHomeDTO(
+        b.listingId,
+        b.title,
+        b.price,
+        i.imageUrl,
+        b.locationCity
+    )
+    FROM BikeListings b
+    JOIN b.images i
+    WHERE b.status = :status
+      AND i.isMain = true
+    """;
+        return entity.createQuery(jpql, BikeListingHomeDTO.class)
+                .setParameter("status", "ACTIVE")
+                .setFirstResult(page * size)   // OFFSET
+                .setMaxResults(size)           // LIMIT
+                .getResultList();
+    }
+
+    @Override
+    public List<BikeListingHomeDTO> search(String keyword, int page, int size) {
+        String jpql = """
+        SELECT new com.example.cyclexbe.dto.BikeListingHomeDTO(
+            b.listingId,
+            b.title,
+            b.price,
+            i.imageUrl,
+            b.locationCity
+        )
+        FROM BikeListings b
+        JOIN b.images i
+        WHERE b.status = 'ACTIVE'
+          AND i.isMain = true
+          AND LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        ORDER BY b.createdAt DESC
+    """;
+
+        return entity.createQuery(jpql, BikeListingHomeDTO.class)
+                .setParameter("keyword", keyword)
+                .setFirstResult(page * size)   // OFFSET
+                .setMaxResults(size)           // LIMIT
+                .getResultList();
+    }
+
+
 }

@@ -1,10 +1,11 @@
 package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.dto.BikeListingHomeDTO;
-import com.example.cyclexbe.entity.BikeListings;
 
 import java.util.List;
 
-public interface HomeService {
+public interface ListingService {
     public List<BikeListingHomeDTO> getAllList();
+    public List<BikeListingHomeDTO> getFilterPage(int page);
+    public List<BikeListingHomeDTO> getSearch(String keyword,int page);
 }

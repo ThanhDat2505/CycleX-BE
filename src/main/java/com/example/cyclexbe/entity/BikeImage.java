@@ -3,9 +3,10 @@ package com.example.cyclexbe.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 
-    @Entity
+@Entity
     @Table(name = "BikeImages")
     public class BikeImage {
 
@@ -92,5 +93,7 @@ import java.time.LocalDateTime;
             return uploadedAt;
         }
 
+        @OneToMany(mappedBy = "bikeListing")
+        private List<BikeImage> images;
 
 }
