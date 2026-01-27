@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 
-    @Entity
+@Entity
     @Table(name = "BikeListings")
     public class BikeListings {
 
@@ -230,5 +232,6 @@ import java.time.LocalDateTime;
             this.updatedAt = updatedAt;
         }
 
-
+        @OneToMany(mappedBy = "bikeListing", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<BikeImage> images = new ArrayList<>();
 }

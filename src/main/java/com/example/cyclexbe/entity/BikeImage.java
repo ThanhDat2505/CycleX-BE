@@ -93,7 +93,6 @@ import java.util.List;
             return uploadedAt;
         }
 
-        @OneToMany(mappedBy = "bikeListing")
-        private List<BikeImage> images;
+
 
 }
