@@ -1,15 +1,13 @@
 package com.example.cyclexbe.controller;
 
 
+import com.example.cyclexbe.dto.BikeListingDetail;
 import com.example.cyclexbe.dto.BikeListingHomeDTO;
 import com.example.cyclexbe.exception.BadRequestException;
 import com.example.cyclexbe.service.ListingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -44,5 +42,11 @@ public class ListingController {
         }
         List<BikeListingHomeDTO> list= service.getSearch(keyword,page);
         return ResponseEntity.ok(list);
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<BikeListingDetail> detail(@PathVariable int id){
+        service.getIncreaseview(id);
+        BikeListingDetail dto=service.listingdetail(id);
+       return ResponseEntity.ok(dto);
     }
 }

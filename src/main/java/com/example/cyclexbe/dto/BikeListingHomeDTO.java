@@ -7,20 +7,18 @@ public class BikeListingHomeDTO {
     private BigDecimal price;
     private String imageUrl;
     private String locationCity;
+    private Integer viewCount;
 
     public BikeListingHomeDTO() {
     }
 
-    public BikeListingHomeDTO(Integer listingId,
-                              String title,
-                              BigDecimal price,
-                              String imageUrl,
-                              String locationCity) {
+    public BikeListingHomeDTO(Integer listingId, String title, BigDecimal price, String imageUrl, String locationCity, Integer viewCount) {
         this.listingId = listingId;
         this.title = title;
         this.price = price;
         this.imageUrl = imageUrl;
         this.locationCity = locationCity;
+        this.viewCount = viewCount;
     }
 
     public Integer getListingId() {
@@ -63,5 +61,11 @@ public class BikeListingHomeDTO {
         this.locationCity = locationCity;
     }
 
+    public Integer getViewCount() {
+        return viewCount;
+    }
 
+    public void setViewCount(Integer viewCount) {
+        this.viewCount = viewCount;
+    }
 }

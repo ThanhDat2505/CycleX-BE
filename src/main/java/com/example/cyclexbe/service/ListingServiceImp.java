@@ -1,9 +1,11 @@
 package com.example.cyclexbe.service;
 
+import com.example.cyclexbe.dto.BikeListingDetail;
 import com.example.cyclexbe.dto.BikeListingHomeDTO;
 import com.example.cyclexbe.repository.BikeListingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -34,5 +36,17 @@ public class ListingServiceImp implements ListingService {
     public List<BikeListingHomeDTO> getSearch(String keyword, int page) {
        int size=10;
        return repository.search(keyword,page,size);
+    }
+
+    @Override
+    @Transactional
+    public void getIncreaseview(int listingId) {
+        repository.increaseview(listingId);
+    }
+
+    @Override
+    public BikeListingDetail listingdetail(int listingId) {
+        BikeListingDetail dto=repository.listingdetail(listingId);
+        return dto;
     }
 }
