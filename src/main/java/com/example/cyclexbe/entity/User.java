@@ -1,5 +1,7 @@
 package com.example.cyclexbe.entity;
 
+import com.example.cyclexbe.domain.enums.Role;
+import com.example.cyclexbe.domain.enums.Role;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -18,23 +20,28 @@ public class User {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
-    @Column(name = "full_name", length = 150)
-    private String fullName;
-
     @Column(name = "phone", length = 30)
     private String phone;
 
+    @Column(name = "cccd", length = 30)
+    private String cccd;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "role", length = 50)
-    private String role;
+    private Role role = Role.BUYER;
+
+    @Column(name = "full_name", length = 150)
+    private String fullName;
+
+
+
 
     @Column(name = "is_verify", nullable = false)
     private boolean isVerify = false;
 
     @Column(name = "status", length = 30)
-    private String status;
+    private String status = "ACTIVE";
 
-    @Column(name = "cccd", length = 30)
-    private String cccd;
 
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
@@ -82,8 +89,8 @@ public class User {
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
 
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
+    public Role getRole() { return role; }
+    public void setRole(Role role) { this.role = role; }
 
     public boolean isVerify() { return isVerify; }
     public void setVerify(boolean verify) { isVerify = verify; }

@@ -27,4 +27,14 @@ public class AuthController {
     public RegisterResponse register(@Valid @RequestBody UserCreateRequest req) {
         return authService.register(req);
     }
+
+    @PostMapping("/verify-otp")
+    public VerifyOtpResponse verifyOtp(@Valid @RequestBody VerifyOtpRequest req) {
+        return authService.verifyOtp(req);
+    }
+
+    @PostMapping("/send-otp")
+    public SendOtpResponse resendOtp(@Valid @RequestBody SendOtpRequest req) {
+        return authService.sendOtp(req);
+    }
 }

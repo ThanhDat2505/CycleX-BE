@@ -1,5 +1,6 @@
 package com.example.cyclexbe.dto;
 
+import com.example.cyclexbe.domain.enums.Role;
 import com.example.cyclexbe.entity.User;
 
 import java.time.LocalDateTime;
@@ -10,7 +11,7 @@ public class UserResponse {
     public String email;
     public String fullName;
     public String phone;
-    public String role;
+    public Role role;
     public boolean isVerify;
     public String status;
     public String cccd;
@@ -21,7 +22,7 @@ public class UserResponse {
     public LocalDateTime lastLogin;
 
     public UserResponse() {}
-    public UserResponse(Integer userId, String email, String fullName, String phone, String role, boolean isVerify, String status, String cccd, String avatarUrl, LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime lastLogin) {
+    public UserResponse(Integer userId, String email, String fullName, String phone, Role role, boolean isVerify, String status, String cccd, String avatarUrl, LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime lastLogin) {
         this.userId = userId;
         this.email = email;
         this.fullName = fullName;

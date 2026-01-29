@@ -1,5 +1,6 @@
 package com.example.cyclexbe.dto;
 
+import com.example.cyclexbe.domain.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
@@ -14,10 +15,9 @@ public class UserUpdateRequest {
 
     public String fullName;
     public String phone;
-    public String role;
+    public Role role;
     public String status;
     public String cccd;
     public String avatarUrl;
-
     public Boolean isVerify;
 }

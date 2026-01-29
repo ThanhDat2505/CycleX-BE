@@ -13,11 +13,12 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AuthService {
     private final UserService userService;
+    private final OtpService otpService;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
-
-    public AuthService(UserService userService, PasswordEncoder passwordEncoder, JwtProvider jwtProvider) {
+    public AuthService(UserService userService, OtpService otpService, PasswordEncoder passwordEncoder, JwtProvider jwtProvider) {
         this.userService = userService;
+        this.otpService = otpService;
         this.passwordEncoder = passwordEncoder;
         this.jwtProvider = jwtProvider;
     }
@@ -28,6 +29,12 @@ public class AuthService {
             System.out.println("Invalid credentials");
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED, "Invalid credentials"
+            );
+        }
+        if (!user.isVerify()) {
+            System.out.println("Please verify your email");
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Please verify your email"
             );
         }
         LoginResponse response = new LoginResponse();
@@ -45,4 +52,24 @@ public class AuthService {
         response.user = user;
         return response;
     }
+
+    public SendOtpResponse sendOtp(@Valid @RequestBody SendOtpRequest req ) {
+        String otp = otpService.sendOtp(req.email);
+        SendOtpResponse response = new SendOtpResponse();
+//        response.otp = otp;
+        response.message = "OTP sent successfully";
+        return response;
+    }
+
+    public VerifyOtpResponse verifyOtp(@Valid @RequestBody VerifyOtpRequest req) {
+        User user = userService.findByEmail(req.email);
+        otpService.verifyOtp(req.email, req.otp);
+        VerifyOtpResponse response = new VerifyOtpResponse();
+        response.message = "Email verified successfully";
+        response.user = UserResponse.from(user);
+        return response;
+    }
+
+
+
 }

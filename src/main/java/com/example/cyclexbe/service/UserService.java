@@ -5,7 +5,6 @@ import com.example.cyclexbe.dto.UserResponse;
 import com.example.cyclexbe.dto.UserUpdateRequest;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.UserRepository;
-import com.example.cyclexbe.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +22,9 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
+    public User save(User user) {
+        return userRepository.save(user);
+    }
     public UserResponse create(UserCreateRequest req) {
         if (userRepository.existsByEmail(req.email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
@@ -35,7 +37,8 @@ public class UserService {
         u.setFullName(req.fullName);
         u.setPhone(req.phone);
         u.setRole(req.role);
-        u.setStatus(req.status);
+        // do not overwrite the entity default status when request.status is null
+        if (req.status != null) u.setStatus(req.status);
         u.setCccd(req.cccd);
         u.setAvatarUrl(req.avatarUrl);
 
