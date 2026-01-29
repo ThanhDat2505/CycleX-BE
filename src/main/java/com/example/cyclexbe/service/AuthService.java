@@ -31,12 +31,7 @@ public class AuthService {
                     HttpStatus.UNAUTHORIZED, "Invalid credentials"
             );
         }
-        if (!user.isVerify()) {
-            System.out.println("Please verify your email");
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, "Please verify your email"
-            );
-        }
+
         LoginResponse response = new LoginResponse();
         response.accessToken = jwtProvider.generateToken(user);
         response.tokenType = "Bearer";
