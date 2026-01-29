@@ -29,7 +29,7 @@ public class ListingServiceImp implements ListingService {
     @Override
     public List<BikeListingHomeDTO> getFilterPage(int page) {
     int size=10;
-    return repository.filterPage(page,size);
+    return repository.pagination(page,size);
     }
 
     @Override

@@ -36,12 +36,12 @@ public class BikeListingRepositoryImp implements BikeListingRepository {
 
         return entity.createQuery(jpql, BikeListingHomeDTO.class)
                 .setParameter("status", "ACTIVE")
-                .setMaxResults(8) // Home: top N nổi bật (không phân trang)
+                .setMaxResults(10) // Home: top N nổi bật (không phân trang)
                 .getResultList();
     }
 
     @Override
-    public List<BikeListingHomeDTO> filterPage(int page,int size) {
+    public List<BikeListingHomeDTO> pagination(int page, int size) {
         String jpql = """
     SELECT new com.example.cyclexbe.dto.BikeListingHomeDTO(
         b.listingId,
