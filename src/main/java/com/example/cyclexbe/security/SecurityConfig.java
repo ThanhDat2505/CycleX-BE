@@ -2,6 +2,7 @@ package com.example.cyclexbe.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -31,6 +32,12 @@ public class SecurityConfig {
                         // public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         // nếu bạn có swagger sau này thì mở thêm ở đây
+                        .requestMatchers(HttpMethod.GET, "/api/bikelistings", "/api/bikelistings/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/bikelistings").permitAll() // <-- thêm dòng này
+                        .requestMatchers(HttpMethod.PUT, "/api/bikelistings/**").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/bikelistings/**").permitAll()
+
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
