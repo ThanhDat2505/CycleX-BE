@@ -1,0 +1,582 @@
+{
+  "info": {
+    "_postman_id": "seller-api-collection",
+    "name": "CycleX-BE Seller API",
+    "description": "Complete API collection for testing Seller endpoints (Batch 1 + Batch 2)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Batch 1 - Read Operations",
+      "item": [
+        {
+          "name": "1. Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/dashboard/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "dashboard",
+                "stats"
+              ]
+            },
+            "description": "Get seller dashboard statistics"
+          }
+        },
+        {
+          "name": "2. Search Listings (No Filter)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings/search",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings",
+                "search"
+              ]
+            },
+            "description": "List all seller's listings"
+          }
+        },
+        {
+          "name": "2. Search Listings (Filter by Status)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"status\": \"APPROVED\",\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings/search",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings",
+                "search"
+              ]
+            },
+            "description": "Search listings by status"
+          }
+        },
+        {
+          "name": "2. Search Listings (Filter by Title & Brand)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"title\": \"Honda\",\n  \"brand\": \"Honda\",\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings/search",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings",
+                "search"
+              ]
+            },
+            "description": "Search listings by title and brand"
+          }
+        },
+        {
+          "name": "2. Search Listings (Filter by Price Range)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"minPrice\": 30000000,\n  \"maxPrice\": 50000000,\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings/search",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings",
+                "search"
+              ]
+            },
+            "description": "Search listings by price range"
+          }
+        },
+        {
+          "name": "3. Get Listing Detail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings/detail",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings",
+                "detail"
+              ]
+            },
+            "description": "Get complete detail of a listing"
+          }
+        },
+        {
+          "name": "4. Get Rejection Reason",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"listingId\": 3\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings/rejection",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings",
+                "rejection"
+              ]
+            },
+            "description": "Get rejection reason for rejected listing"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Batch 2 - Create & Submit",
+      "item": [
+        {
+          "name": "5. Create Draft Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"title\": \"Honda CB150R 2023\",\n  \"description\": \"Xe máy cũ, còn tốt\",\n  \"bikeType\": \"Motorcycle\",\n  \"brand\": \"Honda\",\n  \"model\": \"CB150R\",\n  \"manufactureYear\": 2023,\n  \"condition\": \"Good\",\n  \"usageTime\": \"2 years\",\n  \"reasonForSale\": \"Muốn nâng cấp\",\n  \"price\": 45000000,\n  \"locationCity\": \"Ho Chi Minh\",\n  \"pickupAddress\": \"123 Tran Hung Dao St\",\n  \"saveDraft\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings"
+              ]
+            },
+            "description": "Create new listing as DRAFT"
+          }
+        },
+        {
+          "name": "5. Create & Auto-Submit Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"title\": \"Yamaha YZF-R15\",\n  \"bikeType\": \"Motorcycle\",\n  \"brand\": \"Yamaha\",\n  \"model\": \"YZF-R15\",\n  \"price\": 50000000,\n  \"locationCity\": \"Hanoi\",\n  \"saveDraft\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings"
+              ]
+            },
+            "description": "Create and directly submit to PENDING (saveDraft=false)"
+          }
+        },
+        {
+          "name": "6. Submit Listing for Approval",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings/1/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings",
+                "1",
+                "submit"
+              ]
+            },
+            "description": "Submit DRAFT listing to PENDING for admin approval"
+          }
+        },
+        {
+          "name": "7. Preview Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings/preview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings",
+                "preview"
+              ]
+            },
+            "description": "Preview listing before submitting"
+          }
+        },
+        {
+          "name": "8. Get All Drafts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"sort\": \"newest\",\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/drafts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "drafts"
+              ]
+            },
+            "description": "List all draft listings"
+          }
+        },
+        {
+          "name": "9. Delete Draft",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/drafts/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "drafts",
+                "1"
+              ]
+            },
+            "description": "Delete a draft listing"
+          }
+        },
+        {
+          "name": "10. Submit Draft for Approval",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/drafts/1/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "drafts",
+                "1",
+                "submit"
+              ]
+            },
+            "description": "Submit DRAFT listing from drafts endpoint"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Test Cases",
+      "item": [
+        {
+          "name": "Error: Missing Required Field (title)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"bikeType\": \"Motorcycle\",\n  \"brand\": \"Honda\",\n  \"model\": \"CB150R\",\n  \"price\": 45000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings"
+              ]
+            },
+            "description": "Should return 400: title is required"
+          }
+        },
+        {
+          "name": "Error: Seller Not Found",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 99999\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/dashboard/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "dashboard",
+                "stats"
+              ]
+            },
+            "description": "Should return 404: Seller not found"
+          }
+        },
+        {
+          "name": "Error: Submit Non-DRAFT Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings/1/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings",
+                "1",
+                "submit"
+              ]
+            },
+            "description": "Should return 400: Only DRAFT listings can be submitted"
+          }
+        },
+        {
+          "name": "Error: Delete Non-DRAFT Listing",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/drafts/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "drafts",
+                "1"
+              ]
+            },
+            "description": "Should return 400: Only DRAFT listings can be deleted"
+          }
+        },
+        {
+          "name": "Error: Invalid Status Filter",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": 1,\n  \"status\": \"INVALID_STATUS\",\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/seller/listings/search",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "listings",
+                "search"
+              ]
+            },
+            "description": "Should return 400: Invalid status"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ]
+}

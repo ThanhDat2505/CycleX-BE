@@ -29,14 +29,24 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // public endpoints
+                        // public endpoints - Auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        // nếu bạn có swagger sau này thì mở thêm ở đây
+
+                        // public endpoints - BikeListings (Read)
                         .requestMatchers(HttpMethod.GET, "/api/bikelistings", "/api/bikelistings/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/bikelistings").permitAll() // <-- thêm dòng này
+                        .requestMatchers(HttpMethod.POST, "/api/bikelistings").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/bikelistings/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/bikelistings/**").permitAll()
 
+                        // Authenticated endpoints - Seller (Batch 1)
+                        .requestMatchers(HttpMethod.GET, "/api/seller/dashboard/stats").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/seller/listings/search").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/seller/listings/detail").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/seller/listings/rejection").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/seller/listings/**").permitAll()
+
+                        // Authenticated endpoints - Seller (Future batches)
+                        .requestMatchers("/api/seller/**").authenticated()
 
                         .anyRequest().authenticated()
                 )
