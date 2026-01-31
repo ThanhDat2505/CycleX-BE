@@ -1,0 +1,187 @@
+package com.example.cyclexbe.service;
+
+import com.example.cyclexbe.domain.enums.BikeListingStatus;
+import com.example.cyclexbe.dto.*;
+import com.example.cyclexbe.entity.BikeListing;
+import com.example.cyclexbe.entity.User;
+import com.example.cyclexbe.repository.BikeListingRepository;
+import com.example.cyclexbe.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+@Service
+public class InspectorService {
+
+    private final BikeListingRepository bikeListingRepository;
+    private final UserRepository userRepository;
+
+    public InspectorService(BikeListingRepository bikeListingRepository, UserRepository userRepository) {
+        this.bikeListingRepository = bikeListingRepository;
+        this.userRepository = userRepository;
+    }
+
+    /**
+     * S-20: Get inspector dashboard statistics
+     */
+    public InspectorDashboardStatsResponse getDashboardStats(Integer inspectorId) {
+        User inspector = userRepository.findById(inspectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+
+        long pendingCount = bikeListingRepository.countByStatus(BikeListingStatus.PENDING);
+        long reviewingCount = bikeListingRepository.countByStatus(BikeListingStatus.PENDING); // TODO: Add REVIEWING status
+        long approvedCount = bikeListingRepository.countByStatus(BikeListingStatus.APPROVED);
+        long rejectedCount = bikeListingRepository.countByStatus(BikeListingStatus.REJECTED);
+        long disputeCount = 0; // TODO: Count from disputes table
+
+        return new InspectorDashboardStatsResponse(pendingCount, reviewingCount, approvedCount, rejectedCount, disputeCount);
+    }
+
+    /**
+     * S-21: Get listings for review
+     */
+    public Page<SellerListingResponse> getListingsForReview(String status, String sort, int page, int pageSize) {
+        Sort.Direction direction = "oldest".equalsIgnoreCase(sort) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by(direction, "createdAt"));
+
+        Page<BikeListing> result;
+
+        if ("PENDING".equalsIgnoreCase(status)) {
+            result = bikeListingRepository.findByStatus(BikeListingStatus.PENDING, pageable);
+        } else if ("REVIEWING".equalsIgnoreCase(status)) {
+            // TODO: Add REVIEWING status to BikeListingStatus enum
+            result = bikeListingRepository.findByStatus(BikeListingStatus.PENDING, pageable);
+        } else {
+            // ALL - get both PENDING and REVIEWING
+            result = bikeListingRepository.findByStatus(BikeListingStatus.PENDING, pageable);
+        }
+
+        return result.map(SellerListingResponse::from);
+    }
+
+    /**
+     * S-22/S-23: Get listing detail for review
+     */
+    public PreviewListingResponse getListingDetail(Integer listingId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        return PreviewListingResponse.from(listing);
+    }
+
+    /**
+     * S-22: Lock listing for review
+     */
+    public BikeListingResponse lockListing(Integer listingId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        if (listing.getStatus() != BikeListingStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING listings can be locked");
+        }
+
+        // TODO: Change status to REVIEWING (add REVIEWING to enum)
+        // listing.setStatus(BikeListingStatus.REVIEWING);
+        // TODO: Record lock timestamp
+
+        BikeListing saved = bikeListingRepository.save(listing);
+        return BikeListingResponse.from(saved);
+    }
+
+    /**
+     * S-22: Unlock listing
+     */
+    public BikeListingResponse unlockListing(Integer listingId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        // TODO: Verify status is REVIEWING
+        // TODO: Revert to PENDING if no decision made
+
+        BikeListing saved = bikeListingRepository.save(listing);
+        return BikeListingResponse.from(saved);
+    }
+
+    /**
+     * S-23: Approve listing
+     */
+    public BikeListingResponse approveListing(Integer listingId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        // TODO: Verify status is REVIEWING
+        listing.setStatus(BikeListingStatus.APPROVED);
+        // TODO: Record approval decision
+        // TODO: Notify seller
+
+        BikeListing saved = bikeListingRepository.save(listing);
+        return BikeListingResponse.from(saved);
+    }
+
+    /**
+     * S-23: Reject listing
+     */
+    public BikeListingResponse rejectListing(Integer listingId, String reasonCode, String reasonText, String note) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        if (listing.getStatus() != BikeListingStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING listings can be rejected");
+        }
+
+        listing.setStatus(BikeListingStatus.REJECTED);
+        // TODO: Save rejection reason (code, text, note) to new table
+        // TODO: Notify seller with reason
+
+        BikeListing saved = bikeListingRepository.save(listing);
+        return BikeListingResponse.from(saved);
+    }
+
+    /**
+     * S-24: Get review history
+     */
+    public Page<?> getReviewHistory(Integer inspectorId, String from, String to, int page, int pageSize) {
+        User inspector = userRepository.findById(inspectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+
+        // TODO: Query review_decisions table with date range filter
+        // TODO: Return paginated results
+
+        return Page.empty();
+    }
+
+    /**
+     * S-24: Get review detail
+     */
+    public Object getReviewDetail(Integer reviewId) {
+        // TODO: Query review_decisions table by review_id
+        // TODO: Return complete review details
+
+        return null;
+    }
+
+    /**
+     * Get disputes
+     */
+    public Page<?> getDisputes(String status, int page, int pageSize) {
+        // TODO: Query disputes table
+        // TODO: Filter by status (OPEN, RESOLVED)
+        // TODO: Return paginated results
+
+        return Page.empty();
+    }
+
+    /**
+     * Get dispute detail
+     */
+    public Object getDisputeDetail(Integer disputeId) {
+        // TODO: Query disputes table by dispute_id
+        // TODO: Include related listing, buyer, seller info
+
+        return null;
+    }
+}

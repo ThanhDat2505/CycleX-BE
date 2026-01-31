@@ -22,7 +22,7 @@ public class SellerController {
     // S-10: Seller Dashboard
     @GetMapping("/dashboard/stats")
     public ResponseEntity<SellerDashboardStatsResponse> getDashboardStats(
-            @Valid @RequestBody GetDashboardStatsRequest req) {
+            @Valid @RequestBody GetSellerDashboardStatsRequest req) {
         SellerDashboardStatsResponse stats = sellerService.getDashboardStats(req.sellerId);
         return ResponseEntity.ok(stats);
     }

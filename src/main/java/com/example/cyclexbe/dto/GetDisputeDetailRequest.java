@@ -2,9 +2,12 @@ package com.example.cyclexbe.dto;
 
 import jakarta.validation.constraints.NotNull;
 
-public class GetDashboardStatsRequest {
+public class GetDisputeDetailRequest {
     @NotNull(message = "Inspector ID is required")
     public Integer inspectorId;
 
-    public GetDashboardStatsRequest() {}
+    @NotNull(message = "Dispute ID is required")
+    public Integer disputeId;
+
+    public GetDisputeDetailRequest() {}
 }
