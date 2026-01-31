@@ -1,0 +1,775 @@
+{
+  "info": {
+    "_postman_id": "inspector-api-collection",
+    "name": "CycleX-BE Inspector API",
+    "description": "Complete API collection for testing Inspector endpoints (11 endpoints)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "S-20 - Dashboard",
+      "item": [
+        {
+          "name": "1. Inspector Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/dashboard/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "dashboard",
+                "stats"
+              ]
+            },
+            "description": "Get inspector dashboard statistics with counts of PENDING, REVIEWING, APPROVED, REJECTED, and DISPUTE listings"
+          }
+        }
+      ]
+    },
+    {
+      "name": "S-21 - List Listings",
+      "item": [
+        {
+          "name": "2. Get Listings for Review (ALL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"status\": \"ALL\",\n  \"sort\": \"newest\",\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings"
+              ]
+            },
+            "description": "List all listings (PENDING and REVIEWING)"
+          }
+        },
+        {
+          "name": "2. Get Listings for Review (PENDING only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"status\": \"PENDING\",\n  \"sort\": \"newest\",\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings"
+              ]
+            },
+            "description": "List PENDING listings only"
+          }
+        },
+        {
+          "name": "2. Get Listings for Review (REVIEWING only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"status\": \"REVIEWING\",\n  \"sort\": \"newest\",\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings"
+              ]
+            },
+            "description": "List REVIEWING listings only"
+          }
+        },
+        {
+          "name": "2. Get Listings (Oldest first)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"status\": \"ALL\",\n  \"sort\": \"oldest\",\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings"
+              ]
+            },
+            "description": "List listings sorted by oldest first"
+          }
+        }
+      ]
+    },
+    {
+      "name": "S-22/S-23 - Review Detail & Actions",
+      "item": [
+        {
+          "name": "3. Get Listing Detail for Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings/detail",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings",
+                "detail"
+              ]
+            },
+            "description": "Get complete listing details for review"
+          }
+        },
+        {
+          "name": "4. Lock Listing for Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings/1/lock",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings",
+                "1",
+                "lock"
+              ]
+            },
+            "description": "Lock listing (PENDING → REVIEWING) to prevent seller editing"
+          }
+        },
+        {
+          "name": "5. Unlock Listing from Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings/1/unlock",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings",
+                "1",
+                "unlock"
+              ]
+            },
+            "description": "Unlock listing and revert to PENDING"
+          }
+        },
+        {
+          "name": "6. Approve Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings/1/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings",
+                "1",
+                "approve"
+              ]
+            },
+            "description": "Approve listing (REVIEWING → APPROVED)"
+          }
+        },
+        {
+          "name": "7. Reject Listing (DUPLICATE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"listingId\": 1,\n  \"reasonCode\": \"DUPLICATE\",\n  \"reasonText\": \"This bike listing is a duplicate of listing #5\",\n  \"note\": \"Same bike model and location\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings/1/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings",
+                "1",
+                "reject"
+              ]
+            },
+            "description": "Reject listing with reason code DUPLICATE"
+          }
+        },
+        {
+          "name": "7. Reject Listing (INVALID_INFO)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"listingId\": 2,\n  \"reasonCode\": \"INVALID_INFO\",\n  \"reasonText\": \"Invalid or misleading information in listing\",\n  \"note\": \"Price does not match bike specifications\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings/2/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings",
+                "2",
+                "reject"
+              ]
+            },
+            "description": "Reject listing with reason code INVALID_INFO"
+          }
+        },
+        {
+          "name": "7. Reject Listing (LOW_QUALITY)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"listingId\": 3,\n  \"reasonCode\": \"LOW_QUALITY\",\n  \"reasonText\": \"Low quality photos and description\",\n  \"note\": \"Need better images and more detailed description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings/3/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings",
+                "3",
+                "reject"
+              ]
+            },
+            "description": "Reject listing with reason code LOW_QUALITY"
+          }
+        },
+        {
+          "name": "7. Reject Listing (INAPPROPRIATE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"listingId\": 4,\n  \"reasonCode\": \"INAPPROPRIATE\",\n  \"reasonText\": \"Inappropriate content in listing\",\n  \"note\": \"Description contains offensive language\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings/4/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings",
+                "4",
+                "reject"
+              ]
+            },
+            "description": "Reject listing with reason code INAPPROPRIATE"
+          }
+        }
+      ]
+    },
+    {
+      "name": "S-24 - Review History",
+      "item": [
+        {
+          "name": "8. Get Review History (No Date Filter)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/reviews",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "reviews"
+              ]
+            },
+            "description": "Get all review history"
+          }
+        },
+        {
+          "name": "8. Get Review History (With Date Range)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"from\": \"2026-01-01\",\n  \"to\": \"2026-01-31\",\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/reviews",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "reviews"
+              ]
+            },
+            "description": "Get review history with date range filter"
+          }
+        },
+        {
+          "name": "9. Get Review Detail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"reviewId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/reviews/detail",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "reviews",
+                "detail"
+              ]
+            },
+            "description": "Get detail of a specific review"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dispute - Management",
+      "item": [
+        {
+          "name": "10. Get Disputes (All)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/disputes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "disputes"
+              ]
+            },
+            "description": "Get all disputes"
+          }
+        },
+        {
+          "name": "10. Get Disputes (OPEN only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"status\": \"OPEN\",\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/disputes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "disputes"
+              ]
+            },
+            "description": "Get OPEN disputes only"
+          }
+        },
+        {
+          "name": "10. Get Disputes (RESOLVED only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"status\": \"RESOLVED\",\n  \"page\": 0,\n  \"pageSize\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/disputes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "disputes"
+              ]
+            },
+            "description": "Get RESOLVED disputes only"
+          }
+        },
+        {
+          "name": "11. Get Dispute Detail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"disputeId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/disputes/detail",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "disputes",
+                "detail"
+              ]
+            },
+            "description": "Get detail of a specific dispute"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Test Cases",
+      "item": [
+        {
+          "name": "Error: Missing Inspector ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/dashboard/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "dashboard",
+                "stats"
+              ]
+            },
+            "description": "Should return 400: inspectorId is required"
+          }
+        },
+        {
+          "name": "Error: Inspector Not Found",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 99999\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/dashboard/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "dashboard",
+                "stats"
+              ]
+            },
+            "description": "Should return 404: Inspector not found"
+          }
+        },
+        {
+          "name": "Error: Listing Not Found",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"listingId\": 99999\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings/detail",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings",
+                "detail"
+              ]
+            },
+            "description": "Should return 404: Listing not found"
+          }
+        },
+        {
+          "name": "Error: Invalid Page",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"page\": -1,\n  \"pageSize\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings"
+              ]
+            },
+            "description": "Should return 400: Invalid page and pageSize"
+          }
+        },
+        {
+          "name": "Error: Missing Required Fields (Reject)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectorId\": 1,\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inspector/listings/1/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "inspector",
+                "listings",
+                "1",
+                "reject"
+              ]
+            },
+            "description": "Should return 400: Missing reasonCode and reasonText"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "inspector_id",
+      "value": "1",
+      "type": "string"
+    }
+  ]
+}
