@@ -34,8 +34,10 @@ public class InspectorController {
     @GetMapping("/dashboard/stats")
     public ResponseEntity<InspectorDashboardStatsResponse> getDashboardStats(
             @Valid @RequestBody GetDashboardStatsRequest req) {
-        InspectorDashboardStatsResponse stats = inspectorService.getDashboardStats(req.inspectorId);
-        return ResponseEntity.ok(stats);
+        System.out.println("inspectorId = " + req.inspectorId);
+        return ResponseEntity.ok(
+                inspectorService.getDashboardStats(req.inspectorId)
+        );
     }
 
     /**

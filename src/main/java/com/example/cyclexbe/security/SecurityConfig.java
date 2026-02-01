@@ -38,6 +38,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/bikelistings/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/bikelistings/**").permitAll()
 
+                        //Inspector
+                        .requestMatchers("/api/inspector/**").permitAll()
+
                         // Authenticated endpoints - Seller (Batch 1)
                         .requestMatchers(HttpMethod.GET, "/api/seller/dashboard/stats").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/seller/listings/search").permitAll()
@@ -58,4 +61,5 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
 }
