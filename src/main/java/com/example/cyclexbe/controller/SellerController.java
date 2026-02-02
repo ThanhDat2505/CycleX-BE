@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/seller/{sellerId}")
@@ -57,8 +58,8 @@ public class SellerController {
 
     @PatchMapping("/listings/{listing_id}")
     public ResponseEntity<?> updateListing(
-            @Valid @RequestBody UpdateListingRequest req,
-            @PathVariable Integer listing_id) {
+            @PathVariable Integer listing_id,
+            @Valid @RequestBody UpdateListingRequest req) {
         // TODO: implement service - edit listing (khi còn Draft/Pending tùy rule)
         return ResponseEntity.ok().build();
     }
@@ -72,51 +73,48 @@ public class SellerController {
     }
 
     // S-12: Create Listing
-    @PostMapping("/listings")
+    @PostMapping("/listings/create")
     public ResponseEntity<BikeListingResponse> createListing(
+            @PathVariable Integer sellerId,
             @Valid @RequestBody CreateListingRequest req) {
-        BikeListingResponse response = sellerService.createListing(req.sellerId, req);
+        BikeListingResponse response = sellerService.createListing(sellerId, req);
         return ResponseEntity.status(201).body(response);
     }
 
-    @PostMapping("/listings/{listing_id}/submit")
-    public ResponseEntity<BikeListingResponse> submitListing(
-            @Valid @RequestBody SubmitListingRequest req,
-            @PathVariable Integer listing_id) {
-        BikeListingResponse response = sellerService.submitListing(req.sellerId, req.listingId);
-        return ResponseEntity.ok(response);
-    }
-
     // S-14: Preview
-    @PostMapping("/listings/preview")
+    @GetMapping("/listings/{listingId}/preview")
     public ResponseEntity<PreviewListingResponse> previewListing(
-            @Valid @RequestBody PreviewListingRequest req) {
-        PreviewListingResponse response = sellerService.previewListing(req.sellerId, req.listingId);
+            @PathVariable Integer sellerId,
+            @PathVariable Integer listingId) {
+        PreviewListingResponse response = sellerService.previewListing(sellerId, listingId);
         return ResponseEntity.ok(response);
     }
 
     // S-18: Draft Listings
-    @PostMapping("/drafts")
+    @GetMapping("/drafts")
     public ResponseEntity<Page<SellerListingResponse>> getDrafts(
-            @Valid @RequestBody GetDraftsRequest req) {
+            @PathVariable Integer sellerId,
+            @RequestParam (required = false, defaultValue = "newest") String sort,
+            @RequestParam (required = false, defaultValue = "0") Integer page,
+            @RequestParam (required = false, defaultValue = "10") Integer pageSize) {
         Page<SellerListingResponse> drafts = sellerService.getDraftListings(
-                req.sellerId, req.sort, req.page, req.pageSize);
+                sellerId, sort, page, pageSize);
         return ResponseEntity.ok(drafts);
     }
 
     @DeleteMapping("/drafts/{listing_id}")
     public ResponseEntity<?> deleteDraft(
-            @Valid @RequestBody DeleteDraftRequest req,
-            @PathVariable Integer listing_id) {
-        sellerService.deleteDraft(req.sellerId, req.listingId);
-        return ResponseEntity.noContent().build();
+            @PathVariable Integer listing_id,
+            @PathVariable Integer sellerId) {
+        sellerService.deleteDraft(sellerId, listing_id);
+        return ResponseEntity.ok(Map.of("message", "Delete success"));
     }
 
     @PostMapping("/drafts/{listing_id}/submit")
     public ResponseEntity<BikeListingResponse> submitDraft(
-            @Valid @RequestBody SubmitListingRequest req,
+            @PathVariable Integer sellerId,
             @PathVariable Integer listing_id) {
-        BikeListingResponse response = sellerService.submitListing(req.sellerId, req.listingId);
+        BikeListingResponse response = sellerService.submitListing(sellerId, listing_id);
         return ResponseEntity.ok(response);
     }
 

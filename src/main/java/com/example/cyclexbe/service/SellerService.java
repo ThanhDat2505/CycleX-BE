@@ -255,8 +255,8 @@ public class SellerService {
         if (listing.getStatus() != BikeListingStatus.DRAFT) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT listings can be deleted");
         }
-
-        bikeListingRepository.delete(listing);
+        listing.setStatus(BikeListingStatus.DELETED);
+        bikeListingRepository.save(listing);
     }
 
     /**

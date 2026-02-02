@@ -4,5 +4,6 @@ public enum BikeListingStatus {
     DRAFT,
     APPROVED,
     REJECTED,
-    PENDING
+    PENDING,
+    DELETED
 }
