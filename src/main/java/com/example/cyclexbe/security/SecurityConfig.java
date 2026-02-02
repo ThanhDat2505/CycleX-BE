@@ -43,13 +43,13 @@ public class SecurityConfig {
 
                         // Authenticated endpoints - Seller (Batch 1)
                         .requestMatchers(HttpMethod.GET, "/api/seller/dashboard/stats").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/seller/listings/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/seller/*/listings/search").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/seller/listings/detail").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/seller/listings/rejection").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/seller/listings/**").permitAll()
 
                         // Authenticated endpoints - Seller (Future batches)
-                        .requestMatchers("/api/seller/**").authenticated()
+                        .requestMatchers("/api/seller/{sellerId}/**").permitAll()
 
                         .anyRequest().authenticated()
                 )

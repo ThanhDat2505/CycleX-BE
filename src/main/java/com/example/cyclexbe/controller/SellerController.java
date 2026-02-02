@@ -4,13 +4,14 @@ import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.service.SellerService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+
 @RestController
-@RequestMapping("/api/seller")
+@RequestMapping("/api/seller/{sellerId}")
 public class SellerController {
 
     private final SellerService sellerService;
@@ -22,25 +23,35 @@ public class SellerController {
     // S-10: Seller Dashboard
     @GetMapping("/dashboard/stats")
     public ResponseEntity<SellerDashboardStatsResponse> getDashboardStats(
-            @Valid @RequestBody GetSellerDashboardStatsRequest req) {
-        SellerDashboardStatsResponse stats = sellerService.getDashboardStats(req.sellerId);
+            @PathVariable Integer sellerId) {
+        SellerDashboardStatsResponse stats = sellerService.getDashboardStats(sellerId);
         return ResponseEntity.ok(stats);
     }
 
     // S-11: My Listings
-    @PostMapping("/listings/search")
+    @GetMapping("/listings/search")
     public ResponseEntity<Page<SellerListingResponse>> getListings(
-            @Valid @RequestBody GetListingsRequest req) {
+            @PathVariable Integer sellerId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String model,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false, defaultValue = "createdAt") String sort,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
         Page<SellerListingResponse> listings = sellerService.getSellerListings(
-                req.sellerId, req.status, req.title, req.brand, req.model,
-                req.minPrice, req.maxPrice, req.sort, req.page, req.pageSize);
+                sellerId, status, title, brand, model,
+                minPrice, maxPrice, sort, page, pageSize);
         return ResponseEntity.ok(listings);
     }
 
-    @PostMapping("/listings/detail")
+    @GetMapping("/listings/{listingId}/detail")
     public ResponseEntity<SellerListingResponse> getListingDetail(
-            @Valid @RequestBody GetListingDetailRequest req) {
-        SellerListingResponse detail = sellerService.getListingDetail(req.sellerId, req.listingId);
+            @PathVariable Integer sellerId,
+            @PathVariable Integer listingId) {
+        SellerListingResponse detail = sellerService.getListingDetail(sellerId, listingId);
         return ResponseEntity.ok(detail);
     }
 
@@ -52,10 +63,11 @@ public class SellerController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/listings/rejection")
+    @GetMapping("/listings/{listingId}/rejection")
     public ResponseEntity<SellerListingResponse> getRejectionReason(
-            @Valid @RequestBody GetListingDetailRequest req) {
-        SellerListingResponse rejection = sellerService.getRejectionReason(req.sellerId, req.listingId);
+            @PathVariable Integer sellerId,
+            @PathVariable Integer listingId) {
+        SellerListingResponse rejection = sellerService.getRejectionReason(sellerId, listingId);
         return ResponseEntity.ok(rejection);
     }
 
