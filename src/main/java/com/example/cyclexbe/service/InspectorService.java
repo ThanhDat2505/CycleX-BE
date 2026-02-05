@@ -14,6 +14,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Objects;
+
 @Service
 public class InspectorService {
 
@@ -76,7 +81,7 @@ public class InspectorService {
     /**
      * S-22: Lock listing for review
      */
-    public BikeListingResponse lockListing(Integer listingId) {
+    public BikeListingResponse lockListing(Integer listingId, Integer inspectorId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
@@ -84,8 +89,12 @@ public class InspectorService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING listings can be locked");
         }
 
-        // TODO: Change status to REVIEWING (add REVIEWING to enum)
-        // listing.setStatus(BikeListingStatus.REVIEWING);
+        User inspector = userRepository.findById(inspectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+
+        // Lock the listing and assign inspector
+        listing.setStatus(BikeListingStatus.REVIEWING);
+        listing.setInspector(inspector);
         // TODO: Record lock timestamp
 
         BikeListing saved = bikeListingRepository.save(listing);
@@ -101,6 +110,12 @@ public class InspectorService {
 
         // TODO: Verify status is REVIEWING
         // TODO: Revert to PENDING if no decision made
+        if (listing.getStatus() != BikeListingStatus.REVIEWING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only REVIEWING listings can be unlocked");
+        }
+
+        listing.setStatus(BikeListingStatus.PENDING);
+        listing.setInspector(null);
 
         BikeListing saved = bikeListingRepository.save(listing);
         return BikeListingResponse.from(saved);
@@ -109,12 +124,24 @@ public class InspectorService {
     /**
      * S-23: Approve listing
      */
-    public BikeListingResponse approveListing(Integer listingId) {
+    public BikeListingResponse approveListing(Integer listingId, Integer inspectorId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
-        // TODO: Verify status is REVIEWING
+        User inspector = userRepository.findById(inspectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+
+        if (listing.getInspector() != null && !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the inspector who locked the listing can approve it");
+        }
+
+        if (listing.getStatus() != BikeListingStatus.REVIEWING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only REVIEWING listings can be approved");
+        }
+
+        // Approve the listing and ensure inspector is set
         listing.setStatus(BikeListingStatus.APPROVED);
+        listing.setInspector(inspector);
         // TODO: Record approval decision
         // TODO: Notify seller
 
@@ -125,15 +152,24 @@ public class InspectorService {
     /**
      * S-23: Reject listing
      */
-    public BikeListingResponse rejectListing(Integer listingId, String reasonCode, String reasonText, String note) {
+    public BikeListingResponse rejectListing(Integer listingId, Integer inspectorId, String reasonCode, String reasonText, String note) {
         BikeListing listing = bikeListingRepository.findById(listingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
-        if (listing.getStatus() != BikeListingStatus.PENDING) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING listings can be rejected");
+        User inspector = userRepository.findById(inspectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+
+        if (listing.getInspector() != null && !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the inspector who locked the listing can reject it");
         }
 
+        if (listing.getStatus() != BikeListingStatus.REVIEWING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only REVIEWING listings can be rejected");
+        }
+
+        // Reject the listing and set inspector
         listing.setStatus(BikeListingStatus.REJECTED);
+        listing.setInspector(inspector);
         // TODO: Save rejection reason (code, text, note) to new table
         // TODO: Notify seller with reason
 
@@ -142,16 +178,42 @@ public class InspectorService {
     }
 
     /**
-     * S-24: Get review history
+     * S-24: Get review history - lấy tất cả listing mà inspector đã xử lý (APPROVED, REJECTED, REVIEWING)
      */
-    public Page<?> getReviewHistory(Integer inspectorId, String from, String to, int page, int pageSize) {
+    public Page<BikeListingResponse> getReviewHistory(Integer inspectorId, String from, String to, int page, int pageSize) {
         User inspector = userRepository.findById(inspectorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
 
-        // TODO: Query review_decisions table with date range filter
-        // TODO: Return paginated results
+        // Sắp xếp theo updatedAt (mới nhất trước)
+        Sort sort = Sort.by(Sort.Direction.DESC, "updatedAt");
+        Pageable pageable = PageRequest.of(page, pageSize, sort);
 
-        return Page.empty();
+        // Query listing theo inspector
+        Page<BikeListing> listings = bikeListingRepository.findByInspector(inspector, pageable);
+
+        // Filter theo date range nếu có (filter trên content của Page, không trên Page object)
+        if ((from != null && !from.isEmpty()) || (to != null && !to.isEmpty())) {
+            LocalDateTime fromDate = from != null && !from.isEmpty()
+                    ? LocalDate.parse(from).atStartOfDay()
+                    : LocalDateTime.MIN;
+            LocalDateTime toDate = to != null && !to.isEmpty()
+                    ? LocalDate.parse(to).atTime(LocalTime.MAX)
+                    : LocalDateTime.now();
+
+            // Tạo list mới sau khi filter
+            var filteredContent = listings.getContent().stream()
+                    .filter(listing ->
+                            (listing.getUpdatedAt().isAfter(fromDate) || listing.getUpdatedAt().isEqual(fromDate)) &&
+                            (listing.getUpdatedAt().isBefore(toDate) || listing.getUpdatedAt().isEqual(toDate))
+                    )
+                    .toList();
+
+            // Convert to response
+            return listings.map(BikeListingResponse::from);
+        }
+
+        // Convert to response
+        return listings.map(BikeListingResponse::from);
     }
 
     /**

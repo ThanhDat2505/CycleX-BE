@@ -4,8 +4,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
 
 public class RejectListingRequest {
-    @NotNull(message = "Inspector ID is required")
-    public Integer inspectorId;
 
     @NotNull(message = "Listing ID is required")
     public Integer listingId;

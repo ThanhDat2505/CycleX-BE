@@ -19,6 +19,10 @@ public class BikeListing {
     @JoinColumn(name = "seller_id", nullable = false)
     private User seller;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inspector_id")
+    private User inspector;
+
     @Column(name = "title", length = 255)
     private String title;
 
@@ -89,6 +93,9 @@ public class BikeListing {
 
     public User getSeller() { return seller; }
     public void setSeller(User seller) { this.seller = seller; }
+
+    public User getInspector() { return inspector; }
+    public void setInspector(User inspector) { this.inspector = inspector; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }

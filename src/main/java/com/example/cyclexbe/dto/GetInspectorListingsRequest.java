@@ -4,8 +4,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Min;
 
 public class GetInspectorListingsRequest {
-    @NotNull(message = "Inspector ID is required")
-    public Integer inspectorId;
+//    @NotNull(message = "Inspector ID is required")
+//    public Integer inspectorId;
 
     public String status; // ALL, PENDING, REVIEWING
     public String sort = "newest"; // newest, oldest

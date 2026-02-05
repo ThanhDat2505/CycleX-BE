@@ -29,4 +29,10 @@ public interface BikeListingRepository extends JpaRepository<BikeListing, Intege
     long countByStatus(BikeListingStatus status);
 
     Optional<BikeListing> findByListingIdAndSeller(Integer listingId, User seller);
+
+    // Inspector-specific queries
+    Page<BikeListing> findByInspector(User inspector, Pageable pageable);
+    Page<BikeListing> findByInspectorAndStatus(User inspector, BikeListingStatus status, Pageable pageable);
+    long countByInspector(User inspector);
+    long countByInspectorAndStatus(User inspector, BikeListingStatus status);
 }

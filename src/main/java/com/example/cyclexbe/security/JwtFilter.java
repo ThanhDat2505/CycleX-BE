@@ -33,11 +33,7 @@ public class JwtFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        String path = request.getServletPath();
-        if (path.startsWith("/api/inspector/")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring("Bearer ".length()).trim();
 

@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -14,6 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
@@ -38,19 +40,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/bikelistings/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/bikelistings/**").permitAll()
 
-                        //Inspector
-                        .requestMatchers("/api/inspector/**").permitAll()
-
-                        // Authenticated endpoints - Seller (Batch 1)
-                        .requestMatchers(HttpMethod.GET, "/api/seller/dashboard/stats").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/seller/*/listings/search").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/seller/listings/detail").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/seller/listings/rejection").permitAll()
-                        .requestMatchers(HttpMethod.PATCH, "/api/seller/listings/**").permitAll()
-
-                        // Authenticated endpoints - Seller (Future batches)
-                        .requestMatchers("/api/seller/{sellerId}/**").permitAll()
-
+                        // Authenticated endpoints - all others require authentication
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
