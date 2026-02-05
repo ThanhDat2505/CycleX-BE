@@ -3,8 +3,10 @@ package com.example.cyclexbe.service;
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.entity.BikeListing;
+import com.example.cyclexbe.entity.ListingImage;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.BikeListingRepository;
+import com.example.cyclexbe.repository.ListingImageRepository;
 import com.example.cyclexbe.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
@@ -25,10 +27,13 @@ public class SellerService {
 
     private final BikeListingRepository bikeListingRepository;
     private final UserRepository userRepository;
+    private final ListingImageRepository listingImageRepository;
 
-    public SellerService(BikeListingRepository bikeListingRepository, UserRepository userRepository) {
+    public SellerService(BikeListingRepository bikeListingRepository, UserRepository userRepository,
+                         ListingImageRepository listingImageRepository) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
+        this.listingImageRepository = listingImageRepository;
     }
 
     /**
@@ -210,6 +215,13 @@ public class SellerService {
 
         validateSubmitListingFields(listing);
 
+        // ✅ Validate minimum 3 images before submit
+        List<ListingImage> images = listingImageRepository.findByBikeListingOrderByImageOrder(listing);
+        if (images.size() < 3) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    String.format("Listing must have at least 3 images. Current: %d/3", images.size()));
+        }
+
         listing.setStatus(BikeListingStatus.PENDING);
         BikeListing saved = bikeListingRepository.save(listing);
         return BikeListingResponse.from(saved);
@@ -298,6 +310,122 @@ public class SellerService {
         }
         if (listing.getModel() == null || listing.getModel().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot submit: model is required");
+        }
+    }
+
+    /**
+     * S-13: Upload listing image
+     * FE upload ảnh, BE chỉ lưu path dẫn tới ảnh
+     */
+    public ListingImageResponse uploadListingImage(Integer sellerId, Integer listingId, UploadListingImageRequest req) {
+        // Validate listing exists và thuộc seller này
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        if (!listing.getSeller().getUserId().equals(sellerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to upload images for this listing");
+        }
+
+        if (!listing.getStatus().equals(BikeListingStatus.DRAFT)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT listings can have images");
+        }
+
+        // ✅ Validate maximum 10 images per listing
+        long currentImageCount = listingImageRepository.countByBikeListing(listing);
+        if (currentImageCount >= 10) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    String.format("Maximum 10 images per listing. Current: %d/10", currentImageCount));
+        }
+
+        // Validate image path format: /public/{listingId}/xxx.png hoặc .jpg
+        validateImagePath(req.imagePath, listingId);
+
+        // Đếm ảnh hiện có để xác định imageOrder
+        Integer imageOrder = (int) (currentImageCount + 1);
+
+        // Tạo và lưu ListingImage entity
+        ListingImage image = new ListingImage(listing, req.imagePath, imageOrder);
+        ListingImage savedImage = listingImageRepository.save(image);
+
+        return ListingImageResponse.from(savedImage);
+    }
+
+    /**
+     * S-13: Get listing images
+     */
+    public List<ListingImageResponse> getListingImages(Integer sellerId, Integer listingId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        if (!listing.getSeller().getUserId().equals(sellerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to view images for this listing");
+        }
+
+        return listingImageRepository.findByBikeListingOrderByImageOrder(listing)
+                .stream()
+                .map(ListingImageResponse::from)
+                .toList();
+    }
+
+    /**
+     * S-13: Delete listing image
+     */
+    public void deleteListingImage(Integer sellerId, Integer listingId, Integer imageId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        if (!listing.getSeller().getUserId().equals(sellerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete images for this listing");
+        }
+
+        ListingImage image = listingImageRepository.findByImageIdAndBikeListing(imageId, listing)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Image not found"));
+
+        // ✅ Validate minimum 3 images - prevent deletion if it would leave less than 3
+        List<ListingImage> allImages = listingImageRepository.findByBikeListingOrderByImageOrder(listing);
+        if (allImages.size() <= 3) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Listing must have at least 3 images. Cannot delete - current: " + allImages.size());
+        }
+
+        listingImageRepository.delete(image);
+
+        // Reorder images sau khi xóa
+        reorderImages(listing);
+    }
+
+    /**
+     * Reorder images sau khi xóa (tái sắp xếp imageOrder)
+     */
+    private void reorderImages(BikeListing listing) {
+        List<ListingImage> images = listingImageRepository.findByBikeListingOrderByImageOrder(listing);
+        for (int i = 0; i < images.size(); i++) {
+            images.get(i).setImageOrder(i + 1);
+        }
+        listingImageRepository.saveAll(images);
+    }
+
+    /**
+     * Validate image path format
+     * Expected format: /public/{listingId}/[image_number].png/jpg
+     */
+    private void validateImagePath(String imagePath, Integer listingId) {
+        if (imagePath == null || imagePath.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image path cannot be empty");
+        }
+
+        // Check path contains correct listingId
+        String expectedPrefix = "/public/" + listingId + "/";
+        if (!imagePath.startsWith(expectedPrefix)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Image path must start with /public/" + listingId + "/");
+        }
+
+        // Check file extension
+        String lowerPath = imagePath.toLowerCase();
+        if (!lowerPath.endsWith(".png") && !lowerPath.endsWith(".jpg") && !lowerPath.endsWith(".jpeg")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Image must be PNG, JPG, or JPEG format");
         }
     }
 }

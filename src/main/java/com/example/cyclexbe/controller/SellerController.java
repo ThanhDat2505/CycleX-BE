@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -134,32 +135,41 @@ public class SellerController {
 
     // Listing Images (BP1 — S-13)
     @GetMapping("/listings/{listing_id}/images")
-    public ResponseEntity<?> getListingImages(@PathVariable Long listing_id) {
-        // TODO: implement service - list ảnh hiện có
-        return ResponseEntity.ok().build();
+    public ResponseEntity<List<ListingImageResponse>> getListingImages(
+            @PathVariable Integer sellerId,
+            @PathVariable Integer listing_id) {
+        SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
+        List<ListingImageResponse> images = sellerService.getListingImages(sellerId, listing_id);
+        return ResponseEntity.ok(images);
     }
 
     @PostMapping("/listings/{listing_id}/images")
-    public ResponseEntity<?> uploadListingImage(
-            @PathVariable Long listing_id,
-            @RequestParam("file") MultipartFile file) {
-        // TODO: implement service - upload ảnh (multipart)
-        return ResponseEntity.ok().build();
+    public ResponseEntity<ListingImageResponse> uploadListingImage(
+            @PathVariable Integer sellerId,
+            @PathVariable Integer listing_id,
+            @Valid @RequestBody UploadListingImageRequest req) {
+        SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
+        ListingImageResponse response = sellerService.uploadListingImage(sellerId, listing_id, req);
+        return ResponseEntity.status(201).body(response);
     }
 
     @DeleteMapping("/listings/{listing_id}/images/{image_id}")
     public ResponseEntity<?> deleteListingImage(
-            @PathVariable Long listing_id,
-            @PathVariable Long image_id) {
-        // TODO: implement service - xóa ảnh
-        return ResponseEntity.ok().build();
+            @PathVariable Integer sellerId,
+            @PathVariable Integer listing_id,
+            @PathVariable Integer image_id) {
+        SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
+        sellerService.deleteListingImage(sellerId, listing_id, image_id);
+        return ResponseEntity.ok(Map.of("message", "Image deleted successfully"));
     }
 
     @PostMapping("/listings/{listing_id}/images/{image_id}/retry")
     public ResponseEntity<?> retryImageUpload(
+            @PathVariable Integer sellerId,
             @PathVariable Long listing_id,
             @PathVariable Long image_id) {
-        // TODO: implement service - retry upload (nếu lưu state lỗi)
-        return ResponseEntity.ok().build();
+        SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
+        // TODO: implement retry logic if needed
+        return ResponseEntity.ok(Map.of("message", "Retry image upload completed"));
     }
 }
