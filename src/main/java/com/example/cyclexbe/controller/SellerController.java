@@ -64,13 +64,13 @@ public class SellerController {
     }
 
     @PatchMapping("/listings/{listing_id}")
-    public ResponseEntity<?> updateListing(
+    public ResponseEntity<BikeListingResponse> updateListing(
             @PathVariable Integer sellerId,
             @PathVariable Integer listing_id,
             @Valid @RequestBody UpdateListingRequest req) {
         SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
-        // TODO: implement service - edit listing (khi còn Draft/Pending tùy rule)
-        return ResponseEntity.ok().build();
+        BikeListingResponse response = sellerService.updateListing(sellerId, listing_id, req);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/listings/{listingId}/rejection")

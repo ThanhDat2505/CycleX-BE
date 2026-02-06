@@ -2,6 +2,7 @@ package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.dto.*;
+import org.springframework.transaction.annotation.Transactional;
 import com.example.cyclexbe.entity.BikeListing;
 import com.example.cyclexbe.entity.ListingImage;
 import com.example.cyclexbe.entity.User;
@@ -200,6 +201,78 @@ public class SellerService {
     }
 
     /**
+     * S-12: Update existing listing (only DRAFT or REJECTED status allowed)
+     * Seller can edit listing fields when status is DRAFT or REJECTED
+     * @param sellerId - Current seller ID (validated by controller)
+     * @param listingId - Listing ID to update
+     * @param req - Update request with fields to modify
+     * @return Updated BikeListingResponse
+     */
+    @Transactional
+    public BikeListingResponse updateListing(Integer sellerId, Integer listingId, UpdateListingRequest req) {
+        // Get seller
+        User seller = userRepository.findById(sellerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+
+        // Get listing and verify ownership
+        BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+
+        // Check if listing status allows editing (DRAFT or REJECTED only)
+        if (listing.getStatus() != BikeListingStatus.DRAFT && listing.getStatus() != BikeListingStatus.REJECTED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cannot edit listing with status: " + listing.getStatus() + ". Only DRAFT or REJECTED listings can be edited."
+            );
+        }
+
+        // Update fields if provided
+        if (req.title != null && !req.title.isBlank()) {
+            listing.setTitle(req.title);
+        }
+        if (req.description != null && !req.description.isBlank()) {
+            listing.setDescription(req.description);
+        }
+        if (req.bikeType != null && !req.bikeType.isBlank()) {
+            listing.setBikeType(req.bikeType);
+        }
+        if (req.brand != null && !req.brand.isBlank()) {
+            listing.setBrand(req.brand);
+        }
+        if (req.model != null && !req.model.isBlank()) {
+            listing.setModel(req.model);
+        }
+        if (req.manufactureYear != null) {
+            listing.setManufactureYear(req.manufactureYear);
+        }
+        if (req.condition != null && !req.condition.isBlank()) {
+            listing.setCondition(req.condition);
+        }
+        if (req.usageTime != null && !req.usageTime.isBlank()) {
+            listing.setUsageTime(req.usageTime);
+        }
+        if (req.reasonForSale != null && !req.reasonForSale.isBlank()) {
+            listing.setReasonForSale(req.reasonForSale);
+        }
+        if (req.price != null) {
+            listing.setPrice(req.price);
+        }
+        if (req.locationCity != null && !req.locationCity.isBlank()) {
+            listing.setLocationCity(req.locationCity);
+        }
+        if (req.pickupAddress != null && !req.pickupAddress.isBlank()) {
+            listing.setPickupAddress(req.pickupAddress);
+        }
+
+        // Validate updated listing has required fields
+        validateUpdateListingFields(listing);
+
+        // Save updated listing
+        BikeListing saved = bikeListingRepository.save(listing);
+        return BikeListingResponse.from(saved);
+    }
+
+    /**
      * S-12: Submit listing for approval (DRAFT → PENDING)
      */
     public BikeListingResponse submitListing(Integer sellerId, Integer listingId) {
@@ -293,7 +366,7 @@ public class SellerService {
     }
 
     /**
-     * Validate required fields before submission
+     * Validate required fields before submission (DRAFT → PENDING)
      */
     private void validateSubmitListingFields(BikeListing listing) {
         if (listing.getTitle() == null || listing.getTitle().isBlank()) {
@@ -310,6 +383,27 @@ public class SellerService {
         }
         if (listing.getModel() == null || listing.getModel().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot submit: model is required");
+        }
+    }
+
+    /**
+     * Validate required fields for updating listing
+     */
+    private void validateUpdateListingFields(BikeListing listing) {
+        if (listing.getTitle() == null || listing.getTitle().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title is required");
+        }
+        if (listing.getPrice() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Price is required");
+        }
+        if (listing.getBikeType() == null || listing.getBikeType().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bike type is required");
+        }
+        if (listing.getBrand() == null || listing.getBrand().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Brand is required");
+        }
+        if (listing.getModel() == null || listing.getModel().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Model is required");
         }
     }
 
