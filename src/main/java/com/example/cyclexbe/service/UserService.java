@@ -33,7 +33,6 @@ public class UserService {
         User u = new User();
         u.setEmail(req.email);
         u.setPasswordHash(passwordEncoder.encode(req.password));
-
         u.setFullName(req.fullName);
         u.setPhone(req.phone);
         u.setRole(req.role);

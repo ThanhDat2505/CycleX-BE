@@ -50,7 +50,7 @@ public class SecurityConfig {
 
                         // Authenticated endpoints - Seller (Future batches)
                         .requestMatchers("/api/seller/{sellerId}/**").permitAll()
-
+                        .requestMatchers("/api/inspection-chat/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

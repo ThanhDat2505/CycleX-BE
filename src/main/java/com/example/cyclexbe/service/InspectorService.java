@@ -83,7 +83,6 @@ public class InspectorService {
         if (listing.getStatus() != BikeListingStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING listings can be locked");
         }
-
         // TODO: Change status to REVIEWING (add REVIEWING to enum)
         // listing.setStatus(BikeListingStatus.REVIEWING);
         // TODO: Record lock timestamp

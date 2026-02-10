@@ -76,7 +76,6 @@ public class InspectorController {
         BikeListingResponse response = inspectorService.lockListing(listing_id);
         return ResponseEntity.ok(response);
     }
-
     /**
      * S-22: Unlock Listing from Review
      * Unlock listing and revert status to PENDING (if no decision made yet)
