@@ -5,5 +5,6 @@ public enum BikeListingStatus {
     APPROVED,
     REJECTED,
     PENDING,
-    DELETED
+    DELETED,
+    ARCHIVED // Status for listing that's archived (locked chat thread)
 }
