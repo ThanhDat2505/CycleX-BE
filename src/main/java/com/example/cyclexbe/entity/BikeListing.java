@@ -57,7 +57,7 @@ public class BikeListing {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 30)
-    private BikeListingStatus status = BikeListingStatus.PENDING;
+    private BikeListingStatus status = BikeListingStatus.DRAFT;
 
     @Column(name = "views_count", nullable = false)
     private Integer viewsCount = 0;
@@ -76,7 +76,7 @@ public class BikeListing {
         this.createdAt = now;
         this.updatedAt = now;
         if (this.viewsCount == null) this.viewsCount = 0;
-        if (this.status == null) this.status = BikeListingStatus.PENDING;
+        if (this.status == null) this.status = BikeListingStatus.DRAFT;
     }
 
     @PreUpdate

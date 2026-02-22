@@ -24,6 +24,10 @@ public class InspectionResponse {
     @JoinColumn(name = "request_id", nullable = false, unique = true)
     private InspectionRequest inspectionRequest;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id")
+    private User seller; // Seller who submitted this response
+
     @Column(name = "message", columnDefinition = "TEXT")
     private String message; // Tin nhắn từ seller khi submit response
 
@@ -66,6 +70,9 @@ public class InspectionResponse {
 
     public InspectionRequest getInspectionRequest() { return inspectionRequest; }
     public void setInspectionRequest(InspectionRequest inspectionRequest) { this.inspectionRequest = inspectionRequest; }
+
+    public User getSeller() { return seller; }
+    public void setSeller(User seller) { this.seller = seller; }
 
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }

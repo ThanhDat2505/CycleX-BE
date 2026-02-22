@@ -22,6 +22,10 @@ public class InspectionResponseFile {
     @JoinColumn(name = "response_id", nullable = false)
     private InspectionResponse inspectionResponse;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id")
+    private User seller; // Seller who uploaded this file
+
     @Column(name = "original_file_name", length = 255, nullable = false)
     private String originalFileName;
 
@@ -31,8 +35,16 @@ public class InspectionResponseFile {
     @Column(name = "content_type", length = 100)
     private String contentType; // MIME type (image/jpeg, application/pdf, etc.)
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "requirement_id") // cần thêm cột requirement_id trong DB
+    private InspectionRequirement requirement;
+
+
     @Column(name = "size_bytes")
     private Long sizeBytes;
+
+    @Column(name = "status", length = 20)
+    private String status = "DRAFT"; // DRAFT, SUBMITTED
 
     @Column(name = "uploaded_at", nullable = false, updatable = false)
     private LocalDateTime uploadedAt;
@@ -62,17 +74,29 @@ public class InspectionResponseFile {
     public InspectionResponse getInspectionResponse() { return inspectionResponse; }
     public void setInspectionResponse(InspectionResponse inspectionResponse) { this.inspectionResponse = inspectionResponse; }
 
+    public User getSeller() { return seller; }
+    public void setSeller(User seller) { this.seller = seller; }
+
     public String getOriginalFileName() { return originalFileName; }
     public void setOriginalFileName(String originalFileName) { this.originalFileName = originalFileName; }
 
     public String getFileUrl() { return fileUrl; }
     public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+    public InspectionRequirement getRequirement() {
+        return requirement;
+    }
 
+    public void setRequirement(InspectionRequirement requirement) {
+        this.requirement = requirement;
+    }
     public String getContentType() { return contentType; }
     public void setContentType(String contentType) { this.contentType = contentType; }
 
     public Long getSizeBytes() { return sizeBytes; }
     public void setSizeBytes(Long sizeBytes) { this.sizeBytes = sizeBytes; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     public LocalDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }

@@ -10,6 +10,6 @@ import java.util.Optional;
 public interface InspectionResponseRepository extends JpaRepository<InspectionResponse, Integer> {
 
     // Tìm response theo inspection request ID
-    Optional<InspectionResponse> findByInspectionRequest_RequestId(Integer requestId);
-}
+// InspectionResponseRepository
+    Optional<InspectionResponse> findByInspectionRequest_RequestId(Integer requestId);}
 

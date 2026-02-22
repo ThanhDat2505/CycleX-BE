@@ -1,34 +1,40 @@
 package com.example.cyclexbe.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Request DTO để submit inspection response
- */
 public class SubmitInspectionResponseRequest {
 
-    @NotBlank(message = "Message cannot be empty")
-    private String message; // Tin nhắn từ seller
+    @Valid
+    @NotEmpty(message = "Answers cannot be empty")
+    private List<AnswerItem> answers = new ArrayList<>();
 
-    public SubmitInspectionResponseRequest() {
+    public SubmitInspectionResponseRequest() {}
+
+    public SubmitInspectionResponseRequest(List<AnswerItem> answers) {
+        this.answers = answers;
     }
 
-    public SubmitInspectionResponseRequest(String message) {
-        this.message = message;
-    }
+    public List<AnswerItem> getAnswers() { return answers; }
+    public void setAnswers(List<AnswerItem> answers) { this.answers = answers; }
 
-    public String getMessage() {
-        return message;
-    }
+    public static class AnswerItem {
+        private Integer requirementId;
+        private String text;
 
-    public void setMessage(String message) {
-        this.message = message;
-    }
+        public AnswerItem() {}
 
-    @Override
-    public String toString() {
-        return "SubmitInspectionResponseRequest{" +
-                "message='" + message + '\'' +
-                '}';
+        public AnswerItem(Integer requirementId, String text) {
+            this.requirementId = requirementId;
+            this.text = text;
+        }
+
+        public Integer getRequirementId() { return requirementId; }
+        public void setRequirementId(Integer requirementId) { this.requirementId = requirementId; }
+
+        public String getText() { return text; }
+        public void setText(String text) { this.text = text; }
     }
 }

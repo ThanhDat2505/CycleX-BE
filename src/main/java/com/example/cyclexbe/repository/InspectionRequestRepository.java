@@ -9,5 +9,8 @@ import java.util.Optional;
 @Repository
 public interface InspectionRequestRepository extends JpaRepository<InspectionRequest, Integer> {
     Optional<InspectionRequest> findByRequestId(Integer requestId);
+
+    // Find inspection request by listing ID
+    Optional<InspectionRequest> findByListing_ListingId(Integer listingId);
 }
 

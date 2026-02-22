@@ -9,10 +9,10 @@ import java.util.List;
 @Repository
 public interface InspectionRequirementRepository extends JpaRepository<InspectionRequirement, Integer> {
 
-    // Lấy danh sách requirements cho 1 inspection request
-    List<InspectionRequirement> findByInspectionRequest_RequestId(Integer requestId);
-
-    // Lấy danh sách requirements chưa resolved
+    // InspectionRequirementRepository (đúng theo BR: chỉ unresolved)
     List<InspectionRequirement> findByInspectionRequest_RequestIdAndResolvedFalse(Integer requestId);
+
+    // nếu bạn còn dùng chỗ khác
+    List<InspectionRequirement> findByInspectionRequest_RequestId(Integer requestId);
 }
 
