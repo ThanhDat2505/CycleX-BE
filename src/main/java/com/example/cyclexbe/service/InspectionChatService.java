@@ -141,14 +141,28 @@ public class InspectionChatService {
      * - permission check
      */
     @Transactional
-    public ChatMessageResponse uploadImageMessage(Integer requestId, MultipartFile file, String caption,
-                                                  Integer senderId, Role senderRole) throws IOException {
-        // Validate file
+    public ChatMessageResponse uploadImageMessage(Integer requestId,
+                                                  MultipartFile file,
+                                                  String caption,
+                                                  Integer senderId,
+                                                  Role senderRole) throws IOException {
+
+        // 1) Validate file
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File cannot be empty");
         }
 
-        // Upload file (FileUploadUtil handles validation)
+        // 2) Fetch inspection request
+        InspectionRequest request = inspectionRequestRepository.findById(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspection request not found"));
+
+        // 3) Permission check
+        checkAccessPermission(request, senderId, senderRole);
+
+        // 4) Lock check (ARCHIVED)
+        checkThreadLocked(request.getListing());
+
+        // 5) Upload file SAU KHI đã pass permission + lock
         String fileUrl;
         try {
             fileUrl = fileUploadUtil.uploadImage(file);
@@ -156,34 +170,20 @@ public class InspectionChatService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
 
-        // Fetch inspection request
-        InspectionRequest request = inspectionRequestRepository.findById(requestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspection request not found"));
-
-        // Permission check
-        checkAccessPermission(request, senderId, senderRole);
-
-        // Check if thread is locked
-        checkThreadLocked(request.getListing());
-
-        // Fetch or create chat thread
+        // 6) Fetch/create thread
         InspectionChatThread thread = chatThreadRepository.findByInspectionRequest_RequestId(requestId)
-                .orElseGet(() -> {
-                    InspectionChatThread newThread = new InspectionChatThread(request);
-                    return chatThreadRepository.save(newThread);
-                });
+                .orElseGet(() -> chatThreadRepository.save(new InspectionChatThread(request)));
 
-        // Fetch sender user
+        // 7) Fetch sender
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sender not found"));
 
-        // Create IMAGE message
+        // 8) Create IMAGE message
         InspectionChatMessage message = new InspectionChatMessage(thread, sender, ChatMessageType.IMAGE, null);
         message.setAttachmentUrl(fileUrl);
         message.setAttachmentCaption(caption);
 
         InspectionChatMessage saved = chatMessageRepository.save(message);
-
         return ChatMessageResponse.from(saved);
     }
 

@@ -84,6 +84,7 @@ public class InspectionChatController {
 
         InspectionChatThreadResponse response = inspectionChatService.getChatThread(requestId, userId, userRole);
         return ResponseEntity.ok(response);
+
     }
 
     /**
