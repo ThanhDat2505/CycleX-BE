@@ -54,6 +54,10 @@ public class SecurityConfig {
                         // Authenticated endpoints - Inspection Chat (S-40)
                         .requestMatchers("/api/inspection-requests/**").hasAnyRole("SELLER", "INSPECTOR", "ADMIN")
 
+                        // Authenticated endpoints - Purchase Request (S-50)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/listings/*/purchase-request/summary").hasRole("BUYER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/listings/*/purchase-request").hasRole("BUYER")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

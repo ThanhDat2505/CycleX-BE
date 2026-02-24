@@ -33,4 +33,27 @@ public class GlobalExceptionHandler {
                         "message", ex.getReason()
                 ));
     }
+
+    /**
+     * Handle PurchaseRequestException - business rule violations in S-50
+     */
+    @ExceptionHandler(PurchaseRequestException.class)
+    public ResponseEntity<?> handlePurchaseRequestException(PurchaseRequestException ex) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "errorCode", ex.getErrorCode(),
+                "message", ex.getMessage()
+        ));
+    }
+
+    /**
+     * Handle InvalidListingException - listing validation errors in S-50
+     */
+    @ExceptionHandler(InvalidListingException.class)
+    public ResponseEntity<?> handleInvalidListingException(InvalidListingException ex) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "errorCode", ex.getErrorCode(),
+                "message", ex.getMessage()
+        ));
+    }
+
 }

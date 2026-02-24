@@ -1,0 +1,422 @@
+{
+  "info": {
+    "name": "S-50 Purchase Request API",
+    "description": "Purchase Request feature (S-50) - Buyer creates purchase request for bike listing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{buyer_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. GET Purchase Request Summary (S-50 Screen Load)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{buyer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/listings/{{listing_id}}/purchase-request/summary",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "listings",
+            "{{listing_id}}",
+            "purchase-request",
+            "summary"
+          ]
+        },
+        "description": "Load summary data for S-50 screen:\n- Listing info (title, price, status)\n- Buyer info (from JWT)\n- Seller info (from listing)\n- Check if purchase can be created\n- Show estimated fees and total\n\nSuccess (200): Can create purchase request\nBad Request (400): Listing not found, buyer not found, or pre-check failed"
+      },
+      "response": [
+        {
+          "name": "Success - Ready to create request",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/v1/listings/1/purchase-request/summary",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "1",
+                "purchase-request",
+                "summary"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"listingId\": 1,\n  \"listingTitle\": \"Yamaha Road Bike - Excellent Condition\",\n  \"listingPrice\": 12500000,\n  \"listingStatus\": \"APPROVED\",\n  \"buyerId\": 2,\n  \"buyerEmail\": \"buyer@example.com\",\n  \"buyerFullName\": \"Nguyen Van A\",\n  \"buyerPhone\": \"0912345678\",\n  \"sellerId\": 1,\n  \"sellerEmail\": \"seller@example.com\",\n  \"sellerFullName\": \"Pham Thi B\",\n  \"sellerPhone\": \"0987654321\",\n  \"estimatedFees\": 0.00,\n  \"totalAmount\": 12500000,\n  \"canCreateRequest\": true,\n  \"message\": \"Ready to create purchase request\"\n}\n"
+        },
+        {
+          "name": "Error - Listing not approved",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/v1/listings/2/purchase-request/summary",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "2",
+                "purchase-request",
+                "summary"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"listingId\": 2,\n  \"canCreateRequest\": false,\n  \"message\": \"Listing is not approved for purchase yet\"\n}\n"
+        }
+      ]
+    },
+    {
+      "name": "2. POST Create Purchase Request (S-50 Confirm)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{buyer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"desiredTime\": \"2026-03-15T10:00:00\",\n  \"note\": \"Can you deliver on weekend? Prefer pickup on Saturday morning\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/listings/{{listing_id}}/purchase-request",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "listings",
+            "{{listing_id}}",
+            "purchase-request"
+          ]
+        },
+        "description": "Create purchase request after buyer confirmation\n\nBusiness rules enforced:\n1. Listing must be APPROVED\n2. desiredTime must be in future and within 30 days\n3. No duplicate pending request for same buyer+listing\n4. Buyer cannot purchase own listing\n\nRequest body:\n- desiredTime (required): ISO format datetime, must be future\n- note (optional): max 500 chars\n\nSuccess (201): Transaction created with PENDING_SELLER_CONFIRM status\nConflict (409): Business rule violation"
+      },
+      "response": [
+        {
+          "name": "Success - Purchase request created",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"desiredTime\": \"2026-03-15T10:00:00\",\n  \"note\": \"Can you deliver on weekend?\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/v1/listings/1/purchase-request",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "1",
+                "purchase-request"
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"message\": \"Purchase request created successfully\",\n  \"transactionId\": 1,\n  \"status\": \"PENDING_SELLER_CONFIRM\",\n  \"transactionType\": \"PURCHASE\",\n  \"amount\": 12500000,\n  \"desiredTime\": \"2026-03-15T10:00:00\",\n  \"note\": \"Can you deliver on weekend?\",\n  \"listing\": {\n    \"listingId\": 1,\n    \"title\": \"Yamaha Road Bike - Excellent Condition\",\n    \"price\": 12500000,\n    \"bikeType\": \"Road Bike\",\n    \"brand\": \"Yamaha\",\n    \"model\": \"YZF-R6\",\n    \"locationCity\": \"Ho Chi Minh\"\n  },\n  \"buyer\": {\n    \"userId\": 2,\n    \"email\": \"buyer@example.com\",\n    \"fullName\": \"Nguyen Van A\",\n    \"phone\": \"0912345678\"\n  },\n  \"seller\": {\n    \"userId\": 1,\n    \"email\": \"seller@example.com\",\n    \"fullName\": \"Pham Thi B\",\n    \"phone\": \"0987654321\"\n  },\n  \"createdAt\": \"2026-02-24T14:30:00\"\n}\n"
+        },
+        {
+          "name": "Error - Duplicate pending request",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"desiredTime\": \"2026-03-15T10:00:00\",\n  \"note\": \"Another request\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/v1/listings/1/purchase-request",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "1",
+                "purchase-request"
+              ]
+            }
+          },
+          "status": "Conflict",
+          "code": 409,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"message\": \"You already have a pending purchase request for this listing\",\n  \"errorCode\": \"DUPLICATE_PENDING_REQUEST\"\n}\n"
+        },
+        {
+          "name": "Error - Listing not approved",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"desiredTime\": \"2026-03-15T10:00:00\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/v1/listings/2/purchase-request",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "2",
+                "purchase-request"
+              ]
+            }
+          },
+          "status": "Conflict",
+          "code": 409,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"message\": \"Listing is not approved for purchase (current status: PENDING)\",\n  \"errorCode\": \"LISTING_NOT_APPROVED\"\n}\n"
+        },
+        {
+          "name": "Error - Invalid desired time (in past)",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"desiredTime\": \"2026-01-01T10:00:00\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/v1/listings/1/purchase-request",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "1",
+                "purchase-request"
+              ]
+            }
+          },
+          "status": "Conflict",
+          "code": 409,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"message\": \"Desired time must be in the future\",\n  \"errorCode\": \"DESIRED_TIME_INVALID\"\n}\n"
+        },
+        {
+          "name": "Error - Desired time exceeds max days (>30 days)",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"desiredTime\": \"2026-05-01T10:00:00\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/v1/listings/1/purchase-request",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "1",
+                "purchase-request"
+              ]
+            }
+          },
+          "status": "Conflict",
+          "code": 409,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"message\": \"Desired time cannot exceed 30 days from now\",\n  \"errorCode\": \"DESIRED_TIME_INVALID\"\n}\n"
+        },
+        {
+          "name": "Error - Validation failed (missing required field)",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Missing desiredTime\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/v1/listings/1/purchase-request",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "v1",
+                "listings",
+                "1",
+                "purchase-request"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"message\": \"Validation failed\",\n  \"errors\": {\n    \"desiredTime\": \"desiredTime is required\"\n  }\n}\n"
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "buyer_token",
+      "value": "YOUR_BUYER_JWT_TOKEN_HERE",
+      "type": "string",
+      "description": "JWT token for buyer user (userId must be in the token)"
+    },
+    {
+      "key": "listing_id",
+      "value": "1",
+      "type": "string",
+      "description": "ID of the listing for which to create purchase request"
+    }
+  ]
+}
+
