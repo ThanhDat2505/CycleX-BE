@@ -58,6 +58,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/listings/*/purchase-request/summary").hasRole("BUYER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/listings/*/purchase-request").hasRole("BUYER")
 
+                        // Authenticated endpoints - Seller Transactions (S-52)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/seller/transactions/**").hasRole("SELLER")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

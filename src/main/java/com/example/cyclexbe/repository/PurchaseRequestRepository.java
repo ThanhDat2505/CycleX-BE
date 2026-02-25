@@ -1,7 +1,10 @@
 package com.example.cyclexbe.repository;
 
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
+import com.example.cyclexbe.domain.enums.TransactionType;
 import com.example.cyclexbe.entity.PurchaseRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -57,5 +60,24 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
     boolean existsActiveRequestForBuyer(
             @Param("listingId") Integer listingId,
             @Param("buyerId") Integer buyerId);
+
+    /**
+     * Find pending transactions for a seller (S-52)
+     * - Only transactions with status PENDING_SELLER_CONFIRM
+     * - Only transactions for listings owned by the seller
+     * - Optional filter by transaction type
+     * - Optional keyword search in buyer name or listing title
+     */
+    @Query("SELECT pr FROM PurchaseRequest pr " +
+           "WHERE pr.listing.seller.userId = :sellerId " +
+           "AND pr.status = 'PENDING_SELLER_CONFIRM' " +
+           "AND (:type IS NULL OR pr.transactionType = :type) " +
+           "AND (:keyword IS NULL OR LOWER(pr.buyer.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "     OR LOWER(pr.listing.title) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<PurchaseRequest> findPendingTransactionsForSeller(
+            @Param("sellerId") Integer sellerId,
+            @Param("type") TransactionType type,
+            @Param("keyword") String keyword,
+            Pageable pageable);
 }
 

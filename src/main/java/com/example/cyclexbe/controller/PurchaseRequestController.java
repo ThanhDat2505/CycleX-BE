@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
  * Handles buyer's purchase request creation flow
  */
 @RestController
-@RequestMapping("/api/v1/listings")
+@RequestMapping("/api/listings")
 public class PurchaseRequestController {
 
     private final PurchaseRequestService purchaseRequestService;
@@ -27,7 +27,7 @@ public class PurchaseRequestController {
     }
 
     /**
-     * GET /api/v1/listings/{listingId}/purchase-request/init
+     * GET /api/listings/{listingId}/purchase-request/init
      * Initialize purchase request screen with listing & pricing info
      */
     @GetMapping("/{listingId}/purchase-request/init")
