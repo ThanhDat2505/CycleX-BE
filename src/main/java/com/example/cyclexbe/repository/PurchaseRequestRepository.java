@@ -68,16 +68,23 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
      * - Optional filter by transaction type
      * - Optional keyword search in buyer name or listing title
      */
-    @Query("SELECT pr FROM PurchaseRequest pr " +
-           "WHERE pr.listing.seller.userId = :sellerId " +
-           "AND pr.status = 'PENDING_SELLER_CONFIRM' " +
-           "AND (:type IS NULL OR pr.transactionType = :type) " +
-           "AND (:keyword IS NULL OR LOWER(pr.buyer.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-           "     OR LOWER(pr.listing.title) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    @Query("""
+SELECT pr FROM PurchaseRequest pr
+WHERE pr.listing.seller.userId = :sellerId
+AND pr.status = com.example.cyclexbe.domain.enums.PurchaseRequestStatus.PENDING_SELLER_CONFIRM
+AND (:type IS NULL OR pr.transactionType = :type)
+AND (
+      LOWER(pr.buyer.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+      OR LOWER(pr.listing.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+)
+""")
     Page<PurchaseRequest> findPendingTransactionsForSeller(
             @Param("sellerId") Integer sellerId,
             @Param("type") TransactionType type,
             @Param("keyword") String keyword,
             Pageable pageable);
+    //S53 - Find transaction detail for seller
+    Optional<PurchaseRequest>
+    findByRequestIdAndListing_Seller_UserId(Integer requestId, Integer sellerId);
 }
 

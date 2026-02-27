@@ -4,9 +4,9 @@ import com.example.cyclexbe.domain.enums.TransactionType;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.service.SellerTransactionService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
  * - POST /api/v1/seller/transactions/{requestId}/reject - Reject transaction (optional)
  */
 @RestController
-@RequestMapping("/api/v1/seller/transactions")
+@RequestMapping("/api/seller/transactions")
 public class SellerTransactionController {
 
     private final SellerTransactionService sellerTransactionService;
@@ -42,6 +42,7 @@ public class SellerTransactionController {
      */
     @GetMapping("/pending")
     public ResponseEntity<SellerPendingTransactionsResponse> getPendingTransactions(
+
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size,
             @RequestParam(name = "sortBy", defaultValue = "createdAt") String sortBy,
@@ -59,7 +60,7 @@ public class SellerTransactionController {
                 transactionType,
                 keyword
         );
-
+        System.out.println("HIT PENDING API");
         return ResponseEntity.ok(response);
     }
 
