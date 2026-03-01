@@ -60,7 +60,11 @@ public class SecurityConfig {
 
                         // Authenticated endpoints - Seller Transactions (S-52)
                         .requestMatchers(HttpMethod.GET, "/api/seller/transactions/**").hasRole("SELLER")
+                        //S54
+                        .requestMatchers(HttpMethod.GET, "/api/buyer/transactions/**").hasRole("BUYER")
 
+                        // Authenticated endpoints - Shipper Dashboard (S-60)
+                        .requestMatchers(HttpMethod.GET, "/api/shipper/**").hasRole("SHIPPER")
 
                         .anyRequest().authenticated()
                 )

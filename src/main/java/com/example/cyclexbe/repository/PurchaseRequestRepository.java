@@ -86,5 +86,18 @@ AND (
     //S53 - Find transaction detail for seller
     Optional<PurchaseRequest>
     findByRequestIdAndListing_Seller_UserId(Integer requestId, Integer sellerId);
+
+    /**
+     * S54 - Find transaction detail for buyer
+     * Fetch with eager loading of listing and seller to avoid LazyInitializationException
+     */
+    @Query("SELECT pr FROM PurchaseRequest pr " +
+           "JOIN FETCH pr.listing l " +
+           "JOIN FETCH l.seller " +
+           "WHERE pr.requestId = :requestId " +
+           "AND pr.buyer.userId = :buyerId")
+    Optional<PurchaseRequest> findByRequestIdAndBuyerId(
+            @Param("requestId") Integer requestId,
+            @Param("buyerId") Integer buyerId);
 }
 

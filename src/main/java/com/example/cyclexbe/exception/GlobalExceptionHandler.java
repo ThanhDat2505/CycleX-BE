@@ -1,5 +1,6 @@
 package com.example.cyclexbe.exception;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +23,7 @@ public class GlobalExceptionHandler {
                 "errors", errors
         ));
     }
+
     // ✅ THÊM ĐOẠN NÀY
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<?> handleResponseStatus(ResponseStatusException ex) {
@@ -35,14 +37,27 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle PurchaseRequestException - business rule violations in S-50
+     * Handle PurchaseRequestException - business rule violations in S-50 and S-54
+     * Maps error codes to appropriate HTTP status codes:
+     * - TRANSACTION_NOT_FOUND -> 404
+     * - INVALID_TRANSACTION_STATUS -> 409
+     * - Other -> 400
      */
     @ExceptionHandler(PurchaseRequestException.class)
     public ResponseEntity<?> handlePurchaseRequestException(PurchaseRequestException ex) {
-        return ResponseEntity.badRequest().body(Map.of(
+        int status = switch (ex.getErrorCode()) {
+            case "TRANSACTION_NOT_FOUND" -> HttpStatus.NOT_FOUND.value();
+            case "INVALID_TRANSACTION_STATUS" -> HttpStatus.CONFLICT.value();
+            default -> HttpStatus.BAD_REQUEST.value();
+        };
+
+        Map<String, Object> response = Map.of(
+                "status", status,
                 "errorCode", ex.getErrorCode(),
                 "message", ex.getMessage()
-        ));
+        );
+
+        return ResponseEntity.status(status).body(response);
     }
 
     /**
@@ -56,4 +71,15 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    /**
+     * Handle ForbiddenException - authorization errors (403)
+     */
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<?> handleForbiddenException(ForbiddenException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "status", HttpStatus.FORBIDDEN.value(),
+                "errorCode", ex.getErrorCode(),
+                "message", ex.getMessage()
+        ));
+    }
 }
