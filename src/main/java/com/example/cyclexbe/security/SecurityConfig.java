@@ -40,7 +40,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/bikelistings/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/bikelistings/**").permitAll()
 
-<<<<<<< HEAD
                         //Inspector
                         .requestMatchers("/api/inspector/**").permitAll()
 
@@ -58,8 +57,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/inspection-requests/**").hasAnyRole("SELLER", "INSPECTOR", "ADMIN")
 
                         // Authenticated endpoints - Purchase Request (S-50)
-                        .requestMatchers(HttpMethod.GET, "/api/listings/*/purchase-request/summary").hasRole("BUYER")
-                        .requestMatchers(HttpMethod.POST, "/api/listings/*/purchase-request").hasRole("BUYER")
+                        .requestMatchers(HttpMethod.GET, "/api/products/*/purchase-request/summary").hasRole("BUYER")
+                        .requestMatchers(HttpMethod.POST, "/api/products/*/purchase-request").hasRole("BUYER")
 
                         // Authenticated endpoints - Seller Transactions (S-52)
                         .requestMatchers(HttpMethod.GET, "/api/seller/transactions/**").hasRole("SELLER")
@@ -69,9 +68,6 @@ public class SecurityConfig {
                         // Authenticated endpoints - Shipper Dashboard (S-60)
                         .requestMatchers(HttpMethod.GET, "/api/shipper/**").hasRole("SHIPPER")
 
-=======
-                        // Authenticated endpoints - all others require authentication
->>>>>>> origin/InspectorProcess
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

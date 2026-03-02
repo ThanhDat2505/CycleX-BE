@@ -134,13 +134,7 @@ public class InspectorService {
         BikeListing listing = bikeListingRepository.findById(listingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
-<<<<<<< HEAD
-        // TODO: Verify status is REVIEWING
-        if (listing.getStatus() == BikeListingStatus.APPROVED) {
-             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Listing is already approved");
-        }
 
-=======
         User inspector = userRepository.findById(inspectorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
 
@@ -153,7 +147,6 @@ public class InspectorService {
         }
 
         // Approve the listing and ensure inspector is set
->>>>>>> origin/InspectorProcess
         listing.setStatus(BikeListingStatus.APPROVED);
         listing.setInspector(inspector);
         // TODO: Record approval decision
