@@ -29,8 +29,8 @@ public class InspectorService {
     private final ProductRepository productRepository;
 
     public InspectorService(BikeListingRepository bikeListingRepository,
-                            UserRepository userRepository,
-                            ProductRepository productRepository) {
+            UserRepository userRepository,
+            ProductRepository productRepository) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
@@ -44,12 +44,14 @@ public class InspectorService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
 
         long pendingCount = bikeListingRepository.countByStatus(BikeListingStatus.PENDING);
-        long reviewingCount = bikeListingRepository.countByStatus(BikeListingStatus.PENDING); // TODO: Add REVIEWING status
+        long reviewingCount = bikeListingRepository.countByStatus(BikeListingStatus.PENDING); // TODO: Add REVIEWING
+                                                                                              // status
         long approvedCount = bikeListingRepository.countByStatus(BikeListingStatus.APPROVED);
         long rejectedCount = bikeListingRepository.countByStatus(BikeListingStatus.REJECTED);
         long disputeCount = 0; // TODO: Count from disputes table
 
-        return new InspectorDashboardStatsResponse(pendingCount, reviewingCount, approvedCount, rejectedCount, disputeCount);
+        return new InspectorDashboardStatsResponse(pendingCount, reviewingCount, approvedCount, rejectedCount,
+                disputeCount);
     }
 
     /**
@@ -134,12 +136,12 @@ public class InspectorService {
         BikeListing listing = bikeListingRepository.findById(listingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
-
         User inspector = userRepository.findById(inspectorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
 
         if (listing.getInspector() != null && !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the inspector who locked the listing can approve it");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only the inspector who locked the listing can approve it");
         }
 
         if (listing.getStatus() != BikeListingStatus.REVIEWING) {
@@ -171,7 +173,8 @@ public class InspectorService {
     /**
      * S-23: Reject listing
      */
-    public BikeListingResponse rejectListing(Integer listingId, Integer inspectorId, String reasonCode, String reasonText, String note) {
+    public BikeListingResponse rejectListing(Integer listingId, Integer inspectorId, String reasonCode,
+            String reasonText, String note) {
         BikeListing listing = bikeListingRepository.findById(listingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
@@ -179,7 +182,8 @@ public class InspectorService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
 
         if (listing.getInspector() != null && !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the inspector who locked the listing can reject it");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only the inspector who locked the listing can reject it");
         }
 
         if (listing.getStatus() != BikeListingStatus.REVIEWING) {
@@ -197,9 +201,11 @@ public class InspectorService {
     }
 
     /**
-     * S-24: Get review history - lấy tất cả listing mà inspector đã xử lý (APPROVED, REJECTED, REVIEWING)
+     * S-24: Get review history - lấy tất cả listing mà inspector đã xử lý
+     * (APPROVED, REJECTED, REVIEWING)
      */
-    public Page<BikeListingResponse> getReviewHistory(Integer inspectorId, String from, String to, int page, int pageSize) {
+    public Page<BikeListingResponse> getReviewHistory(Integer inspectorId, String from, String to, int page,
+            int pageSize) {
         User inspector = userRepository.findById(inspectorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
 
@@ -210,7 +216,8 @@ public class InspectorService {
         // Query listing theo inspector
         Page<BikeListing> listings = bikeListingRepository.findByInspector(inspector, pageable);
 
-        // Filter theo date range nếu có (filter trên content của Page, không trên Page object)
+        // Filter theo date range nếu có (filter trên content của Page, không trên Page
+        // object)
         if ((from != null && !from.isEmpty()) || (to != null && !to.isEmpty())) {
             LocalDateTime fromDate = from != null && !from.isEmpty()
                     ? LocalDate.parse(from).atStartOfDay()
@@ -221,10 +228,9 @@ public class InspectorService {
 
             // Tạo list mới sau khi filter
             var filteredContent = listings.getContent().stream()
-                    .filter(listing ->
-                            (listing.getUpdatedAt().isAfter(fromDate) || listing.getUpdatedAt().isEqual(fromDate)) &&
-                            (listing.getUpdatedAt().isBefore(toDate) || listing.getUpdatedAt().isEqual(toDate))
-                    )
+                    .filter(listing -> (listing.getUpdatedAt().isAfter(fromDate)
+                            || listing.getUpdatedAt().isEqual(fromDate)) &&
+                            (listing.getUpdatedAt().isBefore(toDate) || listing.getUpdatedAt().isEqual(toDate)))
                     .toList();
 
             // Convert to response
