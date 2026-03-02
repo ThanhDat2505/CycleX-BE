@@ -19,7 +19,7 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
     /**
      * Find all purchase requests for a specific listing
      */
-    List<PurchaseRequest> findByListing_ListingId(Integer listingId);
+    List<PurchaseRequest> findByProduct_Listing_ListingId(Integer listingId);
 
     /**
      * Find a purchase request by its ID
@@ -31,7 +31,7 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
      * (PENDING_SELLER_CONFIRM, SELLER_CONFIRMED, BUYER_CONFIRMED)
      */
     @Query("SELECT pr FROM PurchaseRequest pr " +
-           "WHERE pr.listing.listingId = :listingId " +
+           "WHERE pr.product.listing.listingId = :listingId " +
            "AND pr.status IN ('PENDING_SELLER_CONFIRM', 'SELLER_CONFIRMED', 'BUYER_CONFIRMED')")
     Optional<PurchaseRequest> findActiveRequestForListing(@Param("listingId") Integer listingId);
 
@@ -44,7 +44,7 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
      * Find purchase requests by listing and buyer
      */
     @Query("SELECT pr FROM PurchaseRequest pr " +
-           "WHERE pr.listing.listingId = :listingId " +
+           "WHERE pr.product.listing.listingId = :listingId " +
            "AND pr.buyer.userId = :buyerId")
     List<PurchaseRequest> findByListingAndBuyer(
             @Param("listingId") Integer listingId,
@@ -54,7 +54,7 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
      * Check if a buyer has an active request for a listing
      */
     @Query("SELECT COUNT(pr) > 0 FROM PurchaseRequest pr " +
-           "WHERE pr.listing.listingId = :listingId " +
+           "WHERE pr.product.listing.listingId = :listingId " +
            "AND pr.buyer.userId = :buyerId " +
            "AND pr.status IN ('PENDING_SELLER_CONFIRM', 'SELLER_CONFIRMED', 'BUYER_CONFIRMED')")
     boolean existsActiveRequestForBuyer(
@@ -70,12 +70,12 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
      */
     @Query("""
 SELECT pr FROM PurchaseRequest pr
-WHERE pr.listing.seller.userId = :sellerId
+WHERE pr.product.seller.userId = :sellerId
 AND pr.status = com.example.cyclexbe.domain.enums.PurchaseRequestStatus.PENDING_SELLER_CONFIRM
 AND (:type IS NULL OR pr.transactionType = :type)
 AND (
       LOWER(pr.buyer.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-      OR LOWER(pr.listing.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+      OR LOWER(pr.product.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
 )
 """)
     Page<PurchaseRequest> findPendingTransactionsForSeller(
@@ -85,15 +85,16 @@ AND (
             Pageable pageable);
     //S53 - Find transaction detail for seller
     Optional<PurchaseRequest>
-    findByRequestIdAndListing_Seller_UserId(Integer requestId, Integer sellerId);
+    findByRequestIdAndProduct_Seller_UserId(Integer requestId, Integer sellerId);
 
     /**
      * S54 - Find transaction detail for buyer
      * Fetch with eager loading of listing and seller to avoid LazyInitializationException
      */
     @Query("SELECT pr FROM PurchaseRequest pr " +
-           "JOIN FETCH pr.listing l " +
-           "JOIN FETCH l.seller " +
+           "JOIN FETCH pr.product p " +
+           "JOIN FETCH p.listing l " +
+           "JOIN FETCH p.seller " +
            "WHERE pr.requestId = :requestId " +
            "AND pr.buyer.userId = :buyerId")
     Optional<PurchaseRequest> findByRequestIdAndBuyerId(

@@ -3,8 +3,10 @@ package com.example.cyclexbe.service;
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.entity.BikeListing;
+import com.example.cyclexbe.entity.Product;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.BikeListingRepository;
+import com.example.cyclexbe.repository.ProductRepository;
 import com.example.cyclexbe.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,10 +21,14 @@ public class InspectorService {
 
     private final BikeListingRepository bikeListingRepository;
     private final UserRepository userRepository;
+    private final ProductRepository productRepository;
 
-    public InspectorService(BikeListingRepository bikeListingRepository, UserRepository userRepository) {
+    public InspectorService(BikeListingRepository bikeListingRepository,
+                            UserRepository userRepository,
+                            ProductRepository productRepository) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
+        this.productRepository = productRepository;
     }
 
     /**
@@ -114,12 +120,28 @@ public class InspectorService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
         // TODO: Verify status is REVIEWING
+        if (listing.getStatus() == BikeListingStatus.APPROVED) {
+             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Listing is already approved");
+        }
+
         listing.setStatus(BikeListingStatus.APPROVED);
         // TODO: Record approval decision
         // TODO: Notify seller
 
-        BikeListing saved = bikeListingRepository.save(listing);
-        return BikeListingResponse.from(saved);
+        BikeListing savedListing = bikeListingRepository.save(listing);
+
+        // Create Product
+        Product product = new Product();
+        product.setListing(savedListing);
+        product.setSeller(savedListing.getSeller());
+        product.setName(savedListing.getTitle());
+        product.setDescription(savedListing.getDescription());
+        product.setPrice(savedListing.getPrice());
+        product.setStatus("AVAILABLE");
+
+        productRepository.save(product);
+
+        return BikeListingResponse.from(savedListing);
     }
 
     /**

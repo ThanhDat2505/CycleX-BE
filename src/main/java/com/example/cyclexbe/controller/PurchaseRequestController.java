@@ -15,9 +15,10 @@ import org.springframework.web.bind.annotation.*;
 /**
  * Controller for S-50: Purchase Request feature
  * Handles buyer's purchase request creation flow
+ * Buyer đặt hàng theo Product (không phải Listing)
  */
 @RestController
-@RequestMapping("/api/listings")
+@RequestMapping("/api/products")
 public class PurchaseRequestController {
 
     private final PurchaseRequestService purchaseRequestService;
@@ -27,41 +28,41 @@ public class PurchaseRequestController {
     }
 
     /**
-     * GET /api/listings/{listingId}/purchase-request/init
-     * Initialize purchase request screen with listing & pricing info
+     * GET /api/products/{productId}/purchase-request/init
+     * Initialize purchase request screen with product & pricing info
      */
-    @GetMapping("/{listingId}/purchase-request/init")
+    @GetMapping("/{productId}/purchase-request/init")
     public ResponseEntity<PurchaseRequestInitResponse> initPurchaseRequest(
-            @PathVariable Integer listingId) {
+            @PathVariable Integer productId) {
         Integer buyerId = extractBuyerIdFromAuth();
-        PurchaseRequestInitResponse response = purchaseRequestService.getInitData(listingId, buyerId);
+        PurchaseRequestInitResponse response = purchaseRequestService.getInitData(productId, buyerId);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * POST /api/v1/listings/{listingId}/purchase-requests/review
+     * POST /api/products/{productId}/purchase-requests/review
      * Review & validate purchase request before confirmation
      * Does NOT create DB record
      */
-    @PostMapping("/{listingId}/purchase-requests/review")
+    @PostMapping("/{productId}/purchase-requests/review")
     public ResponseEntity<PurchaseRequestReviewResponse> reviewPurchaseRequest(
-            @PathVariable Integer listingId,
+            @PathVariable Integer productId,
             @Valid @RequestBody PurchaseRequestCreateRequest request) {
         Integer buyerId = extractBuyerIdFromAuth();
-        PurchaseRequestReviewResponse response = purchaseRequestService.reviewPurchaseRequest(listingId, buyerId, request);
+        PurchaseRequestReviewResponse response = purchaseRequestService.reviewPurchaseRequest(productId, buyerId, request);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * POST /api/v1/listings/{listingId}/purchase-requests
+     * POST /api/products/{productId}/purchase-requests
      * Create purchase request with status = PENDING_SELLER_CONFIRM
      */
-    @PostMapping("/{listingId}/purchase-requests")
+    @PostMapping("/{productId}/purchase-requests")
     public ResponseEntity<PurchaseRequestResponse> createPurchaseRequest(
-            @PathVariable Integer listingId,
+            @PathVariable Integer productId,
             @Valid @RequestBody PurchaseRequestCreateRequest request) {
         Integer buyerId = extractBuyerIdFromAuth();
-        PurchaseRequestResponse response = purchaseRequestService.createPurchaseRequest(listingId, buyerId, request);
+        PurchaseRequestResponse response = purchaseRequestService.createPurchaseRequest(productId, buyerId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -100,4 +101,3 @@ public class PurchaseRequestController {
         throw new RuntimeException("Unsupported authentication principal type: " + principal.getClass().getName());
     }
 }
-

@@ -1,6 +1,5 @@
 package com.example.cyclexbe.service;
 
-import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.dto.PricingPreviewDto;
 import com.example.cyclexbe.dto.PurchaseRequestCreateRequest;
@@ -8,11 +7,12 @@ import com.example.cyclexbe.dto.PurchaseRequestInitResponse;
 import com.example.cyclexbe.dto.PurchaseRequestResponse;
 import com.example.cyclexbe.dto.PurchaseRequestReviewResponse;
 import com.example.cyclexbe.entity.BikeListing;
+import com.example.cyclexbe.entity.Product;
 import com.example.cyclexbe.entity.PurchaseRequest;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.exception.InvalidListingException;
 import com.example.cyclexbe.exception.PurchaseRequestException;
-import com.example.cyclexbe.repository.BikeListingRepository;
+import com.example.cyclexbe.repository.ProductRepository;
 import com.example.cyclexbe.repository.PurchaseRequestRepository;
 import com.example.cyclexbe.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -37,44 +37,55 @@ public class PurchaseRequestService {
     private static final BigDecimal DEFAULT_INSPECTION_FEE = BigDecimal.ZERO;
 
     private final PurchaseRequestRepository purchaseRequestRepository;
-    private final BikeListingRepository bikeListingRepository;
     private final UserRepository userRepository;
+    private final ProductRepository productRepository;
 
     public PurchaseRequestService(
             PurchaseRequestRepository purchaseRequestRepository,
-            BikeListingRepository bikeListingRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            ProductRepository productRepository
     ) {
         this.purchaseRequestRepository = purchaseRequestRepository;
-        this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
+        this.productRepository = productRepository;
     }
 
     // =========================================================
     // S-50: INIT SCREEN DATA
     // =========================================================
     @Transactional(readOnly = true)
-    public PurchaseRequestInitResponse getInitData(Integer listingId, Integer buyerId) {
-        BikeListing listing = getListingOrThrow(listingId);
+    public PurchaseRequestInitResponse getInitData(Integer productId, Integer buyerId) {
+        Product product = getProductOrThrow(productId);
+        BikeListing listing = product.getListing();
         User buyer = getBuyerOrThrow(buyerId);
 
-        List<String> errors = new ArrayList<>();
-        boolean canCreateRequest = validateCanCreateRequest(listing, buyerId, errors);
-
-        User seller = listing.getSeller();
+        User seller = product.getSeller();
         if (seller == null) {
-            throw new InvalidListingException("SELLER_NOT_FOUND", "Listing seller not found");
+            throw new InvalidListingException("SELLER_NOT_FOUND", "Product seller not found");
         }
 
-        BigDecimal listingPrice = requireListingPrice(listing);
+        List<String> errors = new ArrayList<>();
+        boolean canCreateRequest = true;
 
-        // Build listing info
+        if (!"AVAILABLE".equals(product.getStatus())) {
+            canCreateRequest = false;
+            errors.add("Product is not available for purchase (Status: " + product.getStatus() + ")");
+        }
+        if (seller.getUserId().equals(buyerId)) {
+            canCreateRequest = false;
+            errors.add("You cannot buy your own product");
+        }
+
+
+        BigDecimal productPrice = product.getPrice();
+
+        // Build listing info (using product info where applicable)
         PurchaseRequestInitResponse.ListingInfoDto listingInfo =
                 new PurchaseRequestInitResponse.ListingInfoDto(
                         listing.getListingId(),
-                        listing.getTitle(),
-                        listingPrice,
-                        String.valueOf(listing.getStatus()),
+                        product.getName(), // Use product name
+                        productPrice,
+                        product.getStatus(),
                         null // TODO: map thumbnail URL if entity has image field
                 );
 
@@ -98,9 +109,9 @@ public class PurchaseRequestService {
                 );
 
         // Pricing preview
-        BigDecimal depositAmount = calculateDepositAmount(listingPrice);
-        BigDecimal platformFee = getPlatformFee(listingPrice);
-        BigDecimal inspectionFee = getInspectionFee(listingPrice);
+        BigDecimal depositAmount = calculateDepositAmount(productPrice);
+        BigDecimal platformFee = getPlatformFee(productPrice);
+        BigDecimal inspectionFee = getInspectionFee(productPrice);
 
         PricingPreviewDto pricingPreview = new PricingPreviewDto(
                 DEPOSIT_RATE_PERCENT,
@@ -133,26 +144,26 @@ public class PurchaseRequestService {
     // =========================================================
     @Transactional(readOnly = true)
     public PurchaseRequestReviewResponse reviewPurchaseRequest(
-            Integer listingId,
+            Integer productId,
             Integer buyerId,
             PurchaseRequestCreateRequest request
     ) {
-        BikeListing listing = getListingOrThrow(listingId);
+        Product product = getProductOrThrow(productId);
         getBuyerOrThrow(buyerId); // validate buyer exists
 
         // Re-validate business rules at service layer
-        validateCreateRequestBusinessRules(listing, buyerId, request);
+        validateCreateRequestBusinessRules(product, buyerId, request);
 
-        BigDecimal listingPrice = requireListingPrice(listing);
-        BigDecimal depositAmount = calculateDepositAmount(listingPrice);
-        BigDecimal platformFee = getPlatformFee(listingPrice);
-        BigDecimal inspectionFee = getInspectionFee(listingPrice);
+        BigDecimal productPrice = product.getPrice();
+        BigDecimal depositAmount = calculateDepositAmount(productPrice);
+        BigDecimal platformFee = getPlatformFee(productPrice);
+        BigDecimal inspectionFee = getInspectionFee(productPrice);
 
         return new PurchaseRequestReviewResponse(
                 request.getTransactionType(),
                 request.getDesiredTransactionTime(),
                 request.getNote(),
-                listingPrice,
+                productPrice,
                 depositAmount,
                 platformFee,
                 inspectionFee
@@ -163,26 +174,26 @@ public class PurchaseRequestService {
     // S-50: CREATE / CONFIRM (WRITE DB)
     // =========================================================
     public PurchaseRequestResponse createPurchaseRequest(
-            Integer listingId,
+            Integer productId,
             Integer buyerId,
             PurchaseRequestCreateRequest request
     ) {
-        // TODO (race condition): if needed, use pessimistic lock query for listing
-        // ex: bikeListingRepository.findByIdForUpdate(listingId)
+        // TODO (race condition): if needed, use pessimistic lock query for product
+        // ex: productRepository.findByIdForUpdate(productId)
 
-        BikeListing listing = getListingOrThrow(listingId);
+        Product product = getProductOrThrow(productId);
         User buyer = getBuyerOrThrow(buyerId);
 
         // Re-validate at create step (do not trust FE / review-only validation)
-        validateCreateRequestBusinessRules(listing, buyerId, request);
+        validateCreateRequestBusinessRules(product, buyerId, request);
 
-        BigDecimal listingPrice = requireListingPrice(listing);
-        BigDecimal depositAmount = calculateDepositAmount(listingPrice);
-        BigDecimal platformFee = getPlatformFee(listingPrice);
-        BigDecimal inspectionFee = getInspectionFee(listingPrice);
+        BigDecimal productPrice = product.getPrice();
+        BigDecimal depositAmount = calculateDepositAmount(productPrice);
+        BigDecimal platformFee = getPlatformFee(productPrice);
+        BigDecimal inspectionFee = getInspectionFee(productPrice);
 
         PurchaseRequest purchaseRequest = new PurchaseRequest();
-        purchaseRequest.setListing(listing);
+        purchaseRequest.setProduct(product); // Link to Product
         purchaseRequest.setBuyer(buyer);
         purchaseRequest.setTransactionType(request.getTransactionType());
         purchaseRequest.setDesiredTransactionTime(request.getDesiredTransactionTime());
@@ -199,12 +210,12 @@ public class PurchaseRequestService {
 
         return new PurchaseRequestResponse(
                 saved.getRequestId(),
-                saved.getListing().getListingId(),
+                saved.getProduct().getListing().getListingId(), // Keep returning listingId for compatibility or change to productId
                 saved.getBuyer().getUserId(),
                 saved.getTransactionType(),
                 saved.getDesiredTransactionTime(),
                 saved.getNote(),
-                saved.getListing().getPrice(),
+                saved.getProduct().getPrice(),
                 saved.getDepositAmount(),
                 saved.getPlatformFee(),
                 saved.getInspectionFee(),
@@ -246,14 +257,6 @@ public class PurchaseRequestService {
     // =========================================================
     // PRIVATE HELPERS - FETCH
     // =========================================================
-    private BikeListing getListingOrThrow(Integer listingId) {
-        return bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new InvalidListingException(
-                        "LISTING_NOT_FOUND",
-                        "Listing with ID " + listingId + " not found"
-                ));
-    }
-
     private User getBuyerOrThrow(Integer buyerId) {
         return userRepository.findById(buyerId)
                 .orElseThrow(() -> new InvalidListingException(
@@ -262,21 +265,19 @@ public class PurchaseRequestService {
                 ));
     }
 
-    private BigDecimal requireListingPrice(BikeListing listing) {
-        if (listing.getPrice() == null) {
-            throw new PurchaseRequestException("INVALID_PRICE", "Listing price is missing");
-        }
-        if (listing.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new PurchaseRequestException("INVALID_PRICE", "Listing price must be greater than 0");
-        }
-        return listing.getPrice();
+    private Product getProductOrThrow(Integer productId) {
+        return productRepository.findById(productId)
+                .orElseThrow(() -> new InvalidListingException(
+                        "PRODUCT_NOT_FOUND",
+                        "Product with ID " + productId + " not found"
+                ));
     }
 
     // =========================================================
     // PRIVATE HELPERS - VALIDATION
     // =========================================================
     private void validateCreateRequestBusinessRules(
-            BikeListing listing,
+            Product product,
             Integer buyerId,
             PurchaseRequestCreateRequest request
     ) {
@@ -284,11 +285,17 @@ public class PurchaseRequestService {
             throw new PurchaseRequestException("INVALID_REQUEST", "Request body must not be null");
         }
 
-        List<String> errors = new ArrayList<>();
-        if (!validateCanCreateRequest(listing, buyerId, errors)) {
-            throw new InvalidListingException(
+        if (!"AVAILABLE".equals(product.getStatus())) {
+             throw new InvalidListingException(
                     "INVALID_REQUEST",
-                    "Cannot create purchase request: " + String.join(", ", errors)
+                    "Cannot create purchase request: Product is not available (Status: " + product.getStatus() + ")"
+            );
+        }
+
+        if (product.getSeller().getUserId().equals(buyerId)) {
+             throw new InvalidListingException(
+                    "INVALID_REQUEST",
+                    "Cannot create purchase request: You cannot buy your own product"
             );
         }
 
@@ -306,87 +313,14 @@ public class PurchaseRequestService {
         }
 
         if (request.getNote() != null && request.getNote().length() > NOTE_MAX_LENGTH) {
-            throw new PurchaseRequestException(
-                    "NOTE_TOO_LONG",
-                    "Note must not exceed " + NOTE_MAX_LENGTH + " characters"
-            );
+            throw new PurchaseRequestException("INVALID_NOTE", "Note cannot exceed " + NOTE_MAX_LENGTH + " characters");
         }
     }
 
-    /**
-     * Validate if buyer can create purchase request for this listing.
-     *
-     * Rules:
-     * 1) Listing must be APPROVED
-     * 2) Listing must not be DELETED/ARCHIVED (if enum ARCHIVED exists)
-     * 3) Buyer must not be the seller
-     * 4) TODO: listing must not have conflicting active request(s)
-     */
-    private boolean validateCanCreateRequest(BikeListing listing, Integer buyerId, List<String> errors) {
-        if (listing == null) {
-            errors.add("Listing is null");
-            return false;
-        }
-
-        if (listing.getSeller() == null) {
-            errors.add("Listing seller not found");
-            return false;
-        }
-
-        BikeListingStatus status = listing.getStatus();
-        if (status == null) {
-            errors.add("Listing status is missing");
-            return false;
-        }
-
-        // Check hard-invalid statuses first (more specific message)
-        if (status == BikeListingStatus.DELETED) {
-            errors.add("Listing has been deleted");
-            return false;
-        }
-
-        // ===== Nếu enum của bạn CÓ ARCHIVED thì mở dòng dưới =====
-        // if (status == BikeListingStatus.ARCHIVED) {
-        //     errors.add("Listing has been archived");
-        //     return false;
-        // }
-
-        // Must be APPROVED for S-50
-        if (status != BikeListingStatus.APPROVED) {
-            errors.add("Listing status must be APPROVED (current: " + status + ")");
-            return false;
-        }
-
-        // Buyer cannot buy own listing
-        if (listing.getSeller().getUserId() != null && listing.getSeller().getUserId().equals(buyerId)) {
-            errors.add("You cannot create a purchase request for your own listing");
-            return false;
-        }
-
-        // TODO: Conflict rule (recommended)
-        // Example (same buyer + same listing + active request):
-        // boolean exists = purchaseRequestRepository.existsByListing_ListingIdAndBuyer_UserIdAndStatusIn(
-        //         listing.getListingId(),
-        //         buyerId,
-        //         List.of(
-        //             PurchaseRequestStatus.PENDING_SELLER_CONFIRM,
-        //             PurchaseRequestStatus.SELLER_CONFIRMED
-        //         )
-        // );
-        // if (exists) {
-        //     errors.add("You already have an active request for this listing");
-        //     return false;
-        // }
-
-        return true;
-    }
-
-    // =========================================================
-    // UTILS
-    // =========================================================
-    private String trimToNull(String value) {
-        if (value == null) return null;
-        String trimmed = value.trim();
+    private String trimToNull(String str) {
+        if (str == null) return null;
+        String trimmed = str.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
 }
+

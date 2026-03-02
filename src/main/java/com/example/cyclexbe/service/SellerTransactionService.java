@@ -114,7 +114,7 @@ public class SellerTransactionService {
 
         Optional<PurchaseRequest> optionalTransaction =
                 purchaseRequestRepository
-                        .findByRequestIdAndListing_Seller_UserId(requestId, sellerId);
+                        .findByRequestIdAndProduct_Seller_UserId(requestId, sellerId);
 
         if (optionalTransaction.isEmpty()) {
             throw new ResponseStatusException(
@@ -138,7 +138,7 @@ public class SellerTransactionService {
 
         PurchaseRequest transaction =
                 purchaseRequestRepository
-                        .findByRequestIdAndListing_Seller_UserId(requestId, sellerId)
+                        .findByRequestIdAndProduct_Seller_UserId(requestId, sellerId)
                         .orElseThrow(() ->
                                 new ResponseStatusException(
                                         HttpStatus.NOT_FOUND,
@@ -188,7 +188,7 @@ public class SellerTransactionService {
 
         PurchaseRequest transaction =
                 purchaseRequestRepository
-                        .findByRequestIdAndListing_Seller_UserId(requestId, sellerId)
+                        .findByRequestIdAndProduct_Seller_UserId(requestId, sellerId)
                         .orElseThrow(() ->
                                 new ResponseStatusException(
                                         HttpStatus.NOT_FOUND,
@@ -237,15 +237,11 @@ public class SellerTransactionService {
         }
     }
 
-    private PendingTransactionListItemResponse
-    mapToPendingTransactionListItem(PurchaseRequest pr) {
-
-        PendingTransactionListItemResponse response =
-                new PendingTransactionListItemResponse();
-
+    private PendingTransactionListItemResponse mapToPendingTransactionListItem(PurchaseRequest pr) {
+        PendingTransactionListItemResponse response = new PendingTransactionListItemResponse();
         response.setRequestId(pr.getRequestId());
         response.setBuyerName(pr.getBuyer().getFullName());
-        response.setListingTitle(pr.getListing().getTitle());
+        response.setListingTitle(pr.getProduct().getName());
         response.setTransactionType(pr.getTransactionType().toString());
         response.setCreatedAt(pr.getCreatedAt());
         response.setStatus(pr.getStatus().toString());
@@ -254,18 +250,14 @@ public class SellerTransactionService {
         return response;
     }
 
-    private SellerTransactionDetailResponse
-    mapToTransactionDetail(PurchaseRequest pr) {
-
-        SellerTransactionDetailResponse response =
-                new SellerTransactionDetailResponse();
-
+    private SellerTransactionDetailResponse mapToTransactionDetail(PurchaseRequest pr) {
+        SellerTransactionDetailResponse response = new SellerTransactionDetailResponse();
         response.setRequestId(pr.getRequestId());
         response.setBuyerName(pr.getBuyer().getFullName());
         response.setBuyerEmail(pr.getBuyer().getEmail());
         response.setBuyerPhone(pr.getBuyer().getPhone());
-        response.setListingTitle(pr.getListing().getTitle());
-        response.setListingId(pr.getListing().getListingId());
+        response.setListingTitle(pr.getProduct().getName());
+        response.setListingId(pr.getProduct().getListing().getListingId());
         response.setTransactionType(pr.getTransactionType().toString());
         response.setDepositAmount(pr.getDepositAmount());
         response.setPlatformFee(pr.getPlatformFee());

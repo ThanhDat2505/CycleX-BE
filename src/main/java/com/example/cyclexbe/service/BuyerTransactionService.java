@@ -1,17 +1,16 @@
 package com.example.cyclexbe.service;
 
-import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.dto.BuyerCancelTransactionResponse;
 import com.example.cyclexbe.dto.BuyerTransactionActionsDto;
 import com.example.cyclexbe.dto.BuyerTransactionDetailResponse;
-import com.example.cyclexbe.entity.BikeListing;
+import com.example.cyclexbe.entity.Product;
 import com.example.cyclexbe.entity.PurchaseRequest;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.exception.ForbiddenException;
 import com.example.cyclexbe.exception.InvalidListingException;
 import com.example.cyclexbe.exception.PurchaseRequestException;
-import com.example.cyclexbe.repository.BikeListingRepository;
+import com.example.cyclexbe.repository.ProductRepository;
 import com.example.cyclexbe.repository.PurchaseRequestRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,13 +26,13 @@ import java.util.Optional;
 public class BuyerTransactionService {
 
     private final PurchaseRequestRepository purchaseRequestRepository;
-    private final BikeListingRepository bikeListingRepository;
+    private final ProductRepository productRepository;
 
     public BuyerTransactionService(
             PurchaseRequestRepository purchaseRequestRepository,
-            BikeListingRepository bikeListingRepository) {
+            ProductRepository productRepository) {
         this.purchaseRequestRepository = purchaseRequestRepository;
-        this.bikeListingRepository = bikeListingRepository;
+        this.productRepository = productRepository;
     }
 
     /**
@@ -64,61 +63,64 @@ public class BuyerTransactionService {
                     "You don't have permission to view this transaction");
         }
 
-        // Fetch with eager loading to get listing and seller
-        Optional<PurchaseRequest> optionalRequestWithEager = purchaseRequestRepository.findByRequestIdAndBuyerId(requestId, buyerId);
+        // Fetch with eager loading
+        Optional<PurchaseRequest> optionalRequestWithEager =
+                purchaseRequestRepository.findByRequestIdAndBuyerId(requestId, buyerId);
         if (optionalRequestWithEager.isEmpty()) {
-            // This should not happen since we already verified above
             throw new PurchaseRequestException("TRANSACTION_NOT_FOUND",
                     "Transaction not found");
         }
 
         transaction = optionalRequestWithEager.get();
-        BikeListing listing = transaction.getListing();
-        User seller = listing.getSeller();
+        Product product = transaction.getProduct();
+        User seller = product.getSeller();
 
         if (seller == null) {
-            throw new InvalidListingException("SELLER_NOT_FOUND", "Listing seller not found");
+            throw new InvalidListingException("SELLER_NOT_FOUND", "Product seller not found");
         }
 
         // Determine if buyer can cancel
         BuyerTransactionActionsDto actions = determineActions(transaction);
 
         // Build seller info
-        BuyerTransactionDetailResponse.SellerInfoDto sellerInfo = new BuyerTransactionDetailResponse.SellerInfoDto(
-                seller.getUserId(),
-                seller.getFullName(),
-                seller.getPhone(),
-                seller.getAvatarUrl()
-        );
+        BuyerTransactionDetailResponse.SellerInfoDto sellerInfo =
+                new BuyerTransactionDetailResponse.SellerInfoDto(
+                        seller.getUserId(),
+                        seller.getFullName(),
+                        seller.getPhone(),
+                        seller.getAvatarUrl()
+                );
 
-        // Build listing info
-        BuyerTransactionDetailResponse.ListingInfoDto listingInfo = new BuyerTransactionDetailResponse.ListingInfoDto(
-                listing.getListingId(),
-                listing.getTitle(),
-                listing.getDescription(),
-                listing.getBikeType(),
-                listing.getBrand(),
-                listing.getModel(),
-                listing.getManufactureYear(),
-                listing.getCondition(),
-                listing.getStatus(),
-                listing.getPickupAddress(),
-                listing.getLocationCity()
-        );
+        // Build product info (thay thế listing info cũ)
+        BuyerTransactionDetailResponse.ListingInfoDto productInfo =
+                new BuyerTransactionDetailResponse.ListingInfoDto(
+                        product.getListing().getListingId(),
+                        product.getName(),
+                        product.getDescription(),
+                        product.getListing().getBikeType(),
+                        product.getListing().getBrand(),
+                        product.getListing().getModel(),
+                        product.getListing().getManufactureYear(),
+                        product.getListing().getCondition(),
+                        product.getListing().getStatus(),
+                        product.getListing().getPickupAddress(),
+                        product.getListing().getLocationCity()
+                );
 
         // Build timeline
-        BuyerTransactionDetailResponse.TimelineDto timeline = new BuyerTransactionDetailResponse.TimelineDto(
-                transaction.getCreatedAt(),
-                transaction.getUpdatedAt()
-        );
+        BuyerTransactionDetailResponse.TimelineDto timeline =
+                new BuyerTransactionDetailResponse.TimelineDto(
+                        transaction.getCreatedAt(),
+                        transaction.getUpdatedAt()
+                );
 
         // Build response
         BuyerTransactionDetailResponse response = new BuyerTransactionDetailResponse(
                 transaction.getRequestId(),
                 transaction.getStatus(),
                 sellerInfo,
-                listingInfo,
-                listing.getPrice(),
+                productInfo,
+                product.getPrice(),
                 transaction.getDepositAmount(),
                 transaction.getPlatformFee(),
                 transaction.getInspectionFee(),
@@ -179,18 +181,17 @@ public class BuyerTransactionService {
         transaction.setStatus(PurchaseRequestStatus.CANCELLED);
         PurchaseRequest savedTransaction = purchaseRequestRepository.save(transaction);
 
-        // Update listing status
-        BikeListing listing = transaction.getListing();
-        BikeListingStatus oldListingStatus = listing.getStatus();
-        listing.setStatus(BikeListingStatus.APPROVED);
-        bikeListingRepository.save(listing);
+        // Update product status -> AVAILABLE (thay vì cập nhật listing)
+        Product product = transaction.getProduct();
+        product.setStatus("AVAILABLE");
+        productRepository.save(product);
 
         // Build and return response
         return new BuyerCancelTransactionResponse(
                 savedTransaction.getRequestId(),
                 oldStatus,
                 savedTransaction.getStatus(),
-                listing.getStatus(),
+                null, // không còn trả listingStatus
                 "/buyer/transactions"
         );
     }
@@ -211,5 +212,3 @@ public class BuyerTransactionService {
         return new BuyerTransactionActionsDto(canCancel, cancelDisabledReason);
     }
 }
-
-
