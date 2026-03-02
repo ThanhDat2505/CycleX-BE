@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "cyclex-full-api-test-2026",
 		"name": "CycleX - Full API Test Collection",
-		"description": "Complete API test collection for CycleX-BE project.\n\nCovers all modules:\n- Auth (Login, Register, OTP)\n- Users CRUD\n- BikeListings CRUD\n- Seller Module (S-10 to S-18)\n- Inspector Module (S-20 to S-24, Disputes)\n- Inspection Chat (S-40)\n- Inspection Response (S-42)\n- Purchase Request (S-50)\n- Seller Transactions (S-52/S-53)\n- Buyer Transactions (S-54)\n- Shipper Dashboard (S-60)\n\nBase URL: http://localhost:4491",
+		"description": "Complete API test collection for CycleX-BE project.\n\nCovers all modules:\n- Auth (Login, Register, OTP)\n- Users CRUD\n- BikeListings CRUD\n- Seller Module (S-10 to S-18, Listing Result with InspectionReport)\n- Inspector Module (S-20 to S-24, Approve/Reject with reason, InspectionReport, Disputes)\n- Inspection Chat (S-40)\n- Inspection Response (S-42)\n- Purchase Request (S-50)\n- Seller Transactions (S-52/S-53)\n- Buyer Transactions (S-54)\n- Shipper Dashboard (S-60)\n\nBase URL: http://localhost:4491",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
@@ -886,6 +886,24 @@
 					}
 				},
 				{
+					"name": "Listing Result (Approve/Reject + InspectionReport)",
+					"description": "Get listing info + inspection report (lý do approve/reject).\nResponse: { listing: SellerListingResponse, inspectionReport: InspectionReportResponse }",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/{{listingId}}/result",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "{{listingId}}", "result"]
+						}
+					}
+				},
+				{
 					"name": "S-12: Create Listing (via Seller)",
 					"event": [
 						{
@@ -1248,10 +1266,18 @@
 						"method": "POST",
 						"header": [
 							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
 								"key": "Authorization",
 								"value": "Bearer {{inspectorToken}}"
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reasonText\": \"Listing meets all quality standards. Photos are clear, description is detailed and accurate.\",\n    \"reasonCode\": \"MEETS_STANDARDS\",\n    \"note\": \"Good quality listing, approved without issues\"\n}"
+						},
 						"url": {
 							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/{{listingId}}/approve",
 							"host": ["{{baseUrl}}"],
@@ -1308,7 +1334,7 @@
 					}
 				},
 				{
-					"name": "S-24: Review Detail",
+					"name": "S-24: Review Detail (Inspection Report)",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -1318,9 +1344,26 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/reviews/1",
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/reviews/{{listingId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "inspector", "{{inspectorId}}", "reviews", "1"]
+							"path": ["api", "inspector", "{{inspectorId}}", "reviews", "{{listingId}}"]
+						}
+					}
+				},
+				{
+					"name": "S-24: Get Inspection Report for Listing",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/{{listingId}}/report",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "listings", "{{listingId}}", "report"]
 						}
 					}
 				},
@@ -2120,12 +2163,53 @@
 							"request": {
 								"method": "POST",
 								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
 									{ "key": "Authorization", "value": "Bearer {{inspectorToken}}" }
 								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"reasonText\": \"Listing meets all quality standards. Photos are clear and description is accurate.\",\n    \"reasonCode\": \"MEETS_STANDARDS\",\n    \"note\": \"Approved - good quality listing\"\n}"
+								},
 								"url": {
 									"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/{{listingId}}/approve",
 									"host": ["{{baseUrl}}"],
 									"path": ["api", "inspector", "{{inspectorId}}", "listings", "{{listingId}}", "approve"]
+								}
+							}
+						},
+						{
+							"name": "Step 6b: Seller Views Listing Result (Approval Reason)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    pm.test('Listing result contains listing info', function () {",
+											"        pm.expect(jsonData.listing).to.not.be.null;",
+											"        pm.expect(jsonData.listing.status).to.equal('APPROVED');",
+											"    });",
+											"    pm.test('Listing result contains inspection report', function () {",
+											"        pm.expect(jsonData.inspectionReport).to.not.be.null;",
+											"        pm.expect(jsonData.inspectionReport.decision).to.equal('APPROVED');",
+											"        pm.expect(jsonData.inspectionReport.reasonText).to.not.be.empty;",
+											"    });",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{sellerToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/{{listingId}}/result",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "seller", "{{sellerId}}", "listings", "{{listingId}}", "result"]
 								}
 							}
 						},
@@ -2293,6 +2377,74 @@
 									"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/reject",
 									"host": ["{{baseUrl}}"],
 									"path": ["api", "inspector", "{{inspectorId}}", "listings", "reject"]
+								}
+							}
+						},
+						{
+							"name": "Step 4: Seller Views Listing Result (Rejection Reason)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    pm.test('Listing result contains listing info', function () {",
+											"        pm.expect(jsonData.listing).to.not.be.null;",
+											"        pm.expect(jsonData.listing.status).to.equal('REJECTED');",
+											"    });",
+											"    pm.test('Listing result contains inspection report with rejection reason', function () {",
+											"        pm.expect(jsonData.inspectionReport).to.not.be.null;",
+											"        pm.expect(jsonData.inspectionReport.decision).to.equal('REJECTED');",
+											"        pm.expect(jsonData.inspectionReport.reasonCode).to.equal('LOW_QUALITY');",
+											"        pm.expect(jsonData.inspectionReport.reasonText).to.not.be.empty;",
+											"    });",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{sellerToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/{{listingId}}/result",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "seller", "{{sellerId}}", "listings", "{{listingId}}", "result"]
+								}
+							}
+						},
+						{
+							"name": "Step 5: Inspector Views Inspection Report",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    pm.test('Inspection report has correct decision', function () {",
+											"        pm.expect(jsonData.decision).to.equal('REJECTED');",
+											"        pm.expect(jsonData.reasonCode).to.equal('LOW_QUALITY');",
+											"    });",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{inspectorToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/{{listingId}}/report",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "inspector", "{{inspectorId}}", "listings", "{{listingId}}", "report"]
 								}
 							}
 						}
