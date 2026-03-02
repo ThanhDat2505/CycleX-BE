@@ -82,6 +82,20 @@ public class SellerController {
         return ResponseEntity.ok(rejection);
     }
 
+    /**
+     * Get listing result: listing info + inspection report (lý do approve/reject)
+     * GET /api/seller/{sellerId}/listings/{listingId}/result
+     * Response: { listing: SellerListingResponse, inspectionReport: InspectionReportResponse }
+     */
+    @GetMapping("/listings/{listingId}/result")
+    public ResponseEntity<ListingResultResponse> getListingResult(
+            @PathVariable Integer sellerId,
+            @PathVariable Integer listingId) {
+        SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
+        ListingResultResponse result = sellerService.getListingResult(sellerId, listingId);
+        return ResponseEntity.ok(result);
+    }
+
     // S-12: Create Listing
     @PostMapping("/listings/create")
     public ResponseEntity<BikeListingResponse> createListing(

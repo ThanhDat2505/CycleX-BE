@@ -4,9 +4,11 @@ import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.dto.*;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.cyclexbe.entity.BikeListing;
+import com.example.cyclexbe.entity.InspectionReport;
 import com.example.cyclexbe.entity.ListingImage;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.BikeListingRepository;
+import com.example.cyclexbe.repository.InspectionReportRepository;
 import com.example.cyclexbe.repository.ListingImageRepository;
 import com.example.cyclexbe.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
@@ -30,14 +32,17 @@ public class SellerService {
     private final UserRepository userRepository;
     private final ListingImageRepository listingImageRepository;
     private final InspectorAssignmentService inspectorAssignmentService;
+    private final InspectionReportRepository inspectionReportRepository;
 
     public SellerService(BikeListingRepository bikeListingRepository, UserRepository userRepository,
                          ListingImageRepository listingImageRepository,
-                         InspectorAssignmentService inspectorAssignmentService) {
+                         InspectorAssignmentService inspectorAssignmentService,
+                         InspectionReportRepository inspectionReportRepository) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
         this.listingImageRepository = listingImageRepository;
         this.inspectorAssignmentService = inspectorAssignmentService;
+        this.inspectionReportRepository = inspectionReportRepository;
     }
 
     /**
@@ -155,6 +160,34 @@ public class SellerService {
         }
 
         return SellerListingResponse.from(listing);
+    }
+
+    /**
+     * Get listing result: listing info + inspection report (lý do approve/reject)
+     * Dùng cho seller xem kết quả duyệt listing.
+     * Chỉ trả về cho listing đã APPROVED hoặc REJECTED.
+     */
+    public ListingResultResponse getListingResult(Integer sellerId, Integer listingId) {
+        User seller = userRepository.findById(sellerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+
+        BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+
+        if (listing.getStatus() != BikeListingStatus.APPROVED && listing.getStatus() != BikeListingStatus.REJECTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Listing has not been reviewed yet. Current status: " + listing.getStatus());
+        }
+
+        SellerListingResponse listingResponse = SellerListingResponse.from(listing);
+
+        // Get latest inspection report (may be null if legacy data before this feature)
+        InspectionReportResponse reportResponse = inspectionReportRepository
+                .findTopByListingOrderByCreatedAtDesc(listing)
+                .map(InspectionReportResponse::from)
+                .orElse(null);
+
+        return new ListingResultResponse(listingResponse, reportResponse);
     }
 
     /**

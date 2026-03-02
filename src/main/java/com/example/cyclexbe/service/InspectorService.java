@@ -3,9 +3,11 @@ package com.example.cyclexbe.service;
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.entity.BikeListing;
+import com.example.cyclexbe.entity.InspectionReport;
 import com.example.cyclexbe.entity.Product;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.BikeListingRepository;
+import com.example.cyclexbe.repository.InspectionReportRepository;
 import com.example.cyclexbe.repository.ProductRepository;
 import com.example.cyclexbe.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -27,13 +29,16 @@ public class InspectorService {
     private final BikeListingRepository bikeListingRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final InspectionReportRepository inspectionReportRepository;
 
     public InspectorService(BikeListingRepository bikeListingRepository,
             UserRepository userRepository,
-            ProductRepository productRepository) {
+            ProductRepository productRepository,
+            InspectionReportRepository inspectionReportRepository) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
+        this.inspectionReportRepository = inspectionReportRepository;
     }
 
     /**
@@ -141,8 +146,10 @@ public class InspectorService {
 
     /**
      * S-23: Approve listing
+     * Inspector must provide a reason for approval. An InspectionReport is created.
      */
-    public BikeListingResponse approveListing(Integer listingId, Integer inspectorId) {
+    public BikeListingResponse approveListing(Integer listingId, Integer inspectorId,
+            String reasonCode, String reasonText, String note) {
         BikeListing listing = bikeListingRepository.findById(listingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
@@ -158,13 +165,23 @@ public class InspectorService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only REVIEWING listings can be approved");
         }
 
+        // Validate reason
+        if (reasonText == null || reasonText.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason text is required for approval");
+        }
+
         // Approve the listing and ensure inspector is set
         listing.setStatus(BikeListingStatus.APPROVED);
         listing.setInspector(inspector);
-        // TODO: Record approval decision
-        // TODO: Notify seller
 
         BikeListing savedListing = bikeListingRepository.save(listing);
+
+        // Create InspectionReport to record the approval decision
+        InspectionReport report = new InspectionReport(
+                savedListing, inspector, "APPROVED",
+                reasonCode != null ? reasonCode : "MEETS_STANDARDS",
+                reasonText, note);
+        inspectionReportRepository.save(report);
 
         // Create Product
         Product product = new Product();
@@ -182,6 +199,7 @@ public class InspectorService {
 
     /**
      * S-23: Reject listing
+     * Inspector must provide a reason for rejection. An InspectionReport is created.
      */
     public BikeListingResponse rejectListing(Integer listingId, Integer inspectorId, String reasonCode,
             String reasonText, String note) {
@@ -200,13 +218,26 @@ public class InspectorService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only REVIEWING listings can be rejected");
         }
 
+        // Validate reason
+        if (reasonText == null || reasonText.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason text is required for rejection");
+        }
+        if (reasonCode == null || reasonCode.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason code is required for rejection");
+        }
+
         // Reject the listing and set inspector
         listing.setStatus(BikeListingStatus.REJECTED);
         listing.setInspector(inspector);
-        // TODO: Save rejection reason (code, text, note) to new table
-        // TODO: Notify seller with reason
 
         BikeListing saved = bikeListingRepository.save(listing);
+
+        // Create InspectionReport to record the rejection decision
+        InspectionReport report = new InspectionReport(
+                saved, inspector, "REJECTED",
+                reasonCode, reasonText, note);
+        inspectionReportRepository.save(report);
+
         return BikeListingResponse.from(saved);
     }
 
@@ -252,13 +283,29 @@ public class InspectorService {
     }
 
     /**
-     * S-24: Get review detail
+     * S-24: Get review detail - returns InspectionReport for a listing
      */
-    public Object getReviewDetail(Integer reviewId) {
-        // TODO: Query review_decisions table by review_id
-        // TODO: Return complete review details
+    public InspectionReportResponse getReviewDetail(Integer listingId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
-        return null;
+        InspectionReport report = inspectionReportRepository.findTopByListingOrderByCreatedAtDesc(listing)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No inspection report found for this listing"));
+
+        return InspectionReportResponse.from(report);
+    }
+
+    /**
+     * Get the latest InspectionReport for a listing (used by seller to see rejection/approval reason)
+     */
+    public InspectionReportResponse getInspectionReportByListing(Integer listingId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        InspectionReport report = inspectionReportRepository.findTopByListingOrderByCreatedAtDesc(listing)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No inspection report found for this listing"));
+
+        return InspectionReportResponse.from(report);
     }
 
     /**

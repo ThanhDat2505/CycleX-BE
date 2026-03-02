@@ -104,15 +104,22 @@ public class InspectorController {
 
     /**
      * S-23: Approve Listing
-     * Approve listing and change status to APPROVED
+     * Approve listing and change status to APPROVED. Reason is required.
      * POST /inspector/{inspectorId}/listings/{listing_id}/approve
+     * Body: {
+     *   "reasonText": "Listing meets all standards...",
+     *   "reasonCode": "MEETS_STANDARDS|GOOD_CONDITION|OTHER" (optional),
+     *   "note": "Internal note (optional)"
+     * }
      */
     @PostMapping("/listings/{listing_id}/approve")
     public ResponseEntity<BikeListingResponse> approveListing(
             @PathVariable Integer inspectorId,
-            @PathVariable Integer listing_id) {
+            @PathVariable Integer listing_id,
+            @Valid @RequestBody ApproveListingRequest req) {
         SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
-        BikeListingResponse response = inspectorService.approveListing(listing_id, inspectorId);
+        BikeListingResponse response = inspectorService.approveListing(
+                listing_id, inspectorId, req.reasonCode, req.reasonText, req.note);
         return ResponseEntity.ok(response);
     }
 
@@ -155,16 +162,30 @@ public class InspectorController {
     }
 
     /**
-     * S-24: Review Detail
-     * GET /api/inspector/{inspectorId}/reviews/{reviewId}
+     * S-24: Review Detail - Get inspection report for a listing
+     * GET /api/inspector/{inspectorId}/reviews/{listingId}
      */
-    @GetMapping("/reviews/{reviewId}")
-    public ResponseEntity<?> getReviewDetail(
+    @GetMapping("/reviews/{listingId}")
+    public ResponseEntity<InspectionReportResponse> getReviewDetail(
             @PathVariable Integer inspectorId,
-            @PathVariable Integer reviewId) {
+            @PathVariable Integer listingId) {
         SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
-        Object detail = inspectorService.getReviewDetail(reviewId);
+        InspectionReportResponse detail = inspectorService.getReviewDetail(listingId);
         return ResponseEntity.ok(detail);
+    }
+
+    /**
+     * Get Inspection Report for a listing
+     * GET /api/inspector/{inspectorId}/listings/{listingId}/report
+     * Returns the latest InspectionReport (approval/rejection reason) for the listing
+     */
+    @GetMapping("/listings/{listingId}/report")
+    public ResponseEntity<InspectionReportResponse> getInspectionReport(
+            @PathVariable Integer inspectorId,
+            @PathVariable Integer listingId) {
+        SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
+        InspectionReportResponse report = inspectorService.getInspectionReportByListing(listingId);
+        return ResponseEntity.ok(report);
     }
 
     /**
