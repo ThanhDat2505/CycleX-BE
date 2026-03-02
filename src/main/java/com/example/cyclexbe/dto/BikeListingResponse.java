@@ -23,6 +23,8 @@ public class BikeListingResponse {
     public String pickupAddress;
     public BikeListingStatus status;
     public Integer viewsCount;
+    public Integer inspectorId;
+    public String inspectorName;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 
@@ -47,6 +49,8 @@ public class BikeListingResponse {
         r.pickupAddress = b.getPickupAddress();
         r.status = b.getStatus();
         r.viewsCount = b.getViewsCount();
+        r.inspectorId = b.getInspector() != null ? b.getInspector().getUserId() : null;
+        r.inspectorName = b.getInspector() != null ? b.getInspector().getFullName() : null;
         r.createdAt = b.getCreatedAt();
         r.updatedAt = b.getUpdatedAt();
         return r;

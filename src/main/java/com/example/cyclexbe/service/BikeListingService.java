@@ -23,10 +23,13 @@ public class BikeListingService {
 
     private final BikeListingRepository bikeListingRepository;
     private final UserRepository userRepository;
+    private final InspectorAssignmentService inspectorAssignmentService;
 
-    public BikeListingService(BikeListingRepository bikeListingRepository, UserRepository userRepository) {
+    public BikeListingService(BikeListingRepository bikeListingRepository, UserRepository userRepository,
+                              InspectorAssignmentService inspectorAssignmentService) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
+        this.inspectorAssignmentService = inspectorAssignmentService;
     }
 
     public BikeListingResponse create(BikeListingCreateRequest req) {
@@ -48,6 +51,11 @@ public class BikeListingService {
         b.setLocationCity(req.locationCity);
         b.setPickupAddress(req.pickupAddress);
         if (req.status != null) b.setStatus(req.status);
+
+        // Auto-assign inspector if listing is created with PENDING status
+        if (b.getStatus() == BikeListingStatus.PENDING) {
+            inspectorAssignmentService.assignInspector(b);
+        }
 
         BikeListing saved = bikeListingRepository.save(b);
         return BikeListingResponse.from(saved);

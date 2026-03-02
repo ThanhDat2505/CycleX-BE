@@ -38,16 +38,16 @@ public class InspectorService {
 
     /**
      * S-20: Get inspector dashboard statistics
+     * Only count listings assigned to this inspector
      */
     public InspectorDashboardStatsResponse getDashboardStats(Integer inspectorId) {
         User inspector = userRepository.findById(inspectorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
 
-        long pendingCount = bikeListingRepository.countByStatus(BikeListingStatus.PENDING);
-        long reviewingCount = bikeListingRepository.countByStatus(BikeListingStatus.PENDING); // TODO: Add REVIEWING
-                                                                                              // status
-        long approvedCount = bikeListingRepository.countByStatus(BikeListingStatus.APPROVED);
-        long rejectedCount = bikeListingRepository.countByStatus(BikeListingStatus.REJECTED);
+        long pendingCount = bikeListingRepository.countByInspectorAndStatus(inspector, BikeListingStatus.PENDING);
+        long reviewingCount = bikeListingRepository.countByInspectorAndStatus(inspector, BikeListingStatus.REVIEWING);
+        long approvedCount = bikeListingRepository.countByInspectorAndStatus(inspector, BikeListingStatus.APPROVED);
+        long rejectedCount = bikeListingRepository.countByInspectorAndStatus(inspector, BikeListingStatus.REJECTED);
         long disputeCount = 0; // TODO: Count from disputes table
 
         return new InspectorDashboardStatsResponse(pendingCount, reviewingCount, approvedCount, rejectedCount,
@@ -55,22 +55,27 @@ public class InspectorService {
     }
 
     /**
-     * S-21: Get listings for review
+     * S-21: Get listings for review - only listings assigned to this inspector
      */
-    public Page<SellerListingResponse> getListingsForReview(String status, String sort, int page, int pageSize) {
+    public Page<SellerListingResponse> getListingsForReview(Integer inspectorId, String status, String sort, int page, int pageSize) {
+        User inspector = userRepository.findById(inspectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+
         Sort.Direction direction = "oldest".equalsIgnoreCase(sort) ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by(direction, "createdAt"));
 
         Page<BikeListing> result;
 
         if ("PENDING".equalsIgnoreCase(status)) {
-            result = bikeListingRepository.findByStatus(BikeListingStatus.PENDING, pageable);
+            result = bikeListingRepository.findByInspectorAndStatus(inspector, BikeListingStatus.PENDING, pageable);
         } else if ("REVIEWING".equalsIgnoreCase(status)) {
-            // TODO: Add REVIEWING status to BikeListingStatus enum
-            result = bikeListingRepository.findByStatus(BikeListingStatus.PENDING, pageable);
+            result = bikeListingRepository.findByInspectorAndStatus(inspector, BikeListingStatus.REVIEWING, pageable);
         } else {
-            // ALL - get both PENDING and REVIEWING
-            result = bikeListingRepository.findByStatus(BikeListingStatus.PENDING, pageable);
+            // ALL - get both PENDING and REVIEWING assigned to this inspector
+            result = bikeListingRepository.findByInspectorAndStatusIn(
+                    inspector,
+                    java.util.List.of(BikeListingStatus.PENDING, BikeListingStatus.REVIEWING),
+                    pageable);
         }
 
         return result.map(SellerListingResponse::from);
@@ -88,6 +93,7 @@ public class InspectorService {
 
     /**
      * S-22: Lock listing for review
+     * Only the assigned inspector can lock the listing
      */
     public BikeListingResponse lockListing(Integer listingId, Integer inspectorId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
@@ -97,13 +103,13 @@ public class InspectorService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING listings can be locked");
         }
 
-        User inspector = userRepository.findById(inspectorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+        // Verify listing is assigned to this inspector
+        if (listing.getInspector() == null || !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This listing is not assigned to you");
+        }
 
-        // Lock the listing and assign inspector
+        // Lock the listing
         listing.setStatus(BikeListingStatus.REVIEWING);
-        listing.setInspector(inspector);
-        // TODO: Record lock timestamp
 
         BikeListing saved = bikeListingRepository.save(listing);
         return BikeListingResponse.from(saved);
@@ -111,19 +117,23 @@ public class InspectorService {
 
     /**
      * S-22: Unlock listing
+     * Only the assigned inspector can unlock. Listing goes back to PENDING but stays assigned.
      */
-    public BikeListingResponse unlockListing(Integer listingId) {
+    public BikeListingResponse unlockListing(Integer listingId, Integer inspectorId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
-        // TODO: Verify status is REVIEWING
-        // TODO: Revert to PENDING if no decision made
         if (listing.getStatus() != BikeListingStatus.REVIEWING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only REVIEWING listings can be unlocked");
         }
 
+        // Verify listing is assigned to this inspector
+        if (listing.getInspector() == null || !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This listing is not assigned to you");
+        }
+
+        // Revert to PENDING, keep inspector assignment
         listing.setStatus(BikeListingStatus.PENDING);
-        listing.setInspector(null);
 
         BikeListing saved = bikeListingRepository.save(listing);
         return BikeListingResponse.from(saved);
