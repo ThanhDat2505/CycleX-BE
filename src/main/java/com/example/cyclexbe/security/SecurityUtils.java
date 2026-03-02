@@ -13,6 +13,9 @@ import org.springframework.web.server.ResponseStatusException;
 @Component
 public class SecurityUtils {
 
+    // Private constructor - utility class with only static methods
+    private SecurityUtils() {}
+
     /**
      * Get authenticated user ID from JWT token
      * @return userId from token subject

@@ -29,12 +29,15 @@ public class SellerService {
     private final BikeListingRepository bikeListingRepository;
     private final UserRepository userRepository;
     private final ListingImageRepository listingImageRepository;
+    private final InspectorAssignmentService inspectorAssignmentService;
 
     public SellerService(BikeListingRepository bikeListingRepository, UserRepository userRepository,
-                         ListingImageRepository listingImageRepository) {
+                         ListingImageRepository listingImageRepository,
+                         InspectorAssignmentService inspectorAssignmentService) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
         this.listingImageRepository = listingImageRepository;
+        this.inspectorAssignmentService = inspectorAssignmentService;
     }
 
     /**
@@ -192,6 +195,8 @@ public class SellerService {
         // Set status: DRAFT (if saveDraft=true) or PENDING (if saveDraft=false)
         if (req.saveDraft != null && !req.saveDraft) {
             listing.setStatus(BikeListingStatus.PENDING);
+            // Auto-assign inspector (least-load strategy)
+            inspectorAssignmentService.assignInspector(listing);
         } else {
             listing.setStatus(BikeListingStatus.DRAFT);
         }
@@ -296,6 +301,10 @@ public class SellerService {
         }
 
         listing.setStatus(BikeListingStatus.PENDING);
+
+        // Auto-assign inspector (least-load strategy)
+        inspectorAssignmentService.assignInspector(listing);
+
         BikeListing saved = bikeListingRepository.save(listing);
         return BikeListingResponse.from(saved);
     }

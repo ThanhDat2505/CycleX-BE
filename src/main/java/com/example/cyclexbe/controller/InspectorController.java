@@ -52,10 +52,13 @@ public class InspectorController {
     @GetMapping("/listings")
     public ResponseEntity<Page<SellerListingResponse>> getListings(
             @PathVariable Integer inspectorId,
-            @Valid @RequestBody GetInspectorListingsRequest req) {
+            @RequestParam(required = false, defaultValue = "ALL") String status,
+            @RequestParam(required = false, defaultValue = "newest") String sort,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
         SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
         Page<SellerListingResponse> listings = inspectorService.getListingsForReview(
-                req.status, req.sort, req.page, req.pageSize);
+                inspectorId, status, sort, page, pageSize);
         return ResponseEntity.ok(listings);
     }
 
@@ -95,7 +98,7 @@ public class InspectorController {
             @PathVariable Integer inspectorId,
             @PathVariable Integer listing_id) {
         SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
-        BikeListingResponse response = inspectorService.unlockListing(listing_id);
+        BikeListingResponse response = inspectorService.unlockListing(listing_id, inspectorId);
         return ResponseEntity.ok(response);
     }
 
@@ -136,57 +139,59 @@ public class InspectorController {
     /**
      * S-24: Review History
      * Get inspector's review history with date range filter
-     * Query params: from=YYYY-MM-DD, to=YYYY-MM-DD, page, page_size
+     * Query params: from=YYYY-MM-DD, to=YYYY-MM-DD, page, pageSize
      */
-    @PostMapping("/reviews")
+    @GetMapping("/reviews")
     public ResponseEntity<Page<BikeListingResponse>> getReviewHistory(
             @PathVariable Integer inspectorId,
-            @Valid @RequestBody GetReviewHistoryRequest req) {
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
         SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
         Page<BikeListingResponse> reviews = inspectorService.getReviewHistory(
-                inspectorId, req.from, req.to, req.page, req.pageSize);
+                inspectorId, from, to, page, pageSize);
         return ResponseEntity.ok(reviews);
     }
 
     /**
-     * S-24: Review Detail (Optional)
-     * Get detail of a specific review
-     * GET /inspector/reviews/{review_id}
+     * S-24: Review Detail
+     * GET /api/inspector/{inspectorId}/reviews/{reviewId}
      */
-    @PostMapping("/reviews/detail")
+    @GetMapping("/reviews/{reviewId}")
     public ResponseEntity<?> getReviewDetail(
             @PathVariable Integer inspectorId,
-            @Valid @RequestBody GetReviewDetailRequest req) {
+            @PathVariable Integer reviewId) {
         SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
-        Object detail = inspectorService.getReviewDetail(req.reviewId);
+        Object detail = inspectorService.getReviewDetail(reviewId);
         return ResponseEntity.ok(detail);
     }
 
     /**
      * Dispute: List All Disputes
-     * Get list of disputes for statistics and routing
-     * Query params: status=OPEN|RESOLVED, page, page_size
+     * Query params: status=OPEN|RESOLVED, page, pageSize
      */
-    @PostMapping("/disputes")
+    @GetMapping("/disputes")
     public ResponseEntity<Page<?>> getDisputes(
             @PathVariable Integer inspectorId,
-            @Valid @RequestBody GetDisputesRequest req) {
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
         SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
-        Page<?> disputes = inspectorService.getDisputes(req.status, req.page, req.pageSize);
+        Page<?> disputes = inspectorService.getDisputes(status, page, pageSize);
         return ResponseEntity.ok(disputes);
     }
 
     /**
      * Dispute: Dispute Detail
-     * Get detail of a specific dispute (if sprint includes deep handling)
-     * GET /inspector/disputes/{dispute_id}
+     * GET /api/inspector/{inspectorId}/disputes/{disputeId}
      */
-    @PostMapping("/disputes/detail")
+    @GetMapping("/disputes/{disputeId}")
     public ResponseEntity<?> getDisputeDetail(
             @PathVariable Integer inspectorId,
-            @Valid @RequestBody GetDisputeDetailRequest req) {
+            @PathVariable Integer disputeId) {
         SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
-        Object detail = inspectorService.getDisputeDetail(req.disputeId);
+        Object detail = inspectorService.getDisputeDetail(disputeId);
         return ResponseEntity.ok(detail);
     }
 

@@ -14,12 +14,16 @@ public class SellerListingResponse {
     public BigDecimal price;
     public BikeListingStatus status;
     public Integer viewsCount;
+    public Integer inspectorId;
+    public String inspectorName;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 
     public SellerListingResponse() {}
 
-    public SellerListingResponse(Integer listingId, String title, String brand, String model, BigDecimal price, BikeListingStatus status, Integer viewsCount, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public SellerListingResponse(Integer listingId, String title, String brand, String model, BigDecimal price,
+                                 BikeListingStatus status, Integer viewsCount, Integer inspectorId, String inspectorName,
+                                 LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.listingId = listingId;
         this.title = title;
         this.brand = brand;
@@ -27,6 +31,8 @@ public class SellerListingResponse {
         this.price = price;
         this.status = status;
         this.viewsCount = viewsCount;
+        this.inspectorId = inspectorId;
+        this.inspectorName = inspectorName;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -41,6 +47,8 @@ public class SellerListingResponse {
                 b.getPrice(),
                 b.getStatus(),
                 b.getViewsCount(),
+                b.getInspector() != null ? b.getInspector().getUserId() : null,
+                b.getInspector() != null ? b.getInspector().getFullName() : null,
                 b.getCreatedAt(),
                 b.getUpdatedAt()
         );

@@ -1,0 +1,2371 @@
+{
+	"info": {
+		"_postman_id": "cyclex-full-api-test-2026",
+		"name": "CycleX - Full API Test Collection",
+		"description": "Complete API test collection for CycleX-BE project.\n\nCovers all modules:\n- Auth (Login, Register, OTP)\n- Users CRUD\n- BikeListings CRUD\n- Seller Module (S-10 to S-18)\n- Inspector Module (S-20 to S-24, Disputes)\n- Inspection Chat (S-40)\n- Inspection Response (S-42)\n- Purchase Request (S-50)\n- Seller Transactions (S-52/S-53)\n- Buyer Transactions (S-54)\n- Shipper Dashboard (S-60)\n\nBase URL: http://localhost:4491",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4491",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "sellerToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "buyerToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "inspectorToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "shipperToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "adminToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "sellerId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "buyerId",
+			"value": "2",
+			"type": "string"
+		},
+		{
+			"key": "inspectorId",
+			"value": "3",
+			"type": "string"
+		},
+		{
+			"key": "shipperId",
+			"value": "4",
+			"type": "string"
+		},
+		{
+			"key": "listingId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "productId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "requestId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "inspectionRequestId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "imageId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "requirementId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "fileId",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "🔐 1. Auth",
+			"description": "Authentication endpoints: Register, Login, OTP verification",
+			"item": [
+				{
+					"name": "1.1 Register - SELLER",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.userId) {",
+									"        pm.collectionVariables.set('sellerId', jsonData.userId);",
+									"    }",
+									"    pm.test('Register SELLER success', function () {",
+									"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"seller@test.com\",\n    \"password\": \"123456\",\n    \"phone\": \"0901234567\",\n    \"cccd\": \"012345678\",\n    \"role\": \"SELLER\",\n    \"fullName\": \"Seller Test\",\n    \"status\": \"ACTIVE\",\n    \"avatarUrl\": null,\n    \"isVerify\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "1.2 Register - BUYER",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.userId) {",
+									"        pm.collectionVariables.set('buyerId', jsonData.userId);",
+									"    }",
+									"    pm.test('Register BUYER success', function () {",
+									"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"buyer@test.com\",\n    \"password\": \"123456\",\n    \"phone\": \"0901234568\",\n    \"cccd\": \"012345679\",\n    \"role\": \"BUYER\",\n    \"fullName\": \"Buyer Test\",\n    \"status\": \"ACTIVE\",\n    \"avatarUrl\": null,\n    \"isVerify\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "1.3 Register - INSPECTOR",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.userId) {",
+									"        pm.collectionVariables.set('inspectorId', jsonData.userId);",
+									"    }",
+									"    pm.test('Register INSPECTOR success', function () {",
+									"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"inspector@test.com\",\n    \"password\": \"123456\",\n    \"phone\": \"0901234569\",\n    \"cccd\": \"012345680\",\n    \"role\": \"INSPECTOR\",\n    \"fullName\": \"Inspector Test\",\n    \"status\": \"ACTIVE\",\n    \"avatarUrl\": null,\n    \"isVerify\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "1.4 Register - SHIPPER",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.userId) {",
+									"        pm.collectionVariables.set('shipperId', jsonData.userId);",
+									"    }",
+									"    pm.test('Register SHIPPER success', function () {",
+									"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"shipper@test.com\",\n    \"password\": \"123456\",\n    \"phone\": \"0901234570\",\n    \"cccd\": \"012345681\",\n    \"role\": \"SHIPPER\",\n    \"fullName\": \"Shipper Test\",\n    \"status\": \"ACTIVE\",\n    \"avatarUrl\": null,\n    \"isVerify\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "1.5 Send OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"seller@test.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/send-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "send-otp"]
+						}
+					}
+				},
+				{
+					"name": "1.6 Verify OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"seller@test.com\",\n    \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/verify-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "verify-otp"]
+						}
+					}
+				},
+				{
+					"name": "1.7 Login - SELLER",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set('sellerToken', jsonData.token);",
+									"        pm.collectionVariables.set('token', jsonData.token);",
+									"    }",
+									"    if (jsonData.userId) {",
+									"        pm.collectionVariables.set('sellerId', jsonData.userId);",
+									"    }",
+									"    pm.test('Login SELLER success', function () {",
+									"        pm.expect(jsonData.token).to.not.be.empty;",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"seller@test.com\",\n    \"password\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "1.8 Login - BUYER",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set('buyerToken', jsonData.token);",
+									"    }",
+									"    if (jsonData.userId) {",
+									"        pm.collectionVariables.set('buyerId', jsonData.userId);",
+									"    }",
+									"    pm.test('Login BUYER success', function () {",
+									"        pm.expect(jsonData.token).to.not.be.empty;",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"buyer@test.com\",\n    \"password\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "1.9 Login - INSPECTOR",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set('inspectorToken', jsonData.token);",
+									"    }",
+									"    if (jsonData.userId) {",
+									"        pm.collectionVariables.set('inspectorId', jsonData.userId);",
+									"    }",
+									"    pm.test('Login INSPECTOR success', function () {",
+									"        pm.expect(jsonData.token).to.not.be.empty;",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"inspector@test.com\",\n    \"password\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "1.10 Login - SHIPPER",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set('shipperToken', jsonData.token);",
+									"    }",
+									"    if (jsonData.userId) {",
+									"        pm.collectionVariables.set('shipperId', jsonData.userId);",
+									"    }",
+									"    pm.test('Login SHIPPER success', function () {",
+									"        pm.expect(jsonData.token).to.not.be.empty;",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"shipper@test.com\",\n    \"password\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "👤 2. Users CRUD",
+			"description": "User management endpoints",
+			"item": [
+				{
+					"name": "2.1 Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"newuser@test.com\",\n    \"password\": \"123456\",\n    \"phone\": \"0909999888\",\n    \"cccd\": \"099887766\",\n    \"role\": \"BUYER\",\n    \"fullName\": \"New User\",\n    \"status\": \"ACTIVE\",\n    \"avatarUrl\": null,\n    \"isVerify\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users"]
+						}
+					}
+				},
+				{
+					"name": "2.2 Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users"]
+						}
+					}
+				},
+				{
+					"name": "2.3 Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "{{userId}}"]
+						}
+					}
+				},
+				{
+					"name": "2.4 Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fullName\": \"Updated User Name\",\n    \"phone\": \"0909111222\",\n    \"avatarUrl\": \"https://example.com/avatar.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "{{userId}}"]
+						}
+					}
+				},
+				{
+					"name": "2.5 Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "{{userId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🏍️ 3. BikeListings CRUD (Public)",
+			"description": "Public bike listing endpoints",
+			"item": [
+				{
+					"name": "3.1 Create BikeListing",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.listingId) {",
+									"        pm.collectionVariables.set('listingId', jsonData.listingId);",
+									"    }",
+									"    pm.test('Create listing success', function () {",
+									"        pm.expect(pm.response.code).to.equal(201);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sellerId\": {{sellerId}},\n    \"title\": \"Yamaha YZF-R1 2023\",\n    \"description\": \"Like new condition, low mileage, full service history\",\n    \"bikeType\": \"Sport\",\n    \"brand\": \"Yamaha\",\n    \"model\": \"YZF-R1\",\n    \"manufactureYear\": 2023,\n    \"condition\": \"Like New\",\n    \"usageTime\": \"6 months\",\n    \"reasonForSale\": \"Upgrading to a newer model\",\n    \"price\": 350000000,\n    \"locationCity\": \"Ho Chi Minh\",\n    \"pickupAddress\": \"123 Nguyen Van Linh, Quan 7, TP.HCM\",\n    \"status\": \"PENDING\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/bikelistings",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "bikelistings"]
+						}
+					}
+				},
+				{
+					"name": "3.2 Get All BikeListings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/bikelistings?page=0&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "bikelistings"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "3.3 Get All BikeListings (filter by status)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/bikelistings?page=0&size=10&status=PENDING",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "bikelistings"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "status", "value": "PENDING" }
+							]
+						}
+					}
+				},
+				{
+					"name": "3.4 Get All BikeListings (filter by city)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/bikelistings?page=0&size=10&city=Ho Chi Minh",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "bikelistings"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "city", "value": "Ho Chi Minh" }
+							]
+						}
+					}
+				},
+				{
+					"name": "3.5 Get All BikeListings (search by title)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/bikelistings?page=0&size=10&title=Yamaha",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "bikelistings"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "title", "value": "Yamaha" }
+							]
+						}
+					}
+				},
+				{
+					"name": "3.6 Get BikeListing by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/bikelistings/{{listingId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "bikelistings", "{{listingId}}"]
+						}
+					}
+				},
+				{
+					"name": "3.7 Update BikeListing",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Yamaha YZF-R1 2023 - Updated\",\n    \"price\": 340000000,\n    \"description\": \"Updated description - excellent condition\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/bikelistings/{{listingId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "bikelistings", "{{listingId}}"]
+						}
+					}
+				},
+				{
+					"name": "3.8 Delete BikeListing",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/bikelistings/{{listingId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "bikelistings", "{{listingId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🏪 4. Seller Module (S-10 to S-18)",
+			"description": "Seller dashboard, listing management, drafts, images",
+			"item": [
+				{
+					"name": "S-10: Dashboard Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/dashboard/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "dashboard", "stats"]
+						}
+					}
+				},
+				{
+					"name": "S-11: My Listings (Search)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/search?page=0&pageSize=20&sort=createdAt",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "search"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "pageSize", "value": "20" },
+								{ "key": "sort", "value": "createdAt" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-11: My Listings (filter by status)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/search?status=PENDING&page=0&pageSize=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "search"],
+							"query": [
+								{ "key": "status", "value": "PENDING" },
+								{ "key": "page", "value": "0" },
+								{ "key": "pageSize", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-11: My Listings (filter by brand & price)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/search?brand=Yamaha&minPrice=100000000&maxPrice=500000000&page=0&pageSize=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "search"],
+							"query": [
+								{ "key": "brand", "value": "Yamaha" },
+								{ "key": "minPrice", "value": "100000000" },
+								{ "key": "maxPrice", "value": "500000000" },
+								{ "key": "page", "value": "0" },
+								{ "key": "pageSize", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-11: Listing Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/{{listingId}}/detail",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "{{listingId}}", "detail"]
+						}
+					}
+				},
+				{
+					"name": "S-11: Listing Rejection Reason",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/{{listingId}}/rejection",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "{{listingId}}", "rejection"]
+						}
+					}
+				},
+				{
+					"name": "S-12: Create Listing (via Seller)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.listingId) {",
+									"        pm.collectionVariables.set('listingId', jsonData.listingId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sellerId\": {{sellerId}},\n    \"title\": \"Honda CBR600RR 2024\",\n    \"description\": \"Perfect condition sport bike, garage kept\",\n    \"bikeType\": \"Sport\",\n    \"brand\": \"Honda\",\n    \"model\": \"CBR600RR\",\n    \"manufactureYear\": 2024,\n    \"condition\": \"Excellent\",\n    \"usageTime\": \"3 months\",\n    \"reasonForSale\": \"Moving abroad\",\n    \"price\": 280000000,\n    \"locationCity\": \"Ha Noi\",\n    \"pickupAddress\": \"456 Le Van Luong, Cau Giay, Ha Noi\",\n    \"saveDraft\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/create",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "create"]
+						}
+					}
+				},
+				{
+					"name": "S-12: Update Listing (PATCH)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sellerId\": {{sellerId}},\n    \"title\": \"Honda CBR600RR 2024 - Updated\",\n    \"price\": 275000000,\n    \"description\": \"Updated: Perfect condition, low mileage\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/{{listingId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "{{listingId}}"]
+						}
+					}
+				},
+				{
+					"name": "S-13: Get Listing Images",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/{{listingId}}/images",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "{{listingId}}", "images"]
+						}
+					}
+				},
+				{
+					"name": "S-13: Upload Listing Image",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.imageId) {",
+									"        pm.collectionVariables.set('imageId', jsonData.imageId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"imagePath\": \"/public/{{listingId}}/front.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/{{listingId}}/images",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "{{listingId}}", "images"]
+						}
+					}
+				},
+				{
+					"name": "S-13: Delete Listing Image",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/{{listingId}}/images/{{imageId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "{{listingId}}", "images", "{{imageId}}"]
+						}
+					}
+				},
+				{
+					"name": "S-14: Preview Listing",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/{{listingId}}/preview",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "listings", "{{listingId}}", "preview"]
+						}
+					}
+				},
+				{
+					"name": "S-18: Get Drafts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/drafts?sort=newest&page=0&pageSize=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "drafts"],
+							"query": [
+								{ "key": "sort", "value": "newest" },
+								{ "key": "page", "value": "0" },
+								{ "key": "pageSize", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-18: Submit Draft",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/drafts/{{listingId}}/submit",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "drafts", "{{listingId}}", "submit"]
+						}
+					}
+				},
+				{
+					"name": "S-18: Delete Draft",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/{{sellerId}}/drafts/{{listingId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "{{sellerId}}", "drafts", "{{listingId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🔍 5. Inspector Module (S-20 to S-24)",
+			"description": "Inspector dashboard, listing review, approve/reject, history, disputes",
+			"item": [
+				{
+					"name": "S-20: Dashboard Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/dashboard/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "dashboard", "stats"]
+						}
+					}
+				},
+				{
+					"name": "S-21: Get Listings for Review (ALL)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings?status=ALL&sort=newest&page=0&pageSize=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "listings"],
+							"query": [
+								{ "key": "status", "value": "ALL" },
+								{ "key": "sort", "value": "newest" },
+								{ "key": "page", "value": "0" },
+								{ "key": "pageSize", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-21: Get Listings for Review (PENDING)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings?status=PENDING&sort=oldest&page=0&pageSize=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "listings"],
+							"query": [
+								{ "key": "status", "value": "PENDING" },
+								{ "key": "sort", "value": "oldest" },
+								{ "key": "page", "value": "0" },
+								{ "key": "pageSize", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-21: Get Listings for Review (REVIEWING)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings?status=REVIEWING&sort=newest&page=0&pageSize=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "listings"],
+							"query": [
+								{ "key": "status", "value": "REVIEWING" },
+								{ "key": "sort", "value": "newest" },
+								{ "key": "page", "value": "0" },
+								{ "key": "pageSize", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-22: Get Listing Detail for Review",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/{{listingId}}/detail",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "listings", "{{listingId}}", "detail"]
+						}
+					}
+				},
+				{
+					"name": "S-22: Lock Listing for Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/{{listingId}}/lock",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "listings", "{{listingId}}", "lock"]
+						}
+					}
+				},
+				{
+					"name": "S-22: Unlock Listing",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/{{listingId}}/unlock",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "listings", "{{listingId}}", "unlock"]
+						}
+					}
+				},
+				{
+					"name": "S-23: Approve Listing",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/{{listingId}}/approve",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "listings", "{{listingId}}", "approve"]
+						}
+					}
+				},
+				{
+					"name": "S-23: Reject Listing",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"listingId\": {{listingId}},\n    \"reasonCode\": \"LOW_QUALITY\",\n    \"reasonText\": \"Images are blurry and description is insufficient\",\n    \"note\": \"Seller should retake photos and add more details\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/reject",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "listings", "reject"]
+						}
+					}
+				},
+				{
+					"name": "S-24: Review History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/reviews?from=2026-01-01&to=2026-12-31&page=0&pageSize=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "reviews"],
+							"query": [
+								{ "key": "from", "value": "2026-01-01" },
+								{ "key": "to", "value": "2026-12-31" },
+								{ "key": "page", "value": "0" },
+								{ "key": "pageSize", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-24: Review Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/reviews/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "reviews", "1"]
+						}
+					}
+				},
+				{
+					"name": "Dispute: List Disputes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/disputes?status=OPEN&page=0&pageSize=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "disputes"],
+							"query": [
+								{ "key": "status", "value": "OPEN" },
+								{ "key": "page", "value": "0" },
+								{ "key": "pageSize", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Dispute: Dispute Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/disputes/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspector", "{{inspectorId}}", "disputes", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "💬 6. Inspection Chat (S-40)",
+			"description": "Chat thread between inspector and seller during inspection",
+			"item": [
+				{
+					"name": "S-40.1: Load Chat Thread (as INSPECTOR)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspection-requests/{{inspectionRequestId}}/chat-thread",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspection-requests", "{{inspectionRequestId}}", "chat-thread"]
+						}
+					}
+				},
+				{
+					"name": "S-40.1: Load Chat Thread (as SELLER)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/inspection-requests/{{inspectionRequestId}}/chat-thread",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspection-requests", "{{inspectionRequestId}}", "chat-thread"]
+						}
+					}
+				},
+				{
+					"name": "S-40.2: Send TEXT Message (as INSPECTOR)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"TEXT\",\n    \"text\": \"Hello, I need more details about the bike's engine condition. Can you provide recent service records?\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/inspection-requests/{{inspectionRequestId}}/chat-messages",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspection-requests", "{{inspectionRequestId}}", "chat-messages"]
+						}
+					}
+				},
+				{
+					"name": "S-40.2: Send TEXT Message (as SELLER)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"TEXT\",\n    \"text\": \"Sure, I have all the service records. The bike was serviced last month at Honda authorized center.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/inspection-requests/{{inspectionRequestId}}/chat-messages",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspection-requests", "{{inspectionRequestId}}", "chat-messages"]
+						}
+					}
+				},
+				{
+					"name": "S-40.3: Upload Image Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "",
+									"description": "Select an image file (JPEG, PNG, GIF, WebP) - max 5MB"
+								},
+								{
+									"key": "caption",
+									"value": "Service record from Honda center - January 2026",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/inspection-requests/{{inspectionRequestId}}/chat-messages:upload",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspection-requests", "{{inspectionRequestId}}", "chat-messages:upload"]
+						}
+					}
+				},
+				{
+					"name": "S-40.4: Mark Chat as Read",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{inspectorToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"lastReadMessageId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/inspection-requests/{{inspectionRequestId}}/chat-thread/read",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "inspection-requests", "{{inspectionRequestId}}", "chat-thread", "read"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📋 7. Inspection Response (S-42)",
+			"description": "Seller responds to inspection requirements with files and answers",
+			"item": [
+				{
+					"name": "S-42.1: Load Inspection Response Screen",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/listings/{{listingId}}/inspection-response",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "listings", "{{listingId}}", "inspection-response"]
+						}
+					}
+				},
+				{
+					"name": "S-42.2: Upload Draft File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.fileId) {",
+									"        pm.collectionVariables.set('fileId', jsonData.fileId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "",
+									"description": "Select a file to upload as inspection evidence"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/inspection-requests/{{inspectionRequestId}}/response/requirements/{{requirementId}}/files",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "inspection-requests", "{{inspectionRequestId}}", "response", "requirements", "{{requirementId}}", "files"]
+						}
+					}
+				},
+				{
+					"name": "S-42.3: Delete Draft File",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/inspection-requests/{{inspectionRequestId}}/response/files/{{fileId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "inspection-requests", "{{inspectionRequestId}}", "response", "files", "{{fileId}}"]
+						}
+					}
+				},
+				{
+					"name": "S-42.4: Submit Inspection Response",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"answers\": [\n        {\n            \"requirementId\": 1,\n            \"text\": \"The bike has been serviced regularly at Honda authorized center. Last service was on January 2026.\"\n        },\n        {\n            \"requirementId\": 2,\n            \"text\": \"No accidents or damage history. Original paint and frame.\"\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/inspection-requests/{{inspectionRequestId}}/response/submit",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "inspection-requests", "{{inspectionRequestId}}", "response", "submit"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🛒 8. Purchase Request (S-50)",
+			"description": "Buyer creates purchase requests for products",
+			"item": [
+				{
+					"name": "S-50.1: Init Purchase Request Screen",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{buyerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/products/{{productId}}/purchase-request/init",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "products", "{{productId}}", "purchase-request", "init"]
+						}
+					}
+				},
+				{
+					"name": "S-50.2: Review Purchase Request (no DB write)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{buyerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"transactionType\": \"PURCHASE\",\n    \"desiredTransactionTime\": \"2026-04-15T14:00:00\",\n    \"note\": \"I would like to inspect the bike before finalizing the purchase\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/products/{{productId}}/purchase-requests/review",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "products", "{{productId}}", "purchase-requests", "review"]
+						}
+					}
+				},
+				{
+					"name": "S-50.3: Create Purchase Request (PURCHASE)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.requestId) {",
+									"        pm.collectionVariables.set('requestId', jsonData.requestId);",
+									"    }",
+									"    pm.test('Create purchase request success', function () {",
+									"        pm.expect(pm.response.code).to.equal(201);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{buyerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"transactionType\": \"PURCHASE\",\n    \"desiredTransactionTime\": \"2026-04-15T14:00:00\",\n    \"note\": \"I would like to inspect the bike before finalizing\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/products/{{productId}}/purchase-requests",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "products", "{{productId}}", "purchase-requests"]
+						}
+					}
+				},
+				{
+					"name": "S-50.3: Create Purchase Request (DEPOSIT)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{buyerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"transactionType\": \"DEPOSIT\",\n    \"desiredTransactionTime\": \"2026-04-20T10:00:00\",\n    \"note\": \"I want to deposit first and pick up the bike next week\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/products/{{productId}}/purchase-requests",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "products", "{{productId}}", "purchase-requests"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "💰 9. Seller Transactions (S-52/S-53)",
+			"description": "Seller views and manages purchase request transactions",
+			"item": [
+				{
+					"name": "S-52: Get Pending Transactions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/transactions/pending?page=0&size=10&sortBy=createdAt&sortDir=desc",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "transactions", "pending"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "sortBy", "value": "createdAt" },
+								{ "key": "sortDir", "value": "desc" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-52: Get Pending (filter by PURCHASE)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/transactions/pending?page=0&size=10&transactionType=PURCHASE",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "transactions", "pending"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "transactionType", "value": "PURCHASE" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-52: Get Pending (filter by DEPOSIT)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/transactions/pending?page=0&size=10&transactionType=DEPOSIT",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "transactions", "pending"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "transactionType", "value": "DEPOSIT" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-52: Get Pending (keyword search)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/transactions/pending?page=0&size=10&keyword=Buyer",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "transactions", "pending"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "keyword", "value": "Buyer" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-53: Get Transaction Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/transactions/{{requestId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "transactions", "{{requestId}}"]
+						}
+					}
+				},
+				{
+					"name": "S-53: Confirm Transaction",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"note\": \"Confirmed. Please come to the pickup address at the agreed time.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/transactions/{{requestId}}/confirm",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "transactions", "{{requestId}}", "confirm"]
+						}
+					}
+				},
+				{
+					"name": "S-53: Reject Transaction",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{sellerToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reason\": \"The bike is no longer available. It has been sold to another buyer.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/seller/transactions/{{requestId}}/reject",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "seller", "transactions", "{{requestId}}", "reject"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🛍️ 10. Buyer Transactions (S-54)",
+			"description": "Buyer views transaction detail and cancels transactions",
+			"item": [
+				{
+					"name": "S-54: Get Transaction Detail (Buyer View)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{buyerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/buyer/transactions/{{requestId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "buyer", "transactions", "{{requestId}}"]
+						}
+					}
+				},
+				{
+					"name": "S-54: Cancel Transaction (Buyer)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{buyerToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/buyer/transactions/{{requestId}}/cancel",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "buyer", "transactions", "{{requestId}}", "cancel"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🚚 11. Shipper Dashboard (S-60)",
+			"description": "Shipper dashboard summary and assigned deliveries",
+			"item": [
+				{
+					"name": "S-60.F1: Dashboard Summary",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{shipperToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/dashboard/summary",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "dashboard", "summary"]
+						}
+					}
+				},
+				{
+					"name": "S-60.F2: Assigned Deliveries",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{shipperToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/assigned?page=0&pageSize=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "assigned"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "pageSize", "value": "10" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🔥 12. Full Flow Tests",
+			"description": "End-to-end test scenarios that follow the complete business flow",
+			"item": [
+				{
+					"name": "Flow 1: Seller Create → Inspector Approve → Buyer Purchase",
+					"description": "Complete happy path flow:\n1. Seller registers & logs in\n2. Seller creates listing\n3. Seller submits draft\n4. Inspector locks listing\n5. Inspector approves → Product created\n6. Buyer creates purchase request\n7. Seller confirms transaction",
+					"item": [
+						{
+							"name": "Step 1: Login Seller",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = pm.response.json();",
+											"if (jsonData.token) {",
+											"    pm.collectionVariables.set('sellerToken', jsonData.token);",
+											"    pm.collectionVariables.set('token', jsonData.token);",
+											"}",
+											"if (jsonData.userId) pm.collectionVariables.set('sellerId', jsonData.userId);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"seller@test.com\",\n    \"password\": \"123456\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/auth/login",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "auth", "login"]
+								}
+							}
+						},
+						{
+							"name": "Step 2: Create Listing (Draft)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201 || pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.listingId) pm.collectionVariables.set('listingId', jsonData.listingId);",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{sellerToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"sellerId\": {{sellerId}},\n    \"title\": \"Flow Test - Kawasaki Z1000 2024\",\n    \"description\": \"Full flow test bike listing\",\n    \"bikeType\": \"Naked\",\n    \"brand\": \"Kawasaki\",\n    \"model\": \"Z1000\",\n    \"manufactureYear\": 2024,\n    \"condition\": \"New\",\n    \"usageTime\": \"0 months\",\n    \"reasonForSale\": \"Testing flow\",\n    \"price\": 450000000,\n    \"locationCity\": \"Da Nang\",\n    \"pickupAddress\": \"789 Hai Ba Trung, Da Nang\",\n    \"saveDraft\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/create",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "seller", "{{sellerId}}", "listings", "create"]
+								}
+							}
+						},
+						{
+							"name": "Step 3: Submit Draft → PENDING",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{sellerToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/seller/{{sellerId}}/drafts/{{listingId}}/submit",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "seller", "{{sellerId}}", "drafts", "{{listingId}}", "submit"]
+								}
+							}
+						},
+						{
+							"name": "Step 4: Login Inspector",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = pm.response.json();",
+											"if (jsonData.token) pm.collectionVariables.set('inspectorToken', jsonData.token);",
+											"if (jsonData.userId) pm.collectionVariables.set('inspectorId', jsonData.userId);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"inspector@test.com\",\n    \"password\": \"123456\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/auth/login",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "auth", "login"]
+								}
+							}
+						},
+						{
+							"name": "Step 5: Lock Listing → REVIEWING",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{inspectorToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/{{listingId}}/lock",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "inspector", "{{inspectorId}}", "listings", "{{listingId}}", "lock"]
+								}
+							}
+						},
+						{
+							"name": "Step 6: Approve Listing → APPROVED + Product Created",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{inspectorToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/{{listingId}}/approve",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "inspector", "{{inspectorId}}", "listings", "{{listingId}}", "approve"]
+								}
+							}
+						},
+						{
+							"name": "Step 7: Login Buyer",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = pm.response.json();",
+											"if (jsonData.token) pm.collectionVariables.set('buyerToken', jsonData.token);",
+											"if (jsonData.userId) pm.collectionVariables.set('buyerId', jsonData.userId);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"buyer@test.com\",\n    \"password\": \"123456\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/auth/login",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "auth", "login"]
+								}
+							}
+						},
+						{
+							"name": "Step 8: Init Purchase Request",
+							"request": {
+								"method": "GET",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{buyerToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/products/{{productId}}/purchase-request/init",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "products", "{{productId}}", "purchase-request", "init"]
+								}
+							}
+						},
+						{
+							"name": "Step 9: Create Purchase Request",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.requestId) pm.collectionVariables.set('requestId', jsonData.requestId);",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{buyerToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"transactionType\": \"PURCHASE\",\n    \"desiredTransactionTime\": \"2026-04-20T15:00:00\",\n    \"note\": \"Full flow test purchase\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/products/{{productId}}/purchase-requests",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "products", "{{productId}}", "purchase-requests"]
+								}
+							}
+						},
+						{
+							"name": "Step 10: Seller Confirms Transaction",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{sellerToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"note\": \"Confirmed! See you at the pickup address.\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/seller/transactions/{{requestId}}/confirm",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "seller", "transactions", "{{requestId}}", "confirm"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Flow 2: Seller Create → Inspector Reject",
+					"description": "Rejection flow:\n1. Seller creates listing\n2. Inspector locks\n3. Inspector rejects with reason",
+					"item": [
+						{
+							"name": "Step 1: Create Listing",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201 || pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.listingId) pm.collectionVariables.set('listingId', jsonData.listingId);",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{sellerToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"sellerId\": {{sellerId}},\n    \"title\": \"Bad Listing - Low Quality\",\n    \"description\": \"x\",\n    \"bikeType\": \"Unknown\",\n    \"brand\": \"NoBrand\",\n    \"model\": \"NoModel\",\n    \"manufactureYear\": 2020,\n    \"condition\": \"Poor\",\n    \"usageTime\": \"5 years\",\n    \"reasonForSale\": \"Test reject flow\",\n    \"price\": 10000000,\n    \"locationCity\": \"Unknown\",\n    \"pickupAddress\": \"Nowhere\",\n    \"saveDraft\": false\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/seller/{{sellerId}}/listings/create",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "seller", "{{sellerId}}", "listings", "create"]
+								}
+							}
+						},
+						{
+							"name": "Step 2: Lock Listing",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{inspectorToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/{{listingId}}/lock",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "inspector", "{{inspectorId}}", "listings", "{{listingId}}", "lock"]
+								}
+							}
+						},
+						{
+							"name": "Step 3: Reject Listing",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{inspectorToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"listingId\": {{listingId}},\n    \"reasonCode\": \"LOW_QUALITY\",\n    \"reasonText\": \"Description too short, no photos provided\",\n    \"note\": \"Please provide better description and photos\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/inspector/{{inspectorId}}/listings/reject",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "inspector", "{{inspectorId}}", "listings", "reject"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Flow 3: Buyer Cancel Transaction",
+					"description": "Cancellation flow:\n1. Buyer creates purchase request\n2. Buyer cancels before seller confirms",
+					"item": [
+						{
+							"name": "Step 1: Create Purchase Request",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.requestId) pm.collectionVariables.set('requestId', jsonData.requestId);",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{buyerToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"transactionType\": \"DEPOSIT\",\n    \"desiredTransactionTime\": \"2026-05-01T10:00:00\",\n    \"note\": \"Will cancel this later\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/products/{{productId}}/purchase-requests",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "products", "{{productId}}", "purchase-requests"]
+								}
+							}
+						},
+						{
+							"name": "Step 2: Buyer View Transaction Detail",
+							"request": {
+								"method": "GET",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{buyerToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/buyer/transactions/{{requestId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "buyer", "transactions", "{{requestId}}"]
+								}
+							}
+						},
+						{
+							"name": "Step 3: Buyer Cancel Transaction",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{buyerToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/buyer/transactions/{{requestId}}/cancel",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "buyer", "transactions", "{{requestId}}", "cancel"]
+								}
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}

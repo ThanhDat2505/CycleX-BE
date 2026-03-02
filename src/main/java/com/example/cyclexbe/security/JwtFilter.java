@@ -6,7 +6,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -38,7 +40,11 @@ public class JwtFilter extends OncePerRequestFilter {
             String token = authHeader.substring("Bearer ".length()).trim();
 
             Optional<String> subjectOpt = jwtProvider.extractSubject(token);
-            if (subjectOpt.isPresent() && SecurityContextHolder.getContext().getAuthentication() == null) {
+            Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
+            boolean notYetAuthenticated = existingAuth == null
+                    || !existingAuth.isAuthenticated()
+                    || (existingAuth instanceof AnonymousAuthenticationToken);
+            if (subjectOpt.isPresent() && notYetAuthenticated) {
                 String subject = subjectOpt.get();
                 String role = jwtProvider.extractRole(token).orElse("USER");
 
