@@ -3,9 +3,6 @@ package com.example.cyclexbe.dto;
 import jakarta.validation.constraints.NotNull;
 
 public class GetReviewHistoryRequest {
-    @NotNull(message = "Inspector ID is required")
-    public Integer inspectorId;
-
     public String from; // YYYY-MM-DD
     public String to; // YYYY-MM-DD
 

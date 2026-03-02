@@ -1,10 +1,12 @@
 package com.example.cyclexbe.controller;
 
 import com.example.cyclexbe.dto.*;
+import com.example.cyclexbe.security.SecurityUtils;
 import com.example.cyclexbe.service.InspectorService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -17,8 +19,10 @@ import org.springframework.web.bind.annotation.*;
  * S-24: Lịch sử review
  * Dispute: Xử lý tranh chấp
  */
+
 @RestController
-@RequestMapping("/api/inspector")
+@RequestMapping("/api/inspector/{inspectorId}")
+@PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
 public class InspectorController {
 
     private final InspectorService inspectorService;
@@ -33,10 +37,10 @@ public class InspectorController {
      */
     @GetMapping("/dashboard/stats")
     public ResponseEntity<InspectorDashboardStatsResponse> getDashboardStats(
-            @Valid @RequestBody GetDashboardStatsRequest req) {
-        System.out.println("inspectorId = " + req.inspectorId);
+            @PathVariable Integer inspectorId) {
+        SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
         return ResponseEntity.ok(
-                inspectorService.getDashboardStats(req.inspectorId)
+                inspectorService.getDashboardStats(inspectorId)
         );
     }
 
@@ -45,9 +49,11 @@ public class InspectorController {
      * List listings with filter by status and pagination
      * Query params: status=ALL|PENDING|REVIEWING, sort=newest|oldest, page, page_size
      */
-    @PostMapping("/listings")
+    @GetMapping("/listings")
     public ResponseEntity<Page<SellerListingResponse>> getListings(
+            @PathVariable Integer inspectorId,
             @Valid @RequestBody GetInspectorListingsRequest req) {
+        SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
         Page<SellerListingResponse> listings = inspectorService.getListingsForReview(
                 req.status, req.sort, req.page, req.pageSize);
         return ResponseEntity.ok(listings);
@@ -57,23 +63,25 @@ public class InspectorController {
      * S-22/S-23: Review Detail
      * Get listing detail for review (includes images if any)
      */
-    @PostMapping("/listings/detail")
+    @GetMapping("/listings/{listingId}/detail")
     public ResponseEntity<PreviewListingResponse> getListingDetail(
-            @Valid @RequestBody GetInspectorListingDetailRequest req) {
-        PreviewListingResponse detail = inspectorService.getListingDetail(req.listingId);
+            @PathVariable Integer listingId) {
+        PreviewListingResponse detail = inspectorService.getListingDetail(listingId);
         return ResponseEntity.ok(detail);
     }
 
     /**
      * S-22: Lock Listing for Review
      * Lock listing to REVIEWING status and prevent seller from editing
-     * POST /inspector/listings/{listing_id}/lock
+     * POST /inspector/{inspectorId}/listings/{listing_id}/lock
      */
     @PostMapping("/listings/{listing_id}/lock")
     public ResponseEntity<BikeListingResponse> lockListingForReview(
-            @Valid @RequestBody LockListingRequest req,
+            @PathVariable Integer inspectorId,
             @PathVariable Integer listing_id) {
-        BikeListingResponse response = inspectorService.lockListing(listing_id);
+        System.out.println("Inspector lock listing: " + inspectorId.toString());
+        SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
+        BikeListingResponse response = inspectorService.lockListing(listing_id, inspectorId);
         return ResponseEntity.ok(response);
     }
 
@@ -84,8 +92,9 @@ public class InspectorController {
      */
     @PostMapping("/listings/{listing_id}/unlock")
     public ResponseEntity<BikeListingResponse> unlockListing(
-            @Valid @RequestBody UnlockListingRequest req,
+            @PathVariable Integer inspectorId,
             @PathVariable Integer listing_id) {
+        SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
         BikeListingResponse response = inspectorService.unlockListing(listing_id);
         return ResponseEntity.ok(response);
     }
@@ -93,32 +102,34 @@ public class InspectorController {
     /**
      * S-23: Approve Listing
      * Approve listing and change status to APPROVED
-     * POST /inspector/listings/{listing_id}/approve
+     * POST /inspector/{inspectorId}/listings/{listing_id}/approve
      */
     @PostMapping("/listings/{listing_id}/approve")
     public ResponseEntity<BikeListingResponse> approveListing(
-            @Valid @RequestBody ApproveListingRequest req,
+            @PathVariable Integer inspectorId,
             @PathVariable Integer listing_id) {
-        BikeListingResponse response = inspectorService.approveListing(listing_id);
+        SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
+        BikeListingResponse response = inspectorService.approveListing(listing_id, inspectorId);
         return ResponseEntity.ok(response);
     }
 
     /**
      * S-23: Reject Listing
      * Reject listing with reason code, reason text, and optional note
-     * POST /inspector/listings/{listing_id}/reject
+     * POST /inspector/{inspectorId}/listings/{listing_id}/reject
      * Body: {
      *   "reasonCode": "DUPLICATE|INVALID_INFO|LOW_QUALITY|INAPPROPRIATE|OTHER",
      *   "reasonText": "Detailed reason",
      *   "note": "Internal note (optional)"
      * }
      */
-    @PostMapping("/listings/{listing_id}/reject")
+    @PostMapping("/listings/reject")
     public ResponseEntity<BikeListingResponse> rejectListing(
-            @Valid @RequestBody RejectListingRequest req,
-            @PathVariable Integer listing_id) {
+            @PathVariable Integer inspectorId,
+            @Valid @RequestBody RejectListingRequest req) {
+        SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
         BikeListingResponse response = inspectorService.rejectListing(
-                req.listingId, req.reasonCode, req.reasonText, req.note);
+                req.listingId, inspectorId, req.reasonCode, req.reasonText, req.note);
         return ResponseEntity.ok(response);
     }
 
@@ -128,10 +139,12 @@ public class InspectorController {
      * Query params: from=YYYY-MM-DD, to=YYYY-MM-DD, page, page_size
      */
     @PostMapping("/reviews")
-    public ResponseEntity<Page<?>> getReviewHistory(
+    public ResponseEntity<Page<BikeListingResponse>> getReviewHistory(
+            @PathVariable Integer inspectorId,
             @Valid @RequestBody GetReviewHistoryRequest req) {
-        Page<?> reviews = inspectorService.getReviewHistory(
-                req.inspectorId, req.from, req.to, req.page, req.pageSize);
+        SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
+        Page<BikeListingResponse> reviews = inspectorService.getReviewHistory(
+                inspectorId, req.from, req.to, req.page, req.pageSize);
         return ResponseEntity.ok(reviews);
     }
 
@@ -142,7 +155,9 @@ public class InspectorController {
      */
     @PostMapping("/reviews/detail")
     public ResponseEntity<?> getReviewDetail(
+            @PathVariable Integer inspectorId,
             @Valid @RequestBody GetReviewDetailRequest req) {
+        SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
         Object detail = inspectorService.getReviewDetail(req.reviewId);
         return ResponseEntity.ok(detail);
     }
@@ -154,7 +169,9 @@ public class InspectorController {
      */
     @PostMapping("/disputes")
     public ResponseEntity<Page<?>> getDisputes(
+            @PathVariable Integer inspectorId,
             @Valid @RequestBody GetDisputesRequest req) {
+        SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
         Page<?> disputes = inspectorService.getDisputes(req.status, req.page, req.pageSize);
         return ResponseEntity.ok(disputes);
     }
@@ -166,7 +183,9 @@ public class InspectorController {
      */
     @PostMapping("/disputes/detail")
     public ResponseEntity<?> getDisputeDetail(
+            @PathVariable Integer inspectorId,
             @Valid @RequestBody GetDisputeDetailRequest req) {
+        SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
         Object detail = inspectorService.getDisputeDetail(req.disputeId);
         return ResponseEntity.ok(detail);
     }

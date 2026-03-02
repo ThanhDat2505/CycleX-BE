@@ -2,9 +2,12 @@ package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.dto.*;
+import org.springframework.transaction.annotation.Transactional;
 import com.example.cyclexbe.entity.BikeListing;
+import com.example.cyclexbe.entity.ListingImage;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.BikeListingRepository;
+import com.example.cyclexbe.repository.ListingImageRepository;
 import com.example.cyclexbe.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
@@ -25,10 +28,13 @@ public class SellerService {
 
     private final BikeListingRepository bikeListingRepository;
     private final UserRepository userRepository;
+    private final ListingImageRepository listingImageRepository;
 
-    public SellerService(BikeListingRepository bikeListingRepository, UserRepository userRepository) {
+    public SellerService(BikeListingRepository bikeListingRepository, UserRepository userRepository,
+                         ListingImageRepository listingImageRepository) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
+        this.listingImageRepository = listingImageRepository;
     }
 
     /**
@@ -195,6 +201,78 @@ public class SellerService {
     }
 
     /**
+     * S-12: Update existing listing (only DRAFT or REJECTED status allowed)
+     * Seller can edit listing fields when status is DRAFT or REJECTED
+     * @param sellerId - Current seller ID (validated by controller)
+     * @param listingId - Listing ID to update
+     * @param req - Update request with fields to modify
+     * @return Updated BikeListingResponse
+     */
+    @Transactional
+    public BikeListingResponse updateListing(Integer sellerId, Integer listingId, UpdateListingRequest req) {
+        // Get seller
+        User seller = userRepository.findById(sellerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+
+        // Get listing and verify ownership
+        BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+
+        // Check if listing status allows editing (DRAFT or REJECTED only)
+        if (listing.getStatus() != BikeListingStatus.DRAFT && listing.getStatus() != BikeListingStatus.REJECTED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cannot edit listing with status: " + listing.getStatus() + ". Only DRAFT or REJECTED listings can be edited."
+            );
+        }
+
+        // Update fields if provided
+        if (req.title != null && !req.title.isBlank()) {
+            listing.setTitle(req.title);
+        }
+        if (req.description != null && !req.description.isBlank()) {
+            listing.setDescription(req.description);
+        }
+        if (req.bikeType != null && !req.bikeType.isBlank()) {
+            listing.setBikeType(req.bikeType);
+        }
+        if (req.brand != null && !req.brand.isBlank()) {
+            listing.setBrand(req.brand);
+        }
+        if (req.model != null && !req.model.isBlank()) {
+            listing.setModel(req.model);
+        }
+        if (req.manufactureYear != null) {
+            listing.setManufactureYear(req.manufactureYear);
+        }
+        if (req.condition != null && !req.condition.isBlank()) {
+            listing.setCondition(req.condition);
+        }
+        if (req.usageTime != null && !req.usageTime.isBlank()) {
+            listing.setUsageTime(req.usageTime);
+        }
+        if (req.reasonForSale != null && !req.reasonForSale.isBlank()) {
+            listing.setReasonForSale(req.reasonForSale);
+        }
+        if (req.price != null) {
+            listing.setPrice(req.price);
+        }
+        if (req.locationCity != null && !req.locationCity.isBlank()) {
+            listing.setLocationCity(req.locationCity);
+        }
+        if (req.pickupAddress != null && !req.pickupAddress.isBlank()) {
+            listing.setPickupAddress(req.pickupAddress);
+        }
+
+        // Validate updated listing has required fields
+        validateUpdateListingFields(listing);
+
+        // Save updated listing
+        BikeListing saved = bikeListingRepository.save(listing);
+        return BikeListingResponse.from(saved);
+    }
+
+    /**
      * S-12: Submit listing for approval (DRAFT → PENDING)
      */
     public BikeListingResponse submitListing(Integer sellerId, Integer listingId) {
@@ -209,6 +287,13 @@ public class SellerService {
         }
 
         validateSubmitListingFields(listing);
+
+        // ✅ Validate minimum 3 images before submit
+        List<ListingImage> images = listingImageRepository.findByBikeListingOrderByImageOrder(listing);
+        if (images.size() < 3) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    String.format("Listing must have at least 3 images. Current: %d/3", images.size()));
+        }
 
         listing.setStatus(BikeListingStatus.PENDING);
         BikeListing saved = bikeListingRepository.save(listing);
@@ -281,7 +366,7 @@ public class SellerService {
     }
 
     /**
-     * Validate required fields before submission
+     * Validate required fields before submission (DRAFT → PENDING)
      */
     private void validateSubmitListingFields(BikeListing listing) {
         if (listing.getTitle() == null || listing.getTitle().isBlank()) {
@@ -298,6 +383,143 @@ public class SellerService {
         }
         if (listing.getModel() == null || listing.getModel().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot submit: model is required");
+        }
+    }
+
+    /**
+     * Validate required fields for updating listing
+     */
+    private void validateUpdateListingFields(BikeListing listing) {
+        if (listing.getTitle() == null || listing.getTitle().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title is required");
+        }
+        if (listing.getPrice() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Price is required");
+        }
+        if (listing.getBikeType() == null || listing.getBikeType().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bike type is required");
+        }
+        if (listing.getBrand() == null || listing.getBrand().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Brand is required");
+        }
+        if (listing.getModel() == null || listing.getModel().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Model is required");
+        }
+    }
+
+    /**
+     * S-13: Upload listing image
+     * FE upload ảnh, BE chỉ lưu path dẫn tới ảnh
+     */
+    public ListingImageResponse uploadListingImage(Integer sellerId, Integer listingId, UploadListingImageRequest req) {
+        // Validate listing exists và thuộc seller này
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        if (!listing.getSeller().getUserId().equals(sellerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to upload images for this listing");
+        }
+
+        if (!listing.getStatus().equals(BikeListingStatus.DRAFT)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT listings can have images");
+        }
+
+        // ✅ Validate maximum 10 images per listing
+        long currentImageCount = listingImageRepository.countByBikeListing(listing);
+        if (currentImageCount >= 10) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    String.format("Maximum 10 images per listing. Current: %d/10", currentImageCount));
+        }
+
+        // Validate image path format: /public/{listingId}/xxx.png hoặc .jpg
+        validateImagePath(req.imagePath, listingId);
+
+        // Đếm ảnh hiện có để xác định imageOrder
+        Integer imageOrder = (int) (currentImageCount + 1);
+
+        // Tạo và lưu ListingImage entity
+        ListingImage image = new ListingImage(listing, req.imagePath, imageOrder);
+        ListingImage savedImage = listingImageRepository.save(image);
+
+        return ListingImageResponse.from(savedImage);
+    }
+
+    /**
+     * S-13: Get listing images
+     */
+    public List<ListingImageResponse> getListingImages(Integer sellerId, Integer listingId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        if (!listing.getSeller().getUserId().equals(sellerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to view images for this listing");
+        }
+
+        return listingImageRepository.findByBikeListingOrderByImageOrder(listing)
+                .stream()
+                .map(ListingImageResponse::from)
+                .toList();
+    }
+
+    /**
+     * S-13: Delete listing image
+     */
+    public void deleteListingImage(Integer sellerId, Integer listingId, Integer imageId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        if (!listing.getSeller().getUserId().equals(sellerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete images for this listing");
+        }
+
+        ListingImage image = listingImageRepository.findByImageIdAndBikeListing(imageId, listing)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Image not found"));
+
+        // ✅ Validate minimum 3 images - prevent deletion if it would leave less than 3
+        List<ListingImage> allImages = listingImageRepository.findByBikeListingOrderByImageOrder(listing);
+        if (allImages.size() <= 3) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Listing must have at least 3 images. Cannot delete - current: " + allImages.size());
+        }
+
+        listingImageRepository.delete(image);
+
+        // Reorder images sau khi xóa
+        reorderImages(listing);
+    }
+
+    /**
+     * Reorder images sau khi xóa (tái sắp xếp imageOrder)
+     */
+    private void reorderImages(BikeListing listing) {
+        List<ListingImage> images = listingImageRepository.findByBikeListingOrderByImageOrder(listing);
+        for (int i = 0; i < images.size(); i++) {
+            images.get(i).setImageOrder(i + 1);
+        }
+        listingImageRepository.saveAll(images);
+    }
+
+    /**
+     * Validate image path format
+     * Expected format: /public/{listingId}/[image_number].png/jpg
+     */
+    private void validateImagePath(String imagePath, Integer listingId) {
+        if (imagePath == null || imagePath.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image path cannot be empty");
+        }
+
+        // Check path contains correct listingId
+        String expectedPrefix = "/public/" + listingId + "/";
+        if (!imagePath.startsWith(expectedPrefix)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Image path must start with /public/" + listingId + "/");
+        }
+
+        // Check file extension
+        String lowerPath = imagePath.toLowerCase();
+        if (!lowerPath.endsWith(".png") && !lowerPath.endsWith(".jpg") && !lowerPath.endsWith(".jpeg")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Image must be PNG, JPG, or JPEG format");
         }
     }
 }

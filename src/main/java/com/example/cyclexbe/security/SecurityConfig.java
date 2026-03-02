@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -14,6 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
@@ -38,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/bikelistings/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/bikelistings/**").permitAll()
 
+<<<<<<< HEAD
                         //Inspector
                         .requestMatchers("/api/inspector/**").permitAll()
 
@@ -66,6 +69,9 @@ public class SecurityConfig {
                         // Authenticated endpoints - Shipper Dashboard (S-60)
                         .requestMatchers(HttpMethod.GET, "/api/shipper/**").hasRole("SHIPPER")
 
+=======
+                        // Authenticated endpoints - all others require authentication
+>>>>>>> origin/InspectorProcess
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
