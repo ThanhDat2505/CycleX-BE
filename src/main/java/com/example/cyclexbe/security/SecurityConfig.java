@@ -57,7 +57,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/inspection-requests/**").hasAnyRole("SELLER", "INSPECTOR", "ADMIN")
 
                         // Authenticated endpoints - Purchase Request (S-50)
-                        .requestMatchers(HttpMethod.GET, "/api/products/*/purchase-requests/summary").hasRole("BUYER")
+                        .requestMatchers(HttpMethod.GET, "/api/products/*/purchase-requests/init").hasRole("BUYER")
                         .requestMatchers(HttpMethod.POST, "/api/products/*/purchase-requests").hasRole("BUYER")
 
                         // Authenticated endpoints - Seller Transactions (S-52)
