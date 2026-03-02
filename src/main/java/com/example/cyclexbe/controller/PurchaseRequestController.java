@@ -31,7 +31,7 @@ public class PurchaseRequestController {
      * GET /api/products/{productId}/purchase-request/init
      * Initialize purchase request screen with product & pricing info
      */
-    @GetMapping("/{productId}/purchase-request/init")
+    @GetMapping("/{productId}/purchase-requests/init")
     public ResponseEntity<PurchaseRequestInitResponse> initPurchaseRequest(
             @PathVariable Integer productId) {
         Integer buyerId = extractBuyerIdFromAuth();
