@@ -1,5 +1,6 @@
 package com.example.cyclexbe.service;
 
+import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.dto.ShipperAssignedDeliveryItemDto;
 import com.example.cyclexbe.dto.ShipperAssignedDeliveryListResponse;
 import com.example.cyclexbe.entity.Delivery;
@@ -25,6 +26,7 @@ public class ShipperDeliveryService {
         this.deliveryRepository = deliveryRepository;
     }
 
+
     /**
      * Get assigned deliveries for shipper with pagination
      * Returns only deliveries with status = ASSIGNED
@@ -33,13 +35,16 @@ public class ShipperDeliveryService {
      * @param pageable Pagination info (page, pageSize, sorting)
      * @return Paginated list of assigned deliveries with item details
      */
+
     @Transactional(readOnly = true)
     public ShipperAssignedDeliveryListResponse getAssignedDeliveries(Integer shipperId, Pageable pageable) {
-        Page<Delivery> deliveriesPage = deliveryRepository.findByShipper_UserIdAndStatus(
-                shipperId,
-                "ASSIGNED",
-                pageable
-        );
+        Page<Delivery> deliveriesPage =
+                deliveryRepository.findByShipper_UserIdAndStatusAndTransaction_Status(
+                        shipperId,
+                        "ASSIGNED",
+                        PurchaseRequestStatus.SELLER_CONFIRMED,
+                        pageable
+                );
 
         List<ShipperAssignedDeliveryItemDto> items = deliveriesPage.getContent()
                 .stream()
@@ -62,13 +67,14 @@ public class ShipperDeliveryService {
     private ShipperAssignedDeliveryItemDto mapToItemDto(Delivery delivery) {
         return new ShipperAssignedDeliveryItemDto(
                 delivery.getTransaction().getRequestId(),
-                delivery.getTransaction().getStatus().toString(),
+                delivery.getStatus(),
                 delivery.getListing().getListingId(),
                 delivery.getListing().getTitle(),
                 delivery.getListing().getSeller().getUserId(),
                 delivery.getListing().getSeller().getFullName(),
-                delivery.getTransaction().getUpdatedAt()
+                delivery.getUpdatedAt()
         );
     }
+
 }
 
