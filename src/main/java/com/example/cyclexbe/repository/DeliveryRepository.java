@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Optional;
+
 /**
  * Repository for Delivery entity
  * Handles shipper delivery management and dashboard queries
@@ -44,6 +47,14 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Integer> {
             @Param("shipperId") Integer shipperId,
             @Param("status") String status);
 
+    @EntityGraph(attributePaths = {"transaction", "listing", "listing.seller", "shipper"})
+    Page<Delivery> findByShipper_UserIdAndStatusIn(Integer shipperId, List<String> statuses, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"shipper", "transaction", "transaction.buyer", "listing", "listing.seller"})
+    Optional<Delivery> findByDeliveryIdAndShipper_UserId(Integer deliveryId, Integer shipperId);
+
+    boolean existsByDeliveryId(Integer deliveryId);
 }
+
+
 
