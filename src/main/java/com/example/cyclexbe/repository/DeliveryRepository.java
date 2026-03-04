@@ -26,6 +26,14 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Integer> {
             String status,
             Pageable pageable);
 
+    @EntityGraph(attributePaths = {"transaction", "listing", "listing.seller"})
+    Page<Delivery> findByShipper_UserIdAndStatusAndTransaction_Status(
+            Integer shipperId,
+            String deliveryStatus,
+            com.example.cyclexbe.domain.enums.PurchaseRequestStatus prStatus,
+            Pageable pageable
+    );
+
     /**
      * Count deliveries by shipper and status
      */
@@ -35,5 +43,7 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Integer> {
     long countByShipperAndStatus(
             @Param("shipperId") Integer shipperId,
             @Param("status") String status);
+
+
 }
 
