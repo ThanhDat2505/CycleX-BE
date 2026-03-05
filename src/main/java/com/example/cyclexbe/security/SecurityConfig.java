@@ -49,7 +49,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/inspector/**").permitAll()
 
                         // Authenticated endpoints - Seller (Batch 1)
-                        .requestMatchers(HttpMethod.GET, "/api/seller/dashboard/stats").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/seller/*/dashboard/stats").hasRole("SELLER")
                         .requestMatchers(HttpMethod.GET, "/api/seller/*/listings/search").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/seller/listings/detail").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/seller/listings/rejection").permitAll()
@@ -63,6 +63,7 @@ public class SecurityConfig {
 
                         // Authenticated endpoints - Purchase Request (S-50)
                         .requestMatchers(HttpMethod.GET, "/api/products/*/purchase-requests/init").hasRole("BUYER")
+                        .requestMatchers(HttpMethod.POST, "/api/products/*/purchase-requests/review").hasRole("BUYER")
                         .requestMatchers(HttpMethod.POST, "/api/products/*/purchase-requests").hasRole("BUYER")
 
                         // Authenticated endpoints - Seller Transactions (S-52)

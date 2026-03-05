@@ -4,17 +4,22 @@ import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.dto.BuyerCancelTransactionResponse;
 import com.example.cyclexbe.dto.BuyerTransactionActionsDto;
 import com.example.cyclexbe.dto.BuyerTransactionDetailResponse;
+import com.example.cyclexbe.dto.BuyerTransactionListItemResponse;
 import com.example.cyclexbe.entity.Product;
 import com.example.cyclexbe.entity.PurchaseRequest;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.exception.ForbiddenException;
 import com.example.cyclexbe.exception.InvalidListingException;
 import com.example.cyclexbe.exception.PurchaseRequestException;
+import com.example.cyclexbe.repository.ListingImageRepository;
 import com.example.cyclexbe.repository.ProductRepository;
 import com.example.cyclexbe.repository.PurchaseRequestRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -27,13 +32,25 @@ public class BuyerTransactionService {
 
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final ProductRepository productRepository;
+        private final ListingImageRepository listingImageRepository;
 
     public BuyerTransactionService(
             PurchaseRequestRepository purchaseRequestRepository,
-            ProductRepository productRepository) {
+                        ProductRepository productRepository,
+                        ListingImageRepository listingImageRepository) {
         this.purchaseRequestRepository = purchaseRequestRepository;
         this.productRepository = productRepository;
+                this.listingImageRepository = listingImageRepository;
     }
+
+        @Transactional(readOnly = true)
+        public List<BuyerTransactionListItemResponse> getBuyerTransactions(Integer buyerId) {
+                return purchaseRequestRepository.findByBuyer_UserId(buyerId)
+                                .stream()
+                                .sorted(Comparator.comparing(PurchaseRequest::getCreatedAt).reversed())
+                                .map(pr -> mapToBuyerTransactionItem(pr, buyerId))
+                                .toList();
+        }
 
     /**
      * F1: Load transaction detail for buyer
@@ -211,4 +228,44 @@ public class BuyerTransactionService {
 
         return new BuyerTransactionActionsDto(canCancel, cancelDisabledReason);
     }
+
+        private BuyerTransactionListItemResponse mapToBuyerTransactionItem(PurchaseRequest pr, Integer buyerId) {
+                Product product = pr.getProduct();
+                Integer listingId = product != null && product.getListing() != null
+                                ? product.getListing().getListingId()
+                                : null;
+
+                String listingImage = null;
+                if (product != null && product.getListing() != null) {
+                        listingImage = listingImageRepository.findByBikeListingOrderByImageOrder(product.getListing())
+                                        .stream()
+                                        .map(img -> img.getImagePath())
+                                        .filter(path -> path != null && !path.isBlank())
+                                        .findFirst()
+                                        .orElse(null);
+                }
+
+                BigDecimal totalAmount = safeAmount(pr.getDepositAmount())
+                                .add(safeAmount(pr.getPlatformFee()))
+                                .add(safeAmount(pr.getInspectionFee()));
+
+                return new BuyerTransactionListItemResponse(
+                                pr.getRequestId(),
+                                buyerId,
+                                product != null && product.getSeller() != null ? product.getSeller().getUserId() : null,
+                                listingId,
+                                product != null ? product.getName() : null,
+                                listingImage,
+                                product != null && product.getSeller() != null ? product.getSeller().getFullName() : null,
+                                product != null && product.getSeller() != null ? product.getSeller().getPhone() : null,
+                                pr.getTransactionType() != null ? pr.getTransactionType().name() : null,
+                                pr.getStatus() != null ? pr.getStatus().name() : null,
+                                totalAmount,
+                                pr.getCreatedAt()
+                );
+        }
+
+        private BigDecimal safeAmount(BigDecimal value) {
+                return value == null ? BigDecimal.ZERO : value;
+        }
 }
