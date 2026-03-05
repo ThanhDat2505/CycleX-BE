@@ -1,20 +1,23 @@
 package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
-import com.example.cyclexbe.dto.ShipperAssignedDeliveryItemDto;
-import com.example.cyclexbe.dto.ShipperAssignedDeliveryListResponse;
+import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.entity.Delivery;
 import com.example.cyclexbe.repository.DeliveryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 /**
- * Service for S-60: Shipper Delivery Management
- * Handles retrieval of assigned deliveries for shippers
+ * Service for Shipper Delivery Management
+ * Handles retrieval of assigned deliveries for shippers (S-60 and S-61)
  */
 @Service
 @Transactional
@@ -26,16 +29,10 @@ public class ShipperDeliveryService {
         this.deliveryRepository = deliveryRepository;
     }
 
-
     /**
-     * Get assigned deliveries for shipper with pagination
+     * Get assigned deliveries for shipper with pagination (S-60 F2)
      * Returns only deliveries with status = ASSIGNED
-     *
-     * @param shipperId The shipper ID from authentication
-     * @param pageable Pagination info (page, pageSize, sorting)
-     * @return Paginated list of assigned deliveries with item details
      */
-
     @Transactional(readOnly = true)
     public ShipperAssignedDeliveryListResponse getAssignedDeliveries(Integer shipperId, Pageable pageable) {
         Page<Delivery> deliveriesPage =
@@ -48,7 +45,7 @@ public class ShipperDeliveryService {
 
         List<ShipperAssignedDeliveryItemDto> items = deliveriesPage.getContent()
                 .stream()
-                .map(this::mapToItemDto)
+                .map(this::mapToAssignedItemDto)
                 .toList();
 
         return new ShipperAssignedDeliveryListResponse(
@@ -61,10 +58,9 @@ public class ShipperDeliveryService {
     }
 
     /**
-     * Map Delivery entity to item DTO
-     * Includes request ID, status, listing info, and seller info
+     * Map Delivery entity to assigned delivery item DTO (S-60)
      */
-    private ShipperAssignedDeliveryItemDto mapToItemDto(Delivery delivery) {
+    private ShipperAssignedDeliveryItemDto mapToAssignedItemDto(Delivery delivery) {
         return new ShipperAssignedDeliveryItemDto(
                 delivery.getTransaction().getRequestId(),
                 delivery.getStatus(),
@@ -76,5 +72,217 @@ public class ShipperDeliveryService {
         );
     }
 
-}
+    /**
+     * Get deliveries for shipper with status filtering and pagination (S-61 F1/F2)
+     * Supports filtering by single or multiple statuses: ASSIGNED, IN_PROGRESS, FAILED
+     * Validates status parameter and returns 400 if invalid
+     *
+     * @param shipperId Shipper ID extracted from authentication
+     * @param status Comma-separated or single status filter (optional, null = all statuses)
+     * @param pageable Pagination and sorting parameters
+     * @return Paginated list of deliveries matching filters
+     * @throws ResponseStatusException 400 if status is invalid
+     */
+    @Transactional(readOnly = true)
+    public ShipperDeliveryListResponse getDeliveriesByStatus(
+            Integer shipperId,
+            String status,
+            Pageable pageable) {
 
+        // Valid statuses for shipper delivery operations
+        List<String> validStatuses = Arrays.asList("ASSIGNED", "IN_PROGRESS", "FAILED");
+        List<String> statusesToFilter;
+
+        if (status == null || status.trim().isEmpty()) {
+            // If no status filter, get all valid statuses
+            statusesToFilter = validStatuses;
+        } else {
+            // Parse comma-separated or single status
+            statusesToFilter = Arrays.stream(status.split(","))
+                    .map(String::trim)
+                    .map(String::toUpperCase)
+                    .toList();
+
+            // Validate all provided statuses
+            for (String s : statusesToFilter) {
+                if (!validStatuses.contains(s)) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "Invalid status: " + s + ". Valid values are: ASSIGNED, IN_PROGRESS, FAILED"
+                    );
+                }
+            }
+        }
+
+        // Fetch deliveries with status filter and pagination
+        Page<Delivery> deliveriesPage = deliveryRepository.findByShipper_UserIdAndStatusIn(
+                shipperId,
+                statusesToFilter,
+                pageable
+        );
+
+        // Map entities to DTOs
+        List<ShipperDeliveryListItemDto> items = deliveriesPage.getContent()
+                .stream()
+                .map(this::mapToDeliveryListItemDto)
+                .toList();
+
+        return new ShipperDeliveryListResponse(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                deliveriesPage.getTotalElements(),
+                deliveriesPage.getTotalPages(),
+                items
+        );
+    }
+
+    /**
+     * Map Delivery entity to delivery list item DTO (S-61 F1/F2)
+     */
+    private ShipperDeliveryListItemDto mapToDeliveryListItemDto(Delivery delivery) {
+        // Parse pickup/delivery addresses to extract city information
+        // Assuming address format or city from related entities
+        String pickupCity = extractCityFromAddress(delivery.getPickupAddress());
+        String deliveryCity = extractCityFromAddress(delivery.getDropoffAddress());
+
+        return new ShipperDeliveryListItemDto(
+                delivery.getDeliveryId(),
+                delivery.getTransaction().getRequestId(),  // orderId = requestId
+                pickupCity,
+                deliveryCity,
+                delivery.getStatus(),
+                delivery.getCreatedAt()  // scheduledTime = createdAt
+        );
+    }
+
+    /**
+     * Extract city from address string
+     * Placeholder implementation - parse from address or use related entity
+     */
+    private String extractCityFromAddress(String address) {
+        if (address == null || address.isEmpty()) {
+            return "Unknown";
+        }
+        // Simple extraction: last part after comma
+        String[] parts = address.split(",");
+        return parts.length > 0 ? parts[parts.length - 1].trim() : "Unknown";
+    }
+
+    /**
+     * Get delivery detail with full information, timeline, and actions (S-61 F3/F4/F7/F8)
+     * Security: Validates that the delivery belongs to the current shipper (throws 403 if not)
+     *
+     * @param deliveryId Delivery ID from path parameter
+     * @param shipperId Shipper ID extracted from authentication
+     * @return Full delivery detail response with timeline and available actions
+     * @throws ResponseStatusException 403 if delivery doesn't belong to shipper
+     * @throws ResponseStatusException 404 if delivery not found
+     */
+    @Transactional(readOnly = true)
+    public ShipperDeliveryDetailResponse getDeliveryDetail(Integer deliveryId, Integer shipperId) {
+
+        Delivery delivery = deliveryRepository
+                .findByDeliveryIdAndShipper_UserId(deliveryId, shipperId)
+                .orElse(null);
+
+        if (delivery == null) {
+            if (deliveryRepository.existsByDeliveryId(deliveryId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to access this delivery");
+            }
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found");
+        }
+
+        ShipperContactInfoDto seller = new ShipperContactInfoDto(
+                delivery.getListing().getSeller().getUserId(),
+                delivery.getListing().getSeller().getFullName(),
+                delivery.getListing().getSeller().getPhone(),
+                delivery.getPickupAddress(),
+                extractCityFromAddress(delivery.getPickupAddress())
+        );
+
+        ShipperContactInfoDto buyer = new ShipperContactInfoDto(
+                delivery.getTransaction().getBuyer().getUserId(),
+                delivery.getTransaction().getBuyer().getFullName(),
+                delivery.getTransaction().getBuyer().getPhone(),
+                delivery.getDropoffAddress(),
+                extractCityFromAddress(delivery.getDropoffAddress())
+        );
+
+        ShipperPickupLocationDto pickup = new ShipperPickupLocationDto(
+                delivery.getPickupAddress(),
+                extractCityFromAddress(delivery.getPickupAddress()),
+                delivery.getListing().getSeller().getFullName(),
+                delivery.getListing().getSeller().getPhone()
+        );
+
+        ShipperDeliveryLocationDto dropoff = new ShipperDeliveryLocationDto(
+                delivery.getDropoffAddress(),
+                extractCityFromAddress(delivery.getDropoffAddress()),
+                delivery.getTransaction().getBuyer().getFullName(),
+                delivery.getTransaction().getBuyer().getPhone()
+        );
+
+        ShipperDeliveryTimelineDto timeline = buildTimeline(delivery);
+        ShipperDeliveryActionsDto actions = buildActions(delivery); // <-- sửa theo đề
+
+        return new ShipperDeliveryDetailResponse(
+                delivery.getDeliveryId(),
+                delivery.getTransaction().getRequestId(),
+                delivery.getStatus(),
+                seller,
+                buyer,
+                pickup,
+                dropoff,
+                timeline,
+                actions
+        );
+    }
+
+    /**
+     * Build timeline DTO based on delivery status
+     * Represents status changes over time
+     */
+    private ShipperDeliveryTimelineDto buildTimeline(Delivery delivery) {
+        LocalDateTime assignedTime = delivery.getCreatedAt();
+        LocalDateTime shippedTime = null;
+        LocalDateTime expectedDeliveryTime = null;
+        LocalDateTime completedTime = null;
+
+        String status = delivery.getStatus() == null ? "" : delivery.getStatus().trim().toUpperCase();
+
+        if ("IN_PROGRESS".equals(status) || "FAILED".equals(status) || "COMPLETED".equals(status)) {
+            shippedTime = delivery.getUpdatedAt();
+        }
+        if ("IN_PROGRESS".equals(status) && shippedTime != null) {
+            expectedDeliveryTime = shippedTime.plusHours(24); // placeholder vì entity chưa có expectedAt
+        }
+        if ("COMPLETED".equals(status)) {
+            completedTime = delivery.getUpdatedAt();
+            if (expectedDeliveryTime == null) expectedDeliveryTime = delivery.getUpdatedAt();
+        }
+
+        return new ShipperDeliveryTimelineDto(assignedTime, shippedTime, expectedDeliveryTime, completedTime);
+    }
+
+    private ShipperDeliveryActionsDto buildActions(Delivery delivery) {
+        String status = delivery.getStatus() == null ? "" : delivery.getStatus().trim().toUpperCase();
+
+        boolean canConfirm = false;
+        boolean canReportFailed = false;
+        String message = null;
+
+        if ("IN_PROGRESS".equals(status)) {
+            canConfirm = true;
+            canReportFailed = true;
+        } else if ("FAILED".equals(status)) {
+            canReportFailed = true;
+            message = "Delivery is marked as FAILED.";
+        } else if ("ASSIGNED".equals(status)) {
+            message = "Delivery is assigned but not in progress yet.";
+        } else {
+            message = "Delivery status changed. No actions available.";
+        }
+
+        return new ShipperDeliveryActionsDto(canConfirm, canReportFailed, message);
+    }
+}
