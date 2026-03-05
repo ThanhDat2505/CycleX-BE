@@ -1,6 +1,7 @@
 package com.example.cyclexbe.controller;
 
 import com.example.cyclexbe.dto.BuyerCancelTransactionResponse;
+import com.example.cyclexbe.dto.BuyerTransactionListItemResponse;
 import com.example.cyclexbe.dto.BuyerTransactionDetailResponse;
 import com.example.cyclexbe.service.BuyerTransactionService;
 import org.springframework.http.HttpStatus;
@@ -8,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * Controller for S-54: Buyer Transaction Detail (Buyer View)
@@ -21,6 +24,16 @@ public class BuyerTransactionController {
 
     public BuyerTransactionController(BuyerTransactionService buyerTransactionService) {
         this.buyerTransactionService = buyerTransactionService;
+    }
+
+    /**
+     * GET /api/buyer/transactions
+     * Load transaction list for authenticated buyer.
+     */
+    @GetMapping
+    public ResponseEntity<List<BuyerTransactionListItemResponse>> getBuyerTransactions() {
+        Integer buyerId = extractBuyerIdFromAuth();
+        return ResponseEntity.ok(buyerTransactionService.getBuyerTransactions(buyerId));
     }
 
     /*
