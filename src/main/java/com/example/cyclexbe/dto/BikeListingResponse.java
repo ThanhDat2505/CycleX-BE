@@ -5,10 +5,13 @@ import com.example.cyclexbe.domain.enums.BikeListingStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 
 public class BikeListingResponse {
     public Integer listingId;
     public Integer sellerId;
+    public Integer productId;
     public String title;
     public String description;
     public String bikeType;
@@ -25,16 +28,23 @@ public class BikeListingResponse {
     public Integer viewsCount;
     public Integer inspectorId;
     public String inspectorName;
+    public List<String> images;
+    public String imageUrl;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 
     public BikeListingResponse() {}
 
     public static BikeListingResponse from(BikeListing b) {
+        return from(b, null, Collections.emptyList());
+    }
+
+    public static BikeListingResponse from(BikeListing b, Integer productId, List<String> imagePaths) {
         BikeListingResponse r = new BikeListingResponse();
         if (b == null) return r;
         r.listingId = b.getListingId();
         r.sellerId = b.getSeller() != null ? b.getSeller().getUserId() : null;
+        r.productId = productId;
         r.title = b.getTitle();
         r.description = b.getDescription();
         r.bikeType = b.getBikeType();
@@ -51,6 +61,8 @@ public class BikeListingResponse {
         r.viewsCount = b.getViewsCount();
         r.inspectorId = b.getInspector() != null ? b.getInspector().getUserId() : null;
         r.inspectorName = b.getInspector() != null ? b.getInspector().getFullName() : null;
+        r.images = imagePaths == null ? Collections.emptyList() : imagePaths;
+        r.imageUrl = r.images.isEmpty() ? null : r.images.get(0);
         r.createdAt = b.getCreatedAt();
         r.updatedAt = b.getUpdatedAt();
         return r;
