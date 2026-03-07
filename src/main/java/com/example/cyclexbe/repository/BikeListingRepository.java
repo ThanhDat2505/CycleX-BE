@@ -36,4 +36,19 @@ public interface BikeListingRepository extends JpaRepository<BikeListing, Intege
     Page<BikeListing> findByInspectorAndStatusIn(User inspector, List<BikeListingStatus> statuses, Pageable pageable);
     long countByInspector(User inspector);
     long countByInspectorAndStatus(User inspector, BikeListingStatus status);
+
+    // Find listings assigned to inspector OR unassigned, filtered by status
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT b FROM BikeListing b WHERE (b.inspector = :inspector OR b.inspector IS NULL) AND b.status IN :statuses")
+    Page<BikeListing> findByInspectorOrUnassignedAndStatusIn(
+            @org.springframework.data.repository.query.Param("inspector") User inspector,
+            @org.springframework.data.repository.query.Param("statuses") List<BikeListingStatus> statuses,
+            Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT b FROM BikeListing b WHERE (b.inspector = :inspector OR b.inspector IS NULL) AND b.status = :status")
+    Page<BikeListing> findByInspectorOrUnassignedAndStatus(
+            @org.springframework.data.repository.query.Param("inspector") User inspector,
+            @org.springframework.data.repository.query.Param("status") BikeListingStatus status,
+            Pageable pageable);
 }
