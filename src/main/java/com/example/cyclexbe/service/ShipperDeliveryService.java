@@ -1,8 +1,11 @@
 package com.example.cyclexbe.service;
 
+import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.dto.*;
+import com.example.cyclexbe.entity.BikeListing;
 import com.example.cyclexbe.entity.Delivery;
+import com.example.cyclexbe.entity.PurchaseRequest;
 import com.example.cyclexbe.repository.DeliveryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -181,16 +184,7 @@ public class ShipperDeliveryService {
     @Transactional(readOnly = true)
     public ShipperDeliveryDetailResponse getDeliveryDetail(Integer deliveryId, Integer shipperId) {
 
-        Delivery delivery = deliveryRepository
-                .findByDeliveryIdAndShipper_UserId(deliveryId, shipperId)
-                .orElse(null);
-
-        if (delivery == null) {
-            if (deliveryRepository.existsByDeliveryId(deliveryId)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to access this delivery");
-            }
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found");
-        }
+        Delivery delivery = findDeliveryOrThrow(deliveryId, shipperId);
 
         ShipperContactInfoDto seller = new ShipperContactInfoDto(
                 delivery.getListing().getSeller().getUserId(),
@@ -284,5 +278,105 @@ public class ShipperDeliveryService {
         }
 
         return new ShipperDeliveryActionsDto(canConfirm, canReportFailed, message);
+    }
+
+    // ========== S-63: Delivery Confirmation ==========
+
+    /**
+     * Load delivery info for the confirmation screen (S-63 – Load Delivery Info)
+     * GET /api/shipper/deliveries/{deliveryId}/confirmation
+     *
+     * @param deliveryId Delivery ID
+     * @param shipperId  Authenticated shipper's user ID
+     * @return Delivery info needed for the confirmation screen
+     */
+    @Transactional(readOnly = true)
+    public ShipperDeliveryConfirmationResponse getDeliveryConfirmation(Integer deliveryId, Integer shipperId) {
+
+        Delivery delivery = findDeliveryOrThrow(deliveryId, shipperId);
+
+        boolean canConfirm = "IN_PROGRESS".equals(delivery.getStatus());
+
+        return new ShipperDeliveryConfirmationResponse(
+                delivery.getDeliveryId(),
+                delivery.getTransaction().getRequestId(),
+                delivery.getStatus(),
+                delivery.getPickupAddress(),
+                delivery.getDropoffAddress(),
+                delivery.getTransaction().getBuyer().getFullName(),
+                delivery.getTransaction().getBuyer().getPhone(),
+                delivery.getListing().getTitle(),
+                delivery.getCreatedAt(),
+                delivery.getUpdatedAt(),
+                canConfirm
+        );
+    }
+
+    /**
+     * Confirm delivery success (S-63 – Confirm Delivery)
+     * POST /api/shipper/deliveries/{deliveryId}/confirm
+     *
+     * Rules:
+     *  - delivery.status must be IN_PROGRESS, otherwise 409
+     *  - On success: delivery→DELIVERED, transaction→COMPLETED, listing→SOLD
+     *  - Double-submit is blocked by the same status check (409)
+     *
+     * @param deliveryId Delivery ID
+     * @param shipperId  Authenticated shipper's user ID
+     * @return Confirmation result
+     */
+    @Transactional
+    public ShipperDeliveryConfirmResponse confirmDelivery(Integer deliveryId, Integer shipperId) {
+
+        Delivery delivery = findDeliveryOrThrow(deliveryId, shipperId);
+
+        // Status rule + prevent double submit
+        if (!"IN_PROGRESS".equals(delivery.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Delivery cannot be confirmed in current status: " + delivery.getStatus()
+            );
+        }
+
+        // 1. delivery.status → DELIVERED
+        delivery.setStatus("DELIVERED");
+
+        // 2. transaction.status → COMPLETED
+        PurchaseRequest transaction = delivery.getTransaction();
+        transaction.setStatus(PurchaseRequestStatus.COMPLETED);
+
+        // 3. listing.status → SOLD
+        BikeListing listing = delivery.getListing();
+        listing.setStatus(BikeListingStatus.SOLD);
+
+        // Persist (cascade via dirty-checking inside the same transaction)
+        deliveryRepository.save(delivery);
+
+        return new ShipperDeliveryConfirmResponse(
+                delivery.getDeliveryId(),
+                delivery.getStatus(),
+                transaction.getStatus().name(),
+                listing.getStatus().name(),
+                "Delivery confirmed successfully",
+                LocalDateTime.now()
+        );
+    }
+
+    /**
+     * Shared helper: find delivery belonging to shipper, or throw 403/404.
+     */
+    private Delivery findDeliveryOrThrow(Integer deliveryId, Integer shipperId) {
+        Delivery delivery = deliveryRepository
+                .findByDeliveryIdAndShipper_UserId(deliveryId, shipperId)
+                .orElse(null);
+
+        if (delivery == null) {
+            if (deliveryRepository.existsByDeliveryId(deliveryId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "You don't have permission to access this delivery");
+            }
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found");
+        }
+        return delivery;
     }
 }

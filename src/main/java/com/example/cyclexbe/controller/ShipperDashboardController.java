@@ -190,6 +190,44 @@ public class ShipperDashboardController {
         return ResponseEntity.ok(response);
     }
 
+    // ========== S-63: Delivery Confirmation – BP6 ==========
+
+    /**
+     * S-63 A: GET /api/shipper/deliveries/{deliveryId}/confirmation
+     * Load delivery info for confirmation screen.
+     * Auth: SHIPPER who is assigned to this delivery.
+     */
+    @GetMapping("/deliveries/{deliveryId}/confirmation")
+    public ResponseEntity<ShipperDeliveryConfirmationResponse> getDeliveryConfirmation(
+            @PathVariable Integer deliveryId) {
+
+        Integer shipperId = extractShipperIdFromAuth();
+        ShipperDeliveryConfirmationResponse response =
+                shipperDeliveryService.getDeliveryConfirmation(deliveryId, shipperId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * S-63 B: POST /api/shipper/deliveries/{deliveryId}/confirm
+     * Confirm delivery success.
+     * Auth: SHIPPER who is assigned to this delivery.
+     * Rules:
+     *  - delivery.status must be IN_PROGRESS → 409 if not
+     *  - On success: delivery→DELIVERED, transaction→COMPLETED, listing→SOLD
+     *  - Double-submit blocked (same 409 check)
+     */
+    @PostMapping("/deliveries/{deliveryId}/confirm")
+    public ResponseEntity<ShipperDeliveryConfirmResponse> confirmDelivery(
+            @PathVariable Integer deliveryId) {
+
+        Integer shipperId = extractShipperIdFromAuth();
+        ShipperDeliveryConfirmResponse response =
+                shipperDeliveryService.confirmDelivery(deliveryId, shipperId);
+
+        return ResponseEntity.ok(response);
+    }
+
     /**
      * Extract shipper ID from Spring Security Authentication
      * Follows the same pattern as BuyerTransactionController
