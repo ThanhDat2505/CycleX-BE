@@ -1,11 +1,13 @@
 package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
+import com.example.cyclexbe.domain.enums.NotificationType;
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.entity.BikeListing;
 import com.example.cyclexbe.entity.Delivery;
 import com.example.cyclexbe.entity.PurchaseRequest;
+import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.DeliveryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,9 +29,12 @@ import java.util.List;
 public class ShipperDeliveryService {
 
     private final DeliveryRepository deliveryRepository;
+    private final NotificationService notificationService;
 
-    public ShipperDeliveryService(DeliveryRepository deliveryRepository) {
+    public ShipperDeliveryService(DeliveryRepository deliveryRepository,
+                                  NotificationService notificationService) {
         this.deliveryRepository = deliveryRepository;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -352,6 +357,9 @@ public class ShipperDeliveryService {
         // Persist (cascade via dirty-checking inside the same transaction)
         deliveryRepository.save(delivery);
 
+        // 4. Send notifications to buyer and seller
+        sendDeliverySuccessNotifications(delivery, transaction, listing);
+
         return new ShipperDeliveryConfirmResponse(
                 delivery.getDeliveryId(),
                 delivery.getStatus(),
@@ -359,6 +367,38 @@ public class ShipperDeliveryService {
                 listing.getStatus().name(),
                 "Delivery confirmed successfully",
                 LocalDateTime.now()
+        );
+    }
+
+    /**
+     * Send DELIVERY_SUCCESS notifications to both buyer and seller
+     */
+    private void sendDeliverySuccessNotifications(Delivery delivery, PurchaseRequest transaction, BikeListing listing) {
+        Integer requestId = transaction.getRequestId();
+        String listingTitle = listing.getTitle();
+
+        // Notify buyer
+        User buyer = transaction.getBuyer();
+        notificationService.createNotification(
+                buyer,
+                "Giao hàng thành công",
+                "Đơn hàng #" + requestId + " (" + listingTitle + ") đã được giao thành công.",
+                NotificationType.DELIVERY_SUCCESS,
+                "TRANSACTION",
+                requestId,
+                "/buyer/transactions/" + requestId
+        );
+
+        // Notify seller
+        User seller = listing.getSeller();
+        notificationService.createNotification(
+                seller,
+                "Giao hàng thành công",
+                "Đơn hàng #" + requestId + " (" + listingTitle + ") đã được giao thành công đến người mua.",
+                NotificationType.DELIVERY_SUCCESS,
+                "TRANSACTION",
+                requestId,
+                "/seller/transactions/" + requestId
         );
     }
 

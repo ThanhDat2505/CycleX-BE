@@ -70,9 +70,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/seller/transactions/**").hasRole("SELLER")
                         // S54
                         .requestMatchers(HttpMethod.GET, "/api/buyer/transactions/**").hasRole("BUYER")
+                        .requestMatchers(HttpMethod.POST, "/api/buyer/transactions/**").hasRole("BUYER")
 
-                        // Authenticated endpoints - Shipper Dashboard (S-60)
+                        // Authenticated endpoints - Shipper Dashboard (S-60) & Delivery (S-63)
                         .requestMatchers(HttpMethod.GET, "/api/shipper/**").hasRole("SHIPPER")
+                        .requestMatchers(HttpMethod.POST, "/api/shipper/**").hasRole("SHIPPER")
+                        .requestMatchers(HttpMethod.PUT, "/api/shipper/**").hasRole("SHIPPER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/shipper/**").hasRole("SHIPPER")
+
+                        // Authenticated endpoints - Notifications (all roles)
+                        .requestMatchers("/api/notifications/**").authenticated()
 
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
