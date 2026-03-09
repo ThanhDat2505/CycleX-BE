@@ -5,6 +5,7 @@ import com.example.cyclexbe.entity.BikeListing;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class PreviewListingResponse {
     public Integer listingId;
@@ -25,6 +26,7 @@ public class PreviewListingResponse {
     public Integer viewsCount;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
+    public List<String> imageUrls;
 
     public PreviewListingResponse() {}
 

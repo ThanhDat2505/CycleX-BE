@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "cyclex-shipper-api-test-2026",
 		"name": "CycleX - Shipper API Test",
-		"description": "API test collection for Shipper module.\n\nCovers:\n- S-60: Shipper Dashboard (Summary + Assigned Deliveries)\n- S-61: Shipper Delivery Details (List, Detail, Filter)\n- S-63: Delivery Confirmation\n- S-64: Delivery Failure Report\n\nBase URL: http://localhost:4491",
+		"description": "API test collection for Shipper module.\n\nCovers:\n- S-60: Shipper Dashboard (Summary + Assigned Deliveries)\n- S-61: Shipper Delivery Details (List, Detail, Filter)\n- S-62: Start Delivery (ASSIGNED → IN_PROGRESS)\n- S-63: Delivery Confirmation\n- S-64: Delivery Failure Report\n\nBase URL: http://localhost:4491",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
@@ -391,6 +391,125 @@
 							"raw": "{{baseUrl}}/api/shipper/deliveries/99999",
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "shipper", "deliveries", "99999"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🚀 2.5. Start Delivery",
+			"description": "Start delivery - transition from ASSIGNED to IN_PROGRESS",
+			"item": [
+				{
+					"name": "Start Delivery - Success (ASSIGNED → IN_PROGRESS)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Delivery status is IN_PROGRESS', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('deliveryId');",
+									"    pm.expect(jsonData.deliveryStatus).to.eql('IN_PROGRESS');",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData).to.have.property('startedAt');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/start",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "start"]
+						}
+					}
+				},
+				{
+					"name": "Start Delivery - 409 Already Started (double-submit)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 409 Conflict', function () {",
+									"    pm.response.to.have.status(409);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/start",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "start"]
+						}
+					}
+				},
+				{
+					"name": "Start Delivery - 403 Wrong Shipper",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 403 or 404', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/99999/start",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "99999", "start"]
+						}
+					}
+				},
+				{
+					"name": "Start Delivery - 401 No Auth",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 401 Unauthorized', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/start",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "start"]
 						}
 					}
 				}

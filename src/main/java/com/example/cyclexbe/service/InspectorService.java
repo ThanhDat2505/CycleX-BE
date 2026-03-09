@@ -8,6 +8,7 @@ import com.example.cyclexbe.entity.Product;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.BikeListingRepository;
 import com.example.cyclexbe.repository.InspectionReportRepository;
+import com.example.cyclexbe.repository.ListingImageRepository;
 import com.example.cyclexbe.repository.ProductRepository;
 import com.example.cyclexbe.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -21,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -30,15 +32,18 @@ public class InspectorService {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final InspectionReportRepository inspectionReportRepository;
+    private final ListingImageRepository listingImageRepository;
 
     public InspectorService(BikeListingRepository bikeListingRepository,
             UserRepository userRepository,
             ProductRepository productRepository,
-            InspectionReportRepository inspectionReportRepository) {
+            InspectionReportRepository inspectionReportRepository,
+            ListingImageRepository listingImageRepository) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.inspectionReportRepository = inspectionReportRepository;
+        this.listingImageRepository = listingImageRepository;
     }
 
     /**
@@ -93,7 +98,16 @@ public class InspectorService {
         BikeListing listing = bikeListingRepository.findById(listingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
-        return PreviewListingResponse.from(listing);
+        PreviewListingResponse response = PreviewListingResponse.from(listing);
+
+        // Fetch listing images
+        List<String> imageUrls = listingImageRepository.findByBikeListingOrderByImageOrder(listing)
+                .stream()
+                .map(img -> img.getImagePath())
+                .toList();
+        response.imageUrls = imageUrls;
+
+        return response;
     }
 
     /**
