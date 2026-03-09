@@ -3,6 +3,7 @@ package com.example.cyclexbe.controller;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.service.ShipperDashboardService;
 import com.example.cyclexbe.service.ShipperDeliveryService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -190,6 +191,27 @@ public class ShipperDashboardController {
         return ResponseEntity.ok(response);
     }
 
+    // ========== Start Delivery ==========
+
+    /**
+     * POST /api/shipper/deliveries/{deliveryId}/start
+     * Start delivery (ASSIGNED → IN_PROGRESS).
+     * Auth: SHIPPER who is assigned to this delivery.
+     * Rules:
+     *  - delivery.status must be ASSIGNED → 409 if not
+     *  - Only the assigned shipper can start
+     */
+    @PostMapping("/deliveries/{deliveryId}/start")
+    public ResponseEntity<ShipperStartDeliveryResponse> startDelivery(
+            @PathVariable Integer deliveryId) {
+
+        Integer shipperId = extractShipperIdFromAuth();
+        ShipperStartDeliveryResponse response =
+                shipperDeliveryService.startDelivery(deliveryId, shipperId);
+
+        return ResponseEntity.ok(response);
+    }
+
     // ========== S-63: Delivery Confirmation – BP6 ==========
 
     /**
@@ -224,6 +246,43 @@ public class ShipperDashboardController {
         Integer shipperId = extractShipperIdFromAuth();
         ShipperDeliveryConfirmResponse response =
                 shipperDeliveryService.confirmDelivery(deliveryId, shipperId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    // ========== Failure Report ==========
+
+    /**
+     * GET /api/shipper/deliveries/{deliveryId}/failure-report
+     * Load delivery info before shipper submits failure reason.
+     * Auth: SHIPPER who is assigned to this delivery.
+     * Condition: delivery.status = IN_PROGRESS
+     */
+    @GetMapping("/deliveries/{deliveryId}/failure-report")
+    public ResponseEntity<ShipperFailureReportInfoResponse> getFailureReportInfo(
+            @PathVariable Integer deliveryId) {
+
+        Integer shipperId = extractShipperIdFromAuth();
+        ShipperFailureReportInfoResponse response =
+                shipperDeliveryService.getFailureReportInfo(deliveryId, shipperId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * POST /api/shipper/deliveries/{deliveryId}/failure-report
+     * Submit delivery failure report.
+     * Auth: SHIPPER who is assigned to this delivery.
+     * Actions: delivery→FAILED, transaction→DISPUTED, save failureReason, notify buyer & seller
+     */
+    @PostMapping("/deliveries/{deliveryId}/failure-report")
+    public ResponseEntity<ShipperFailureReportResponse> submitFailureReport(
+            @PathVariable Integer deliveryId,
+            @Valid @RequestBody ShipperFailureReportRequest request) {
+
+        Integer shipperId = extractShipperIdFromAuth();
+        ShipperFailureReportResponse response =
+                shipperDeliveryService.submitFailureReport(deliveryId, shipperId, request.getReason());
 
         return ResponseEntity.ok(response);
     }

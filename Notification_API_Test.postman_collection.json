@@ -1,0 +1,713 @@
+{
+	"info": {
+		"_postman_id": "cyclex-notification-api-test-2026",
+		"name": "CycleX - Notification API Test",
+		"description": "API test collection for Notification module.\n\nCovers:\n- Get notification list (pagination + filters)\n- Get unread count\n- Get notification detail\n- Mark single notification as read\n- Mark all notifications as read\n- Error cases (401, 404)\n\nNotification types: DELIVERY_SUCCESS, DELIVERY_FAILED, PURCHASE_REQUEST, SELLER_CONFIRMED, BUYER_CONFIRMED, INSPECTION_COMPLETE, SYSTEM\n\nBase URL: http://localhost:4491",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4491",
+			"type": "string"
+		},
+		{
+			"key": "userToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "notificationId",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "🔑 0. Login User",
+			"description": "Login to get JWT token. Change email/password to test with different roles (buyer, seller, shipper).",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"if (jsonData.token) {",
+							"    pm.collectionVariables.set('userToken', jsonData.token);",
+							"    console.log('Token saved');",
+							"}",
+							"pm.test('Login successful', function () {",
+							"    pm.response.to.have.status(200);",
+							"    pm.expect(jsonData.token).to.not.be.empty;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"buyer@test.com\",\n    \"password\": \"123456\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/auth/login",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "📋 1. Get Notifications",
+			"description": "Get notification list with filters and pagination",
+			"item": [
+				{
+					"name": "Get All Notifications (default)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Has pagination fields', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('page');",
+									"    pm.expect(jsonData).to.have.property('size');",
+									"    pm.expect(jsonData).to.have.property('totalElements');",
+									"    pm.expect(jsonData).to.have.property('totalPages');",
+									"    pm.expect(jsonData).to.have.property('items');",
+									"});",
+									"pm.test('Save first notificationId', function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.items && jsonData.items.length > 0) {",
+									"        pm.collectionVariables.set('notificationId', jsonData.items[0].notificationId);",
+									"        console.log('Saved notificationId: ' + jsonData.items[0].notificationId);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=0&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications - Page 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Page is 1', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.page).to.equal(1);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=1&size=5",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "size", "value": "5" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications - Filter Unread Only",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('All items are unread', function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.items && jsonData.items.length > 0) {",
+									"        jsonData.items.forEach(function(item) {",
+									"            pm.expect(item.isRead).to.be.false;",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=0&size=10&isRead=false",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "isRead", "value": "false" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications - Filter Read Only",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('All items are read', function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.items && jsonData.items.length > 0) {",
+									"        jsonData.items.forEach(function(item) {",
+									"            pm.expect(item.isRead).to.be.true;",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=0&size=10&isRead=true",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "isRead", "value": "true" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications - Filter by Type DELIVERY_SUCCESS",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('All items have DELIVERY_SUCCESS type', function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.items && jsonData.items.length > 0) {",
+									"        jsonData.items.forEach(function(item) {",
+									"            pm.expect(item.type).to.equal('DELIVERY_SUCCESS');",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=0&size=10&type=DELIVERY_SUCCESS",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "type", "value": "DELIVERY_SUCCESS" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications - Filter by Type DELIVERY_FAILED",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=0&size=10&type=DELIVERY_FAILED",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "type", "value": "DELIVERY_FAILED" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications - Filter by Type PURCHASE_REQUEST",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=0&size=10&type=PURCHASE_REQUEST",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "type", "value": "PURCHASE_REQUEST" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications - Filter by Type SELLER_CONFIRMED",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=0&size=10&type=SELLER_CONFIRMED",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "type", "value": "SELLER_CONFIRMED" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications - Filter by Type INSPECTION_COMPLETE",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=0&size=10&type=INSPECTION_COMPLETE",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "type", "value": "INSPECTION_COMPLETE" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications - Filter by Type SYSTEM",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=0&size=10&type=SYSTEM",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "type", "value": "SYSTEM" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications - Combined Filter (unread + type)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('All items match filters', function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.items && jsonData.items.length > 0) {",
+									"        jsonData.items.forEach(function(item) {",
+									"            pm.expect(item.isRead).to.be.false;",
+									"            pm.expect(item.type).to.equal('DELIVERY_FAILED');",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=0&size=10&isRead=false&type=DELIVERY_FAILED",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "isRead", "value": "false" },
+								{ "key": "type", "value": "DELIVERY_FAILED" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications - No Auth (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 401 Unauthorized', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?page=0&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🔢 2. Unread Count",
+			"description": "Get unread notification count",
+			"item": [
+				{
+					"name": "Get Unread Count",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Has unreadCount field', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('unreadCount');",
+									"    pm.expect(jsonData.unreadCount).to.be.a('number');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/unread-count",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications", "unread-count"]
+						}
+					}
+				},
+				{
+					"name": "Get Unread Count - No Auth (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 401 Unauthorized', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/unread-count",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications", "unread-count"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🔍 3. Notification Detail",
+			"description": "Get single notification detail by ID",
+			"item": [
+				{
+					"name": "Get Notification Detail",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Has notification detail fields', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('notificationId');",
+									"    pm.expect(jsonData).to.have.property('title');",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData).to.have.property('type');",
+									"    pm.expect(jsonData).to.have.property('isRead');",
+									"    pm.expect(jsonData).to.have.property('createdAt');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/{{notificationId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications", "{{notificationId}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Notification Detail - Not Found (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404 Not Found', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/99999",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications", "99999"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "✅ 4. Mark as Read",
+			"description": "Mark single notification or all notifications as read",
+			"item": [
+				{
+					"name": "Mark Single Notification as Read",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Notification marked as read', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('notificationId');",
+									"    pm.expect(jsonData.isRead).to.be.true;",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications", "{{notificationId}}", "read"]
+						}
+					}
+				},
+				{
+					"name": "Mark as Read - Not Found (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404 Not Found', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/99999/read",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications", "99999", "read"]
+						}
+					}
+				},
+				{
+					"name": "Mark All Notifications as Read",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('All notifications marked as read', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('updatedCount');",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData.updatedCount).to.be.a('number');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/read-all",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications", "read-all"]
+						}
+					}
+				},
+				{
+					"name": "Verify Unread Count = 0 After Read All",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Unread count is 0 after read-all', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.unreadCount).to.equal(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/unread-count",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications", "unread-count"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

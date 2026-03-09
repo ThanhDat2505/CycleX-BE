@@ -1,0 +1,703 @@
+{
+	"info": {
+		"_postman_id": "cyclex-shipper-api-test-2026",
+		"name": "CycleX - Shipper API Test",
+		"description": "API test collection for Shipper module.\n\nCovers:\n- S-60: Shipper Dashboard (Summary + Assigned Deliveries)\n- S-61: Shipper Delivery Details (List, Detail, Filter)\n- S-63: Delivery Confirmation\n- S-64: Delivery Failure Report\n\nBase URL: http://localhost:4491",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4491",
+			"type": "string"
+		},
+		{
+			"key": "shipperToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "deliveryId",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "🔑 0. Login Shipper",
+			"description": "Login as shipper to get JWT token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"if (jsonData.token) {",
+							"    pm.collectionVariables.set('shipperToken', jsonData.token);",
+							"    console.log('Shipper token saved');",
+							"}",
+							"pm.test('Login successful', function () {",
+							"    pm.response.to.have.status(200);",
+							"    pm.expect(jsonData.token).to.not.be.empty;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"shipper@test.com\",\n    \"password\": \"123456\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/auth/login",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "📊 1. S-60: Dashboard",
+			"description": "Shipper Dashboard - Summary and Assigned Deliveries",
+			"item": [
+				{
+					"name": "S-60.F1: Dashboard Summary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has summary fields', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('assignedCount');",
+									"    pm.expect(jsonData).to.have.property('inProgressCount');",
+									"    pm.expect(jsonData).to.have.property('failedCount');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/dashboard/summary",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "dashboard", "summary"]
+						}
+					}
+				},
+				{
+					"name": "S-60.F2: Assigned Deliveries (paginated)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has pagination', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('items');",
+									"    pm.expect(jsonData).to.have.property('totalElements');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/assigned?page=0&pageSize=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "assigned"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "pageSize", "value": "10" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📦 2. S-61: Delivery List & Detail",
+			"description": "Shipper Delivery List (filter/sort) and Delivery Detail",
+			"item": [
+				{
+					"name": "S-61.F1: All Deliveries (no filter)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Has paginated items', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('items');",
+									"    pm.expect(jsonData).to.have.property('page');",
+									"    pm.expect(jsonData).to.have.property('totalElements');",
+									"    // Save first deliveryId for subsequent tests",
+									"    if (jsonData.items && jsonData.items.length > 0) {",
+									"        pm.collectionVariables.set('deliveryId', jsonData.items[0].deliveryId);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries?page=0&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-61.F2: Filter by ASSIGNED",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('All items have ASSIGNED status', function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.items && jsonData.items.length > 0) {",
+									"        jsonData.items.forEach(function(item) {",
+									"            pm.expect(item.status).to.equal('ASSIGNED');",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries?status=ASSIGNED&page=0&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries"],
+							"query": [
+								{ "key": "status", "value": "ASSIGNED" },
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-61.F2: Filter by IN_PROGRESS",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('All items have IN_PROGRESS status', function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.items && jsonData.items.length > 0) {",
+									"        jsonData.items.forEach(function(item) {",
+									"            pm.expect(item.status).to.equal('IN_PROGRESS');",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries?status=IN_PROGRESS&page=0&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries"],
+							"query": [
+								{ "key": "status", "value": "IN_PROGRESS" },
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-61.F2: Filter by FAILED",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries?status=FAILED&page=0&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries"],
+							"query": [
+								{ "key": "status", "value": "FAILED" },
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-61.F2: Filter multiple statuses",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries?status=ASSIGNED,IN_PROGRESS&page=0&size=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries"],
+							"query": [
+								{ "key": "status", "value": "ASSIGNED,IN_PROGRESS" },
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-61.F2: Sort by createdAt ASC",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries?page=0&size=10&sort=createdAt,asc",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries"],
+							"query": [
+								{ "key": "page", "value": "0" },
+								{ "key": "size", "value": "10" },
+								{ "key": "sort", "value": "createdAt,asc" }
+							]
+						}
+					}
+				},
+				{
+					"name": "S-61.F3: Delivery Detail",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Has delivery detail fields', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('deliveryId');",
+									"    pm.expect(jsonData).to.have.property('status');",
+									"    pm.expect(jsonData).to.have.property('seller');",
+									"    pm.expect(jsonData).to.have.property('buyer');",
+									"    pm.expect(jsonData).to.have.property('timeline');",
+									"    pm.expect(jsonData).to.have.property('actions');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}"]
+						}
+					}
+				},
+				{
+					"name": "S-61.F7: Delivery Detail - Wrong Shipper (403)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 403 Forbidden', function () {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/99999",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "99999"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "✅ 3. S-63: Delivery Confirmation",
+			"description": "Confirm successful delivery",
+			"item": [
+				{
+					"name": "S-63.A: Load Confirmation Screen",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Has confirmation info', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('deliveryId');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/confirmation",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "confirmation"]
+						}
+					}
+				},
+				{
+					"name": "S-63.B: Confirm Delivery",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Delivery confirmed', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData.deliveryStatus).to.equal('DELIVERED');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/confirm",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "confirm"]
+						}
+					}
+				},
+				{
+					"name": "S-63.B: Confirm Delivery - Double Submit (409)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 409 Conflict on double submit', function () {",
+									"    pm.response.to.have.status(409);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/confirm",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "confirm"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "❌ 4. S-64: Delivery Failure Report",
+			"description": "Report delivery failure with reason.\n\nFlow:\n1. GET failure-report → load delivery info\n2. POST failure-report → submit failure reason\n\nAfter submit:\n- delivery.status → FAILED\n- transaction.status → IN_DISPUTE\n- Notification sent to buyer & seller",
+			"item": [
+				{
+					"name": "S-64.A: Load Failure Report Screen",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Has delivery info for failure report', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('deliveryId');",
+									"    pm.expect(jsonData).to.have.property('transactionId');",
+									"    pm.expect(jsonData).to.have.property('listingId');",
+									"    pm.expect(jsonData).to.have.property('buyerName');",
+									"    pm.expect(jsonData).to.have.property('buyerPhone');",
+									"    pm.expect(jsonData).to.have.property('sellerName');",
+									"    pm.expect(jsonData).to.have.property('deliveryAddress');",
+									"    pm.expect(jsonData).to.have.property('productName');",
+									"    pm.expect(jsonData).to.have.property('deliveryStatus');",
+									"    pm.expect(jsonData).to.have.property('transactionStatus');",
+									"    pm.expect(jsonData.deliveryStatus).to.equal('IN_PROGRESS');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/failure-report",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "failure-report"]
+						}
+					}
+				},
+				{
+					"name": "S-64.B: Submit Failure Report",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Failure report submitted', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.equal('Delivery failed report submitted successfully');",
+									"    pm.expect(jsonData.deliveryId).to.be.a('number');",
+									"    pm.expect(jsonData.deliveryStatus).to.equal('FAILED');",
+									"    pm.expect(jsonData.transactionStatus).to.equal('IN_DISPUTE');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reason\": \"Khách không nghe máy sau nhiều lần liên hệ\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/failure-report",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "failure-report"]
+						}
+					}
+				},
+				{
+					"name": "S-64.B: Submit Failure Report - Empty Reason (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 400 Bad Request', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reason\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/failure-report",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "failure-report"]
+						}
+					}
+				},
+				{
+					"name": "S-64.B: Submit Failure Report - Missing Reason (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 400 Bad Request', function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/failure-report",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "failure-report"]
+						}
+					}
+				},
+				{
+					"name": "S-64.B: Submit Failure Report - Already Failed (409)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 409 Conflict on already failed delivery', function () {",
+									"    pm.response.to.have.status(409);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{shipperToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reason\": \"Double submit test - should fail\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/failure-report",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "failure-report"]
+						}
+					}
+				},
+				{
+					"name": "S-64: No Auth (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 401 Unauthorized', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/shipper/deliveries/{{deliveryId}}/failure-report",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "shipper", "deliveries", "{{deliveryId}}", "failure-report"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

@@ -266,23 +266,59 @@ public class ShipperDeliveryService {
     private ShipperDeliveryActionsDto buildActions(Delivery delivery) {
         String status = delivery.getStatus() == null ? "" : delivery.getStatus().trim().toUpperCase();
 
+        boolean canStart = false;
         boolean canConfirm = false;
         boolean canReportFailed = false;
         String message = null;
 
-        if ("IN_PROGRESS".equals(status)) {
+        if ("ASSIGNED".equals(status)) {
+            canStart = true;
+            message = "Delivery is assigned. Press Start to begin delivery.";
+        } else if ("IN_PROGRESS".equals(status)) {
             canConfirm = true;
             canReportFailed = true;
         } else if ("FAILED".equals(status)) {
             canReportFailed = true;
             message = "Delivery is marked as FAILED.";
-        } else if ("ASSIGNED".equals(status)) {
-            message = "Delivery is assigned but not in progress yet.";
         } else {
             message = "Delivery status changed. No actions available.";
         }
 
-        return new ShipperDeliveryActionsDto(canConfirm, canReportFailed, message);
+        return new ShipperDeliveryActionsDto(canStart, canConfirm, canReportFailed, message);
+    }
+
+    // ========== Start Delivery ==========
+
+    /**
+     * Start delivery (ASSIGNED → IN_PROGRESS)
+     * POST /api/shipper/deliveries/{deliveryId}/start
+     *
+     * Rules:
+     *  - Only the assigned shipper can start
+     *  - delivery.status must be ASSIGNED, otherwise 409
+     */
+    @Transactional
+    public ShipperStartDeliveryResponse startDelivery(Integer deliveryId, Integer shipperId) {
+
+        Delivery delivery = findDeliveryOrThrow(deliveryId, shipperId);
+
+        if (!"ASSIGNED".equals(delivery.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Delivery can only be started when status is ASSIGNED. Current status: " + delivery.getStatus()
+            );
+        }
+
+        delivery.setStatus("IN_PROGRESS");
+        delivery.setUpdatedAt(LocalDateTime.now());
+        deliveryRepository.save(delivery);
+
+        return new ShipperStartDeliveryResponse(
+                delivery.getDeliveryId(),
+                delivery.getStatus(),
+                "Delivery started successfully",
+                LocalDateTime.now()
+        );
     }
 
     // ========== S-63: Delivery Confirmation ==========
@@ -418,5 +454,116 @@ public class ShipperDeliveryService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found");
         }
         return delivery;
+    }
+
+    // ========== Failure Report ==========
+
+    /**
+     * Load delivery info for the failure report screen
+     * GET /api/shipper/deliveries/{deliveryId}/failure-report
+     *
+     * Conditions: delivery must be IN_PROGRESS and assigned to current shipper
+     */
+    @Transactional(readOnly = true)
+    public ShipperFailureReportInfoResponse getFailureReportInfo(Integer deliveryId, Integer shipperId) {
+
+        Delivery delivery = findDeliveryOrThrow(deliveryId, shipperId);
+
+        if (!"IN_PROGRESS".equals(delivery.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Can only report failure for deliveries with status IN_PROGRESS. Current status: " + delivery.getStatus()
+            );
+        }
+
+        PurchaseRequest transaction = delivery.getTransaction();
+
+        return new ShipperFailureReportInfoResponse(
+                delivery.getDeliveryId(),
+                transaction.getRequestId(),
+                delivery.getListing().getListingId(),
+                transaction.getBuyer().getFullName(),
+                transaction.getBuyer().getPhone(),
+                delivery.getListing().getSeller().getFullName(),
+                delivery.getDropoffAddress(),
+                delivery.getListing().getTitle(),
+                delivery.getStatus(),
+                transaction.getStatus().name()
+        );
+    }
+
+    /**
+     * Submit delivery failure report
+     * POST /api/shipper/deliveries/{deliveryId}/failure-report
+     *
+     * Actions:
+     *  - delivery.status → FAILED
+     *  - transaction.status → DISPUTED
+     *  - Save failureReason
+     *  - Notify buyer and seller
+     */
+    @Transactional
+    public ShipperFailureReportResponse submitFailureReport(Integer deliveryId, Integer shipperId, String reason) {
+
+        Delivery delivery = findDeliveryOrThrow(deliveryId, shipperId);
+
+        if (!"IN_PROGRESS".equals(delivery.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Can only report failure for deliveries with status IN_PROGRESS. Current status: " + delivery.getStatus()
+            );
+        }
+
+        // 1. delivery.status → FAILED, save failureReason
+        delivery.setStatus("FAILED");
+        delivery.setFailureReason(reason);
+
+        // 2. transaction.status → DISPUTED
+        PurchaseRequest transaction = delivery.getTransaction();
+        transaction.setStatus(PurchaseRequestStatus.DISPUTED);
+
+        deliveryRepository.save(delivery);
+
+        // 3. Send notifications to buyer and seller
+        sendDeliveryFailedNotifications(delivery, transaction);
+
+        return new ShipperFailureReportResponse(
+                "Delivery failed report submitted successfully",
+                delivery.getDeliveryId(),
+                delivery.getStatus(),
+                transaction.getStatus().name()
+        );
+    }
+
+    /**
+     * Send DELIVERY_FAILED notifications to both buyer and seller
+     */
+    private void sendDeliveryFailedNotifications(Delivery delivery, PurchaseRequest transaction) {
+        Integer requestId = transaction.getRequestId();
+        String listingTitle = delivery.getListing().getTitle();
+
+        // Notify buyer
+        User buyer = transaction.getBuyer();
+        notificationService.createNotification(
+                buyer,
+                "Giao hàng thất bại",
+                "Đơn hàng #" + requestId + " (" + listingTitle + ") giao hàng thất bại. Lý do: " + delivery.getFailureReason(),
+                NotificationType.DELIVERY_FAILED,
+                "TRANSACTION",
+                requestId,
+                "/buyer/transactions/" + requestId
+        );
+
+        // Notify seller
+        User seller = delivery.getListing().getSeller();
+        notificationService.createNotification(
+                seller,
+                "Giao hàng thất bại",
+                "Đơn hàng #" + requestId + " (" + listingTitle + ") giao hàng thất bại. Lý do: " + delivery.getFailureReason(),
+                NotificationType.DELIVERY_FAILED,
+                "TRANSACTION",
+                requestId,
+                "/seller/transactions/" + requestId
+        );
     }
 }

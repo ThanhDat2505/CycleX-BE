@@ -6,6 +6,7 @@ package com.example.cyclexbe.dto;
  */
 public class ShipperDeliveryActionsDto {
 
+    private Boolean canStart;
     private Boolean canConfirm;
     private Boolean canReportFailed;
     private String message;
@@ -13,13 +14,18 @@ public class ShipperDeliveryActionsDto {
     public ShipperDeliveryActionsDto() {}
 
     public ShipperDeliveryActionsDto(
+            Boolean canStart,
             Boolean canConfirm,
             Boolean canReportFailed,
             String message) {
+        this.canStart = canStart;
         this.canConfirm = canConfirm;
         this.canReportFailed = canReportFailed;
         this.message = message;
     }
+
+    public Boolean getCanStart() { return canStart; }
+    public void setCanStart(Boolean canStart) { this.canStart = canStart; }
 
     public Boolean getCanConfirm() { return canConfirm; }
     public void setCanConfirm(Boolean canConfirm) { this.canConfirm = canConfirm; }
