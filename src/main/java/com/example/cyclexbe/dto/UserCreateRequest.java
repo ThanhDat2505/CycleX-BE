@@ -27,5 +27,6 @@ public class UserCreateRequest {
     public String fullName;
     public String status;
     public String avatarUrl;
+    public String address;
     public Boolean isVerify;
 }

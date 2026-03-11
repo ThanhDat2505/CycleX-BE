@@ -19,5 +19,6 @@ public class UserUpdateRequest {
     public String status;
     public String cccd;
     public String avatarUrl;
+    public String address;
     public Boolean isVerify;
 }

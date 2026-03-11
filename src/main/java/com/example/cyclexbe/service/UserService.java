@@ -44,6 +44,7 @@ public class UserService {
             u.setStatus(req.status);
         u.setCccd(req.cccd);
         u.setAvatarUrl(req.avatarUrl);
+        u.setAddress(req.address);
 
         if (req.isVerify != null)
             u.setVerify(req.isVerify);
@@ -94,6 +95,8 @@ public class UserService {
             u.setCccd(req.cccd);
         if (req.avatarUrl != null)
             u.setAvatarUrl(req.avatarUrl);
+        if (req.address != null)
+            u.setAddress(req.address);
         if (req.isVerify != null)
             u.setVerify(req.isVerify);
 
@@ -141,6 +144,7 @@ public class UserService {
         r.status = u.getStatus();
         r.cccd = u.getCccd();
         r.avatarUrl = u.getAvatarUrl();
+        r.address = u.getAddress();
         r.createdAt = u.getCreatedAt();
         r.updatedAt = u.getUpdatedAt();
         r.lastLogin = u.getLastLogin();

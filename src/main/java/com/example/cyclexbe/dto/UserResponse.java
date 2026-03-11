@@ -16,13 +16,14 @@ public class UserResponse {
     public String status;
     public String cccd;
     public String avatarUrl;
+    public String address;
 
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
     public LocalDateTime lastLogin;
 
     public UserResponse() {}
-    public UserResponse(Integer userId, String email, String fullName, String phone, Role role, boolean isVerify, String status, String cccd, String avatarUrl, LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime lastLogin) {
+    public UserResponse(Integer userId, String email, String fullName, String phone, Role role, boolean isVerify, String status, String cccd, String avatarUrl, String address, LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime lastLogin) {
         this.userId = userId;
         this.email = email;
         this.fullName = fullName;
@@ -32,6 +33,7 @@ public class UserResponse {
         this.status = status;
         this.cccd = cccd;
         this.avatarUrl = avatarUrl;
+        this.address = address;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.lastLogin = lastLogin;
@@ -49,6 +51,7 @@ public class UserResponse {
                 user.getStatus(),
                 user.getCccd(),
                 user.getAvatarUrl(),
+                user.getAddress(),
                 user.getCreatedAt(),
                 user.getUpdatedAt(),
                 user.getLastLogin()
