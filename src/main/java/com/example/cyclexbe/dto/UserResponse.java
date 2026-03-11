@@ -22,8 +22,12 @@ public class UserResponse {
     public LocalDateTime updatedAt;
     public LocalDateTime lastLogin;
 
-    public UserResponse() {}
-    public UserResponse(Integer userId, String email, String fullName, String phone, Role role, boolean isVerify, String status, String cccd, String avatarUrl, String address, LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime lastLogin) {
+    public UserResponse() {
+    }
+
+    public UserResponse(Integer userId, String email, String fullName, String phone, Role role, boolean isVerify,
+            String status, String cccd, String avatarUrl, String address, LocalDateTime createdAt,
+            LocalDateTime updatedAt, LocalDateTime lastLogin) {
         this.userId = userId;
         this.email = email;
         this.fullName = fullName;
@@ -39,7 +43,6 @@ public class UserResponse {
         this.lastLogin = lastLogin;
     }
 
-
     public static UserResponse from(User user) {
         return new UserResponse(
                 user.getUserId(),
@@ -54,8 +57,7 @@ public class UserResponse {
                 user.getAddress(),
                 user.getCreatedAt(),
                 user.getUpdatedAt(),
-                user.getLastLogin()
-        );
+                user.getLastLogin());
     }
 
 }
