@@ -1,5 +1,6 @@
 package com.example.cyclexbe.service;
 
+import com.example.cyclexbe.dto.ChangePasswordRequest;
 import com.example.cyclexbe.dto.UserCreateRequest;
 import com.example.cyclexbe.dto.UserResponse;
 import com.example.cyclexbe.dto.UserUpdateRequest;
@@ -25,6 +26,7 @@ public class UserService {
     public User save(User user) {
         return userRepository.save(user);
     }
+
     public UserResponse create(UserCreateRequest req) {
         if (userRepository.existsByEmail(req.email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
@@ -38,11 +40,13 @@ public class UserService {
         u.setPhone(req.phone);
         u.setRole(req.role);
         // do not overwrite the entity default status when request.status is null
-        if (req.status != null) u.setStatus(req.status);
+        if (req.status != null)
+            u.setStatus(req.status);
         u.setCccd(req.cccd);
         u.setAvatarUrl(req.avatarUrl);
 
-        if (req.isVerify != null) u.setVerify(req.isVerify);
+        if (req.isVerify != null)
+            u.setVerify(req.isVerify);
 
         User saved = userRepository.save(u);
         return toResponse(saved);
@@ -57,6 +61,7 @@ public class UserService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         return toResponse(u);
     }
+
     public User findByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -77,13 +82,20 @@ public class UserService {
             u.setPasswordHash(passwordEncoder.encode(req.password));
         }
 
-        if (req.fullName != null) u.setFullName(req.fullName);
-        if (req.phone != null) u.setPhone(req.phone);
-        if (req.role != null) u.setRole(req.role);
-        if (req.status != null) u.setStatus(req.status);
-        if (req.cccd != null) u.setCccd(req.cccd);
-        if (req.avatarUrl != null) u.setAvatarUrl(req.avatarUrl);
-        if (req.isVerify != null) u.setVerify(req.isVerify);
+        if (req.fullName != null)
+            u.setFullName(req.fullName);
+        if (req.phone != null)
+            u.setPhone(req.phone);
+        if (req.role != null)
+            u.setRole(req.role);
+        if (req.status != null)
+            u.setStatus(req.status);
+        if (req.cccd != null)
+            u.setCccd(req.cccd);
+        if (req.avatarUrl != null)
+            u.setAvatarUrl(req.avatarUrl);
+        if (req.isVerify != null)
+            u.setVerify(req.isVerify);
 
         User saved = userRepository.save(u);
         return toResponse(saved);
@@ -95,6 +107,26 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
         user.setStatus("DELETED");
+        userRepository.save(user);
+    }
+
+    public void changePassword(Integer id, ChangePasswordRequest req) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (!passwordEncoder.matches(req.oldPassword, user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu hiện tại không đúng");
+        }
+
+        if (!req.newPassword.equals(req.confirmPassword)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu xác nhận không khớp");
+        }
+
+        if (req.oldPassword.equals(req.newPassword)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu mới không được trùng mật khẩu cũ");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(req.newPassword));
         userRepository.save(user);
     }
 

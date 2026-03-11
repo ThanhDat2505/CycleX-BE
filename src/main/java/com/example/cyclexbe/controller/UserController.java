@@ -1,11 +1,13 @@
 package com.example.cyclexbe.controller;
 
+import com.example.cyclexbe.dto.ChangePasswordRequest;
 import com.example.cyclexbe.dto.UserCreateRequest;
 import com.example.cyclexbe.dto.UserResponse;
 import com.example.cyclexbe.dto.UserUpdateRequest;
 import com.example.cyclexbe.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -45,5 +47,11 @@ public class UserController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Integer id) {
         userService.delete(id);
+    }
+
+    @PutMapping("/{id}/password")
+    public ResponseEntity<java.util.Map<String, String>> changePassword(@PathVariable Integer id, @Valid @RequestBody ChangePasswordRequest req) {
+        userService.changePassword(id, req);
+        return ResponseEntity.ok(java.util.Map.of("message", "Đổi mật khẩu thành công"));
     }
 }
