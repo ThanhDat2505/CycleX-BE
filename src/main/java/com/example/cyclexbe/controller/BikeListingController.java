@@ -32,9 +32,10 @@ public class BikeListingController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) BikeListingStatus status,
             @RequestParam(required = false) String city,
-            @RequestParam(required = false) String title
+            @RequestParam(required = false) String title,
+            @RequestParam(defaultValue = "newest") String sortBy
     ) {
-        return bikeListingService.getAll(page, size, status, city, title);
+        return bikeListingService.getAll(page, size, status, city, title, sortBy);
     }
 
     @GetMapping("/{id}")
