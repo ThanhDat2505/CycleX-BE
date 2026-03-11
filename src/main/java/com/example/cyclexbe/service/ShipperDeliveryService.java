@@ -6,9 +6,11 @@ import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.entity.BikeListing;
 import com.example.cyclexbe.entity.Delivery;
+import com.example.cyclexbe.entity.ListingImage;
 import com.example.cyclexbe.entity.PurchaseRequest;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.DeliveryRepository;
+import com.example.cyclexbe.repository.ListingImageRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -30,11 +32,14 @@ public class ShipperDeliveryService {
 
     private final DeliveryRepository deliveryRepository;
     private final NotificationService notificationService;
+    private final ListingImageRepository listingImageRepository;
 
     public ShipperDeliveryService(DeliveryRepository deliveryRepository,
-                                  NotificationService notificationService) {
+                                  NotificationService notificationService,
+                                  ListingImageRepository listingImageRepository) {
         this.deliveryRepository = deliveryRepository;
         this.notificationService = notificationService;
+        this.listingImageRepository = listingImageRepository;
     }
 
     /**
@@ -148,18 +153,42 @@ public class ShipperDeliveryService {
      * Map Delivery entity to delivery list item DTO (S-61 F1/F2)
      */
     private ShipperDeliveryListItemDto mapToDeliveryListItemDto(Delivery delivery) {
-        // Parse pickup/delivery addresses to extract city information
-        // Assuming address format or city from related entities
         String pickupCity = extractCityFromAddress(delivery.getPickupAddress());
         String deliveryCity = extractCityFromAddress(delivery.getDropoffAddress());
 
+        // Get product image (first image of listing)
+        String productImage = null;
+        try {
+            List<ListingImage> images = listingImageRepository
+                    .findByBikeListingOrderByImageOrder(delivery.getListing());
+            if (!images.isEmpty()) {
+                productImage = images.get(0).getImagePath();
+            }
+        } catch (Exception e) {
+            // Ignore image fetch errors
+        }
+
+        // Get buyer info from transaction
+        User buyer = delivery.getTransaction().getBuyer();
+        // Get seller info from listing
+        User seller = delivery.getListing().getSeller();
+
         return new ShipperDeliveryListItemDto(
                 delivery.getDeliveryId(),
-                delivery.getTransaction().getRequestId(),  // orderId = requestId
+                delivery.getTransaction().getRequestId(),
                 pickupCity,
                 deliveryCity,
+                delivery.getPickupAddress(),
+                delivery.getDropoffAddress(),
                 delivery.getStatus(),
-                delivery.getCreatedAt()  // scheduledTime = createdAt
+                delivery.getListing().getTitle(),
+                productImage,
+                seller != null ? seller.getFullName() : null,
+                seller != null ? seller.getPhone() : null,
+                buyer != null ? buyer.getFullName() : null,
+                buyer != null ? buyer.getPhone() : null,
+                delivery.getCreatedAt(),
+                delivery.getCreatedAt()
         );
     }
 

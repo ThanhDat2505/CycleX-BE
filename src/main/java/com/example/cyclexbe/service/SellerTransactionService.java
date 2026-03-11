@@ -1,16 +1,25 @@
 package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
+import com.example.cyclexbe.domain.enums.Role;
 import com.example.cyclexbe.domain.enums.TransactionType;
 import com.example.cyclexbe.dto.*;
+import com.example.cyclexbe.entity.Delivery;
 import com.example.cyclexbe.entity.PurchaseRequest;
+import com.example.cyclexbe.entity.User;
+import com.example.cyclexbe.repository.DeliveryRepository;
 import com.example.cyclexbe.repository.PurchaseRequestRepository;
+import com.example.cyclexbe.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -18,10 +27,18 @@ import java.util.stream.Collectors;
 @Service
 public class SellerTransactionService {
 
-    private final PurchaseRequestRepository purchaseRequestRepository;
+    private static final Logger log = LoggerFactory.getLogger(SellerTransactionService.class);
 
-    public SellerTransactionService(PurchaseRequestRepository purchaseRequestRepository) {
+    private final PurchaseRequestRepository purchaseRequestRepository;
+    private final DeliveryRepository deliveryRepository;
+    private final UserRepository userRepository;
+
+    public SellerTransactionService(PurchaseRequestRepository purchaseRequestRepository,
+                                     DeliveryRepository deliveryRepository,
+                                     UserRepository userRepository) {
         this.purchaseRequestRepository = purchaseRequestRepository;
+        this.deliveryRepository = deliveryRepository;
+        this.userRepository = userRepository;
     }
 
     // ==============================
@@ -129,6 +146,7 @@ public class SellerTransactionService {
     // ==============================
     // Confirm Transaction
     // ==============================
+    @Transactional
     public ActionTransactionResponse confirmTransaction(
             Authentication authentication,
             Integer requestId,
@@ -164,7 +182,56 @@ public class SellerTransactionService {
         PurchaseRequest updated =
                 purchaseRequestRepository.save(transaction);
 
+        // Auto-create delivery and assign a shipper
+        createDeliveryForTransaction(updated);
+
         return mapToActionResponse(updated, "Transaction confirmed successfully");
+    }
+
+    /**
+     * Auto-create a Delivery when seller confirms transaction.
+     * Assigns the shipper with the fewest ASSIGNED deliveries (least-load strategy).
+     */
+    private void createDeliveryForTransaction(PurchaseRequest transaction) {
+        // 1. Find all active shippers
+        List<User> shippers = userRepository.findByRoleAndStatus(Role.SHIPPER, "ACTIVE");
+        if (shippers.isEmpty()) {
+            log.warn("No active shippers available for transaction ID: {}", transaction.getRequestId());
+            return;
+        }
+
+        // 2. Pick shipper with least ASSIGNED deliveries (least-load)
+        User leastBusyShipper = shippers.stream()
+                .min(Comparator.comparingLong(s ->
+                        deliveryRepository.countByShipperAndStatus(s.getUserId(), "ASSIGNED")))
+                .orElse(shippers.get(0));
+
+        log.info("Auto-assigning delivery for transaction ID {} to shipper {} (ID: {})",
+                transaction.getRequestId(),
+                leastBusyShipper.getFullName(),
+                leastBusyShipper.getUserId());
+
+        // 3. Build Delivery
+        Delivery delivery = new Delivery();
+        delivery.setShipper(leastBusyShipper);
+        delivery.setTransaction(transaction);
+        delivery.setListing(transaction.getProduct().getListing());
+        delivery.setStatus("ASSIGNED");
+
+        // Pickup address from the listing (seller's address)
+        String pickupAddr = transaction.getProduct().getListing().getPickupAddress();
+        delivery.setPickupAddress(pickupAddr != null ? pickupAddr
+                : transaction.getProduct().getListing().getLocationCity());
+
+        // Dropoff address: use buyer note or default to buyer info
+        String dropoffAddr = transaction.getNote();
+        delivery.setDropoffAddress(dropoffAddr != null && !dropoffAddr.isBlank()
+                ? dropoffAddr : "Địa chỉ người mua");
+
+        deliveryRepository.save(delivery);
+
+        log.info("Delivery created (ID: {}) for transaction ID {} assigned to shipper ID {}",
+                delivery.getDeliveryId(), transaction.getRequestId(), leastBusyShipper.getUserId());
     }
 
     // ==============================

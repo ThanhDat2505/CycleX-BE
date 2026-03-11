@@ -15,6 +15,7 @@ import com.example.cyclexbe.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -73,8 +74,24 @@ public class BikeListingService {
         return mapToResponse(saved);
     }
 
-    public Page<BikeListingResponse> getAll(int page, int size, BikeListingStatus status, String city, String title) {
-        Pageable pageable = PageRequest.of(page, size);
+    public Page<BikeListingResponse> getAll(int page, int size, BikeListingStatus status, String city, String title, String sortBy) {
+        Sort sort;
+        switch (sortBy != null ? sortBy : "newest") {
+            case "priceAsc":
+                sort = Sort.by(Sort.Direction.ASC, "price");
+                break;
+            case "priceDesc":
+                sort = Sort.by(Sort.Direction.DESC, "price");
+                break;
+            case "mostViewed":
+                sort = Sort.by(Sort.Direction.DESC, "viewsCount");
+                break;
+            case "newest":
+            default:
+                sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                break;
+        }
+        Pageable pageable = PageRequest.of(page, size, sort);
         Page<BikeListing> pageResult;
         if (status != null) {
             pageResult = bikeListingRepository.findByStatus(status, pageable);

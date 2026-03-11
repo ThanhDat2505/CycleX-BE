@@ -77,12 +77,12 @@ public class InspectorService {
         Page<BikeListing> result;
 
         if ("PENDING".equalsIgnoreCase(status)) {
-            result = bikeListingRepository.findByInspectorAndStatus(inspector, BikeListingStatus.PENDING, pageable);
+            result = bikeListingRepository.findByInspectorOrUnassignedAndStatus(inspector, BikeListingStatus.PENDING, pageable);
         } else if ("REVIEWING".equalsIgnoreCase(status)) {
             result = bikeListingRepository.findByInspectorAndStatus(inspector, BikeListingStatus.REVIEWING, pageable);
         } else {
-            // ALL - get both PENDING and REVIEWING assigned to this inspector
-            result = bikeListingRepository.findByInspectorAndStatusIn(
+            // ALL - get PENDING and REVIEWING assigned to this inspector, plus unassigned PENDING
+            result = bikeListingRepository.findByInspectorOrUnassignedAndStatusIn(
                     inspector,
                     java.util.List.of(BikeListingStatus.PENDING, BikeListingStatus.REVIEWING),
                     pageable);
