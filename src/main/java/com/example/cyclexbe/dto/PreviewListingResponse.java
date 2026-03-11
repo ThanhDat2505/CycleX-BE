@@ -27,10 +27,15 @@ public class PreviewListingResponse {
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
     public List<String> imageUrls;
+    public List<String> imageUrls;
 
     public PreviewListingResponse() {}
 
     public static PreviewListingResponse from(BikeListing b) {
+        return from(b, Collections.emptyList());
+    }
+
+    public static PreviewListingResponse from(BikeListing b, List<String> imageUrls) {
         if (b == null) return null;
         PreviewListingResponse r = new PreviewListingResponse();
         r.listingId = b.getListingId();
@@ -51,6 +56,7 @@ public class PreviewListingResponse {
         r.viewsCount = b.getViewsCount();
         r.createdAt = b.getCreatedAt();
         r.updatedAt = b.getUpdatedAt();
+        r.imageUrls = imageUrls;
         return r;
     }
 }

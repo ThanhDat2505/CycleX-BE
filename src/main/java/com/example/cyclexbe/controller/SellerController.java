@@ -73,6 +73,15 @@ public class SellerController {
         return ResponseEntity.ok(response);
     }
 
+    @PatchMapping("/listings/{listing_id}/cancel-publish")
+    public ResponseEntity<BikeListingResponse> cancelPublish(
+            @PathVariable Integer sellerId,
+            @PathVariable("listing_id") Integer listingId) {
+        SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
+        BikeListingResponse response = sellerService.cancelPublishListing(sellerId, listingId);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/listings/{listingId}/rejection")
     public ResponseEntity<SellerListingResponse> getRejectionReason(
             @PathVariable Integer sellerId,

@@ -311,6 +311,29 @@ public class SellerService {
     }
 
     /**
+     * Cancel publish: revert PENDING/REVIEWING/WAITING_INSPECTOR_REVIEW → DRAFT
+     */
+    @Transactional
+    public BikeListingResponse cancelPublishListing(Integer sellerId, Integer listingId) {
+        User seller = userRepository.findById(sellerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+
+        BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+
+        BikeListingStatus status = listing.getStatus();
+        if (status != BikeListingStatus.PENDING && status != BikeListingStatus.REVIEWING
+                && status != BikeListingStatus.WAITING_INSPECTOR_REVIEW) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Cancel publish is only allowed for PENDING, REVIEWING, or WAITING_INSPECTOR_REVIEW listings. Current status: " + status);
+        }
+
+        listing.setStatus(BikeListingStatus.DRAFT);
+        BikeListing saved = bikeListingRepository.save(listing);
+        return BikeListingResponse.from(saved);
+    }
+
+    /**
      * S-12: Submit listing for approval (DRAFT → PENDING)
      */
     public BikeListingResponse submitListing(Integer sellerId, Integer listingId) {

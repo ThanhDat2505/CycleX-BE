@@ -9,6 +9,7 @@ import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.BikeListingRepository;
 import com.example.cyclexbe.repository.InspectionReportRepository;
 import com.example.cyclexbe.repository.ListingImageRepository;
+import com.example.cyclexbe.repository.ListingImageRepository;
 import com.example.cyclexbe.repository.ProductRepository;
 import com.example.cyclexbe.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -23,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -33,16 +35,20 @@ public class InspectorService {
     private final ProductRepository productRepository;
     private final InspectionReportRepository inspectionReportRepository;
     private final ListingImageRepository listingImageRepository;
+    private final ListingImageRepository listingImageRepository;
 
     public InspectorService(BikeListingRepository bikeListingRepository,
             UserRepository userRepository,
             ProductRepository productRepository,
             InspectionReportRepository inspectionReportRepository,
             ListingImageRepository listingImageRepository) {
+            InspectionReportRepository inspectionReportRepository,
+            ListingImageRepository listingImageRepository) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.inspectionReportRepository = inspectionReportRepository;
+        this.listingImageRepository = listingImageRepository;
         this.listingImageRepository = listingImageRepository;
     }
 
@@ -77,12 +83,12 @@ public class InspectorService {
         Page<BikeListing> result;
 
         if ("PENDING".equalsIgnoreCase(status)) {
-            result = bikeListingRepository.findByInspectorAndStatus(inspector, BikeListingStatus.PENDING, pageable);
+            result = bikeListingRepository.findByInspectorOrUnassignedAndStatus(inspector, BikeListingStatus.PENDING, pageable);
         } else if ("REVIEWING".equalsIgnoreCase(status)) {
             result = bikeListingRepository.findByInspectorAndStatus(inspector, BikeListingStatus.REVIEWING, pageable);
         } else {
-            // ALL - get both PENDING and REVIEWING assigned to this inspector
-            result = bikeListingRepository.findByInspectorAndStatusIn(
+            // ALL - get PENDING and REVIEWING assigned to this inspector, plus unassigned PENDING
+            result = bikeListingRepository.findByInspectorOrUnassignedAndStatusIn(
                     inspector,
                     java.util.List.of(BikeListingStatus.PENDING, BikeListingStatus.REVIEWING),
                     pageable);
