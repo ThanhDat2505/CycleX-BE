@@ -40,14 +40,14 @@ public class InspectorController {
             @PathVariable Integer inspectorId) {
         SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
         return ResponseEntity.ok(
-                inspectorService.getDashboardStats(inspectorId)
-        );
+                inspectorService.getDashboardStats(inspectorId));
     }
 
     /**
      * S-21: Pending/Reviewing Listings
      * List listings with filter by status and pagination
-     * Query params: status=ALL|PENDING|REVIEWING, sort=newest|oldest, page, page_size
+     * Query params: status=ALL|PENDING|REVIEWING, sort=newest|oldest, page,
+     * page_size
      */
     @GetMapping("/listings")
     public ResponseEntity<Page<SellerListingResponse>> getListings(
@@ -107,9 +107,9 @@ public class InspectorController {
      * Approve listing and change status to APPROVED. Reason is required.
      * POST /inspector/{inspectorId}/listings/{listing_id}/approve
      * Body: {
-     *   "reasonText": "Listing meets all standards...",
-     *   "reasonCode": "MEETS_STANDARDS|GOOD_CONDITION|OTHER" (optional),
-     *   "note": "Internal note (optional)"
+     * "reasonText": "Listing meets all standards...",
+     * "reasonCode": "MEETS_STANDARDS|GOOD_CONDITION|OTHER" (optional),
+     * "note": "Internal note (optional)"
      * }
      */
     @PostMapping("/listings/{listing_id}/approve")
@@ -128,9 +128,9 @@ public class InspectorController {
      * Reject listing with reason code, reason text, and optional note
      * POST /inspector/{inspectorId}/listings/{listing_id}/reject
      * Body: {
-     *   "reasonCode": "DUPLICATE|INVALID_INFO|LOW_QUALITY|INAPPROPRIATE|OTHER",
-     *   "reasonText": "Detailed reason",
-     *   "note": "Internal note (optional)"
+     * "reasonCode": "DUPLICATE|INVALID_INFO|LOW_QUALITY|INAPPROPRIATE|OTHER",
+     * "reasonText": "Detailed reason",
+     * "note": "Internal note (optional)"
      * }
      */
     @PostMapping("/listings/reject")
@@ -177,7 +177,8 @@ public class InspectorController {
     /**
      * Get Inspection Report for a listing
      * GET /api/inspector/{inspectorId}/listings/{listingId}/report
-     * Returns the latest InspectionReport (approval/rejection reason) for the listing
+     * Returns the latest InspectionReport (approval/rejection reason) for the
+     * listing
      */
     @GetMapping("/listings/{listingId}/report")
     public ResponseEntity<InspectionReportResponse> getInspectionReport(
@@ -193,13 +194,13 @@ public class InspectorController {
      * Query params: status=OPEN|RESOLVED, page, pageSize
      */
     @GetMapping("/disputes")
-    public ResponseEntity<Page<?>> getDisputes(
+    public ResponseEntity<Page<DisputeListRowResponse>> getDisputes(
             @PathVariable Integer inspectorId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
         SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
-        Page<?> disputes = inspectorService.getDisputes(status, page, pageSize);
+        Page<DisputeListRowResponse> disputes = inspectorService.getDisputes(status, page, pageSize);
         return ResponseEntity.ok(disputes);
     }
 
@@ -208,11 +209,11 @@ public class InspectorController {
      * GET /api/inspector/{inspectorId}/disputes/{disputeId}
      */
     @GetMapping("/disputes/{disputeId}")
-    public ResponseEntity<?> getDisputeDetail(
+    public ResponseEntity<DisputeDetailResponse> getDisputeDetail(
             @PathVariable Integer inspectorId,
             @PathVariable Integer disputeId) {
         SecurityUtils.validateResourceOwner(inspectorId.toString(), "INSPECTOR");
-        Object detail = inspectorService.getDisputeDetail(disputeId);
+        DisputeDetailResponse detail = inspectorService.getDisputeDetail(disputeId);
         return ResponseEntity.ok(detail);
     }
 

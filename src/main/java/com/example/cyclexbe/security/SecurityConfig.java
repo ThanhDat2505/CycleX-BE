@@ -36,6 +36,9 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Swagger UI
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+
                         // public endpoints - Auth
                         .requestMatchers("/api/auth/**").permitAll()
 
@@ -47,6 +50,11 @@ public class SecurityConfig {
 
                         // Inspector
                         .requestMatchers("/api/inspector/**").permitAll()
+
+                        // Disputes - public reasons endpoint, authenticated for the rest
+                        .requestMatchers(HttpMethod.GET, "/api/disputes/reasons").permitAll()
+                        .requestMatchers("/api/disputes/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/buyers/*/dispute-eligibility").hasRole("BUYER")
 
                         // Authenticated endpoints - Seller (Batch 1)
                         .requestMatchers(HttpMethod.GET, "/api/seller/*/dashboard/stats").hasRole("SELLER")
@@ -80,6 +88,11 @@ public class SecurityConfig {
 
                         // Authenticated endpoints - Notifications (all roles)
                         .requestMatchers("/api/notifications/**").authenticated()
+
+                        // Authenticated endpoints - Orders
+                        .requestMatchers(HttpMethod.GET, "/api/orders/buyer").hasRole("BUYER")
+                        .requestMatchers(HttpMethod.GET, "/api/orders/seller").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.GET, "/api/orders/**").authenticated()
 
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

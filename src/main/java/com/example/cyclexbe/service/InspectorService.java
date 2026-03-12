@@ -1,12 +1,14 @@
 package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
+import com.example.cyclexbe.domain.enums.DisputeStatus;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.entity.BikeListing;
 import com.example.cyclexbe.entity.InspectionReport;
 import com.example.cyclexbe.entity.Product;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.BikeListingRepository;
+import com.example.cyclexbe.repository.DisputeRepository;
 import com.example.cyclexbe.repository.InspectionReportRepository;
 import com.example.cyclexbe.repository.ListingImageRepository;
 import com.example.cyclexbe.repository.ProductRepository;
@@ -33,17 +35,20 @@ public class InspectorService {
     private final ProductRepository productRepository;
     private final InspectionReportRepository inspectionReportRepository;
     private final ListingImageRepository listingImageRepository;
+    private final DisputeRepository disputeRepository;
 
     public InspectorService(BikeListingRepository bikeListingRepository,
             UserRepository userRepository,
             ProductRepository productRepository,
             InspectionReportRepository inspectionReportRepository,
-            ListingImageRepository listingImageRepository) {
+            ListingImageRepository listingImageRepository,
+            DisputeRepository disputeRepository) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.inspectionReportRepository = inspectionReportRepository;
         this.listingImageRepository = listingImageRepository;
+        this.disputeRepository = disputeRepository;
     }
 
     /**
@@ -58,7 +63,8 @@ public class InspectorService {
         long reviewingCount = bikeListingRepository.countByInspectorAndStatus(inspector, BikeListingStatus.REVIEWING);
         long approvedCount = bikeListingRepository.countByInspectorAndStatus(inspector, BikeListingStatus.APPROVED);
         long rejectedCount = bikeListingRepository.countByInspectorAndStatus(inspector, BikeListingStatus.REJECTED);
-        long disputeCount = 0; // TODO: Count from disputes table
+        long disputeCount = disputeRepository.countByStatus(DisputeStatus.OPEN)
+                + disputeRepository.countByStatus(DisputeStatus.IN_PROGRESS);
 
         return new InspectorDashboardStatsResponse(pendingCount, reviewingCount, approvedCount, rejectedCount,
                 disputeCount);
@@ -67,7 +73,8 @@ public class InspectorService {
     /**
      * S-21: Get listings for review - only listings assigned to this inspector
      */
-    public Page<SellerListingResponse> getListingsForReview(Integer inspectorId, String status, String sort, int page, int pageSize) {
+    public Page<SellerListingResponse> getListingsForReview(Integer inspectorId, String status, String sort, int page,
+            int pageSize) {
         User inspector = userRepository.findById(inspectorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
 
@@ -77,11 +84,13 @@ public class InspectorService {
         Page<BikeListing> result;
 
         if ("PENDING".equalsIgnoreCase(status)) {
-            result = bikeListingRepository.findByInspectorOrUnassignedAndStatus(inspector, BikeListingStatus.PENDING, pageable);
+            result = bikeListingRepository.findByInspectorOrUnassignedAndStatus(inspector, BikeListingStatus.PENDING,
+                    pageable);
         } else if ("REVIEWING".equalsIgnoreCase(status)) {
             result = bikeListingRepository.findByInspectorAndStatus(inspector, BikeListingStatus.REVIEWING, pageable);
         } else {
-            // ALL - get PENDING and REVIEWING assigned to this inspector, plus unassigned PENDING
+            // ALL - get PENDING and REVIEWING assigned to this inspector, plus unassigned
+            // PENDING
             result = bikeListingRepository.findByInspectorOrUnassignedAndStatusIn(
                     inspector,
                     java.util.List.of(BikeListingStatus.PENDING, BikeListingStatus.REVIEWING),
@@ -136,7 +145,8 @@ public class InspectorService {
 
     /**
      * S-22: Unlock listing
-     * Only the assigned inspector can unlock. Listing goes back to PENDING but stays assigned.
+     * Only the assigned inspector can unlock. Listing goes back to PENDING but
+     * stays assigned.
      */
     public BikeListingResponse unlockListing(Integer listingId, Integer inspectorId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
@@ -160,6 +170,7 @@ public class InspectorService {
 
     /**
      * S-23: Approve listing
+     * Inspector can approve directly from PENDING (no REVIEWING lock needed).
      * Inspector must provide a reason for approval. An InspectionReport is created.
      */
     public BikeListingResponse approveListing(Integer listingId, Integer inspectorId,
@@ -172,11 +183,11 @@ public class InspectorService {
 
         if (listing.getInspector() != null && !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Only the inspector who locked the listing can approve it");
+                    "Only the assigned inspector can approve this listing");
         }
 
-        if (listing.getStatus() != BikeListingStatus.REVIEWING) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only REVIEWING listings can be approved");
+        if (listing.getStatus() != BikeListingStatus.PENDING && listing.getStatus() != BikeListingStatus.REVIEWING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING listings can be approved");
         }
 
         // Validate reason
@@ -213,7 +224,9 @@ public class InspectorService {
 
     /**
      * S-23: Reject listing
-     * Inspector must provide a reason for rejection. An InspectionReport is created.
+     * Inspector can reject directly from PENDING (no REVIEWING lock needed).
+     * Inspector must provide a reason for rejection. An InspectionReport is
+     * created.
      */
     public BikeListingResponse rejectListing(Integer listingId, Integer inspectorId, String reasonCode,
             String reasonText, String note) {
@@ -225,11 +238,11 @@ public class InspectorService {
 
         if (listing.getInspector() != null && !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Only the inspector who locked the listing can reject it");
+                    "Only the assigned inspector can reject this listing");
         }
 
-        if (listing.getStatus() != BikeListingStatus.REVIEWING) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only REVIEWING listings can be rejected");
+        if (listing.getStatus() != BikeListingStatus.PENDING && listing.getStatus() != BikeListingStatus.REVIEWING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING listings can be rejected");
         }
 
         // Validate reason
@@ -304,42 +317,53 @@ public class InspectorService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
         InspectionReport report = inspectionReportRepository.findTopByListingOrderByCreatedAtDesc(listing)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No inspection report found for this listing"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No inspection report found for this listing"));
 
         return InspectionReportResponse.from(report);
     }
 
     /**
-     * Get the latest InspectionReport for a listing (used by seller to see rejection/approval reason)
+     * Get the latest InspectionReport for a listing (used by seller to see
+     * rejection/approval reason)
      */
     public InspectionReportResponse getInspectionReportByListing(Integer listingId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
         InspectionReport report = inspectionReportRepository.findTopByListingOrderByCreatedAtDesc(listing)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No inspection report found for this listing"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No inspection report found for this listing"));
 
         return InspectionReportResponse.from(report);
     }
 
     /**
-     * Get disputes
+     * Get disputes (delegated to DisputeService via repository)
      */
-    public Page<?> getDisputes(String status, int page, int pageSize) {
-        // TODO: Query disputes table
-        // TODO: Filter by status (OPEN, RESOLVED)
-        // TODO: Return paginated results
+    public Page<DisputeListRowResponse> getDisputes(String status, int page, int pageSize) {
+        DisputeStatus statusEnum = null;
+        if (status != null && !status.isEmpty() && !"ALL".equalsIgnoreCase(status)) {
+            try {
+                statusEnum = DisputeStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid status
+            }
+        }
 
-        return Page.empty();
+        Sort.Direction direction = Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by(direction, "createdAt"));
+
+        var disputes = disputeRepository.findByFilters(statusEnum, null, pageable);
+        return disputes.map(DisputeListRowResponse::from);
     }
 
     /**
      * Get dispute detail
      */
-    public Object getDisputeDetail(Integer disputeId) {
-        // TODO: Query disputes table by dispute_id
-        // TODO: Include related listing, buyer, seller info
-
-        return null;
+    public DisputeDetailResponse getDisputeDetail(Integer disputeId) {
+        var dispute = disputeRepository.findById(disputeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dispute not found"));
+        return DisputeDetailResponse.from(dispute);
     }
 }

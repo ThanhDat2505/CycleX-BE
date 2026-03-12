@@ -2,6 +2,7 @@ package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.domain.enums.NotificationType;
+import com.example.cyclexbe.domain.enums.OrderStatus;
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.entity.BikeListing;
@@ -33,13 +34,16 @@ public class ShipperDeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final NotificationService notificationService;
     private final ListingImageRepository listingImageRepository;
+    private final OrderService orderService;
 
     public ShipperDeliveryService(DeliveryRepository deliveryRepository,
                                   NotificationService notificationService,
-                                  ListingImageRepository listingImageRepository) {
+                                  ListingImageRepository listingImageRepository,
+                                  OrderService orderService) {
         this.deliveryRepository = deliveryRepository;
         this.notificationService = notificationService;
         this.listingImageRepository = listingImageRepository;
+        this.orderService = orderService;
     }
 
     /**
@@ -342,6 +346,9 @@ public class ShipperDeliveryService {
         delivery.setUpdatedAt(LocalDateTime.now());
         deliveryRepository.save(delivery);
 
+        // Update order status to IN_DELIVERY
+        orderService.updateOrderStatus(delivery.getTransaction().getRequestId(), OrderStatus.IN_DELIVERY);
+
         return new ShipperStartDeliveryResponse(
                 delivery.getDeliveryId(),
                 delivery.getStatus(),
@@ -418,6 +425,9 @@ public class ShipperDeliveryService {
         // 3. listing.status → SOLD
         BikeListing listing = delivery.getListing();
         listing.setStatus(BikeListingStatus.SOLD);
+
+        // 4. order.status → COMPLETED
+        orderService.updateOrderStatus(transaction.getRequestId(), OrderStatus.COMPLETED);
 
         // Persist (cascade via dirty-checking inside the same transaction)
         deliveryRepository.save(delivery);
@@ -550,6 +560,9 @@ public class ShipperDeliveryService {
         // 2. transaction.status → DISPUTED
         PurchaseRequest transaction = delivery.getTransaction();
         transaction.setStatus(PurchaseRequestStatus.DISPUTED);
+
+        // 3. order.status → DISPUTED
+        orderService.updateOrderStatus(transaction.getRequestId(), OrderStatus.DISPUTED);
 
         deliveryRepository.save(delivery);
 

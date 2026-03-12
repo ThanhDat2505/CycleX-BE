@@ -5,6 +5,7 @@ import com.example.cyclexbe.domain.enums.Role;
 import com.example.cyclexbe.domain.enums.TransactionType;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.entity.Delivery;
+import com.example.cyclexbe.entity.Order;
 import com.example.cyclexbe.entity.PurchaseRequest;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.DeliveryRepository;
@@ -32,13 +33,16 @@ public class SellerTransactionService {
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final DeliveryRepository deliveryRepository;
     private final UserRepository userRepository;
+    private final OrderService orderService;
 
     public SellerTransactionService(PurchaseRequestRepository purchaseRequestRepository,
                                      DeliveryRepository deliveryRepository,
-                                     UserRepository userRepository) {
+                                     UserRepository userRepository,
+                                     OrderService orderService) {
         this.purchaseRequestRepository = purchaseRequestRepository;
         this.deliveryRepository = deliveryRepository;
         this.userRepository = userRepository;
+        this.orderService = orderService;
     }
 
     // ==============================
@@ -182,8 +186,12 @@ public class SellerTransactionService {
         PurchaseRequest updated =
                 purchaseRequestRepository.save(transaction);
 
+        // Create Order from the confirmed PurchaseRequest
+        String sellerNote = (request != null && request.getNote() != null) ? request.getNote() : null;
+        Order order = orderService.createOrderFromPurchaseRequest(updated, sellerNote);
+
         // Auto-create delivery and assign a shipper
-        createDeliveryForTransaction(updated);
+        createDeliveryForTransaction(updated, order);
 
         return mapToActionResponse(updated, "Transaction confirmed successfully");
     }
@@ -192,7 +200,7 @@ public class SellerTransactionService {
      * Auto-create a Delivery when seller confirms transaction.
      * Assigns the shipper with the fewest ASSIGNED deliveries (least-load strategy).
      */
-    private void createDeliveryForTransaction(PurchaseRequest transaction) {
+    private void createDeliveryForTransaction(PurchaseRequest transaction, Order order) {
         // 1. Find all active shippers
         List<User> shippers = userRepository.findByRoleAndStatus(Role.SHIPPER, "ACTIVE");
         if (shippers.isEmpty()) {
@@ -215,6 +223,7 @@ public class SellerTransactionService {
         Delivery delivery = new Delivery();
         delivery.setShipper(leastBusyShipper);
         delivery.setTransaction(transaction);
+        delivery.setOrder(order);
         delivery.setListing(transaction.getProduct().getListing());
         delivery.setStatus("ASSIGNED");
 

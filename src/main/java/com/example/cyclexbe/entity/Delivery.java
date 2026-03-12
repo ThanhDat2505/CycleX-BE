@@ -21,6 +21,10 @@ public class Delivery {
     private PurchaseRequest transaction;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    private Order order;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "listing_id", nullable = false)
     private BikeListing listing;
 
@@ -74,6 +78,9 @@ public class Delivery {
 
     public BikeListing getListing() { return listing; }
     public void setListing(BikeListing listing) { this.listing = listing; }
+
+    public Order getOrder() { return order; }
+    public void setOrder(Order order) { this.order = order; }
 
     public String getPickupAddress() { return pickupAddress; }
     public void setPickupAddress(String pickupAddress) { this.pickupAddress = pickupAddress; }
