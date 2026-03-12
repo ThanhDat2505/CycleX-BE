@@ -8,6 +8,7 @@ import com.example.cyclexbe.service.BikeListingService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,8 +23,9 @@ public class BikeListingController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public BikeListingResponse create(@Valid @RequestBody BikeListingCreateRequest req) {
-        return bikeListingService.create(req);
+    public BikeListingResponse create(Authentication authentication, @Valid @RequestBody BikeListingCreateRequest req) {
+        Integer authenticatedUserId = Integer.parseInt(authentication.getPrincipal().toString());
+        return bikeListingService.create(req, authenticatedUserId);
     }
 
     @GetMapping
@@ -44,13 +46,15 @@ public class BikeListingController {
     }
 
     @PutMapping("/{id}")
-    public BikeListingResponse update(@PathVariable Integer id, @Valid @RequestBody BikeListingUpdateRequest req) {
-        return bikeListingService.update(id, req);
+    public BikeListingResponse update(Authentication authentication, @PathVariable Integer id, @Valid @RequestBody BikeListingUpdateRequest req) {
+        Integer authenticatedUserId = Integer.parseInt(authentication.getPrincipal().toString());
+        return bikeListingService.update(id, req, authenticatedUserId);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Integer id) {
-        bikeListingService.delete(id);
+    public void delete(Authentication authentication, @PathVariable Integer id) {
+        Integer authenticatedUserId = Integer.parseInt(authentication.getPrincipal().toString());
+        bikeListingService.delete(id, authenticatedUserId);
     }
 }

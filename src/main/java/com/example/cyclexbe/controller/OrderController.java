@@ -21,16 +21,19 @@ public class OrderController {
      * Get order by ID
      */
     @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Integer orderId) {
-        return ResponseEntity.ok(orderService.getOrderById(orderId));
+    public ResponseEntity<OrderResponse> getOrderById(Authentication authentication, @PathVariable Integer orderId) {
+        Integer userId = Integer.parseInt(authentication.getPrincipal().toString());
+        return ResponseEntity.ok(orderService.getOrderById(orderId, userId));
     }
 
     /**
      * Get order by purchase request ID
      */
     @GetMapping("/by-request/{requestId}")
-    public ResponseEntity<OrderResponse> getOrderByRequestId(@PathVariable Integer requestId) {
-        return ResponseEntity.ok(orderService.getOrderByRequestId(requestId));
+    public ResponseEntity<OrderResponse> getOrderByRequestId(Authentication authentication,
+            @PathVariable Integer requestId) {
+        Integer userId = Integer.parseInt(authentication.getPrincipal().toString());
+        return ResponseEntity.ok(orderService.getOrderByRequestId(requestId, userId));
     }
 
     /**

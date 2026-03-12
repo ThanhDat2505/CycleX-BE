@@ -49,23 +49,34 @@ public class OrderService {
     }
 
     /**
-     * Get order by ID
+     * Get order by ID - with ownership check
      */
     @Transactional(readOnly = true)
-    public OrderResponse getOrderById(Integer orderId) {
+    public OrderResponse getOrderById(Integer orderId, Integer userId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+        validateOrderAccess(order, userId);
         return OrderResponse.from(order);
     }
 
     /**
-     * Get order by purchase request ID
+     * Get order by purchase request ID - with ownership check
      */
     @Transactional(readOnly = true)
-    public OrderResponse getOrderByRequestId(Integer requestId) {
+    public OrderResponse getOrderByRequestId(Integer requestId, Integer userId) {
         Order order = orderRepository.findByPurchaseRequest_RequestId(requestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found for this request"));
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found for this request"));
+        validateOrderAccess(order, userId);
         return OrderResponse.from(order);
+    }
+
+    private void validateOrderAccess(Order order, Integer userId) {
+        boolean isBuyer = order.getBuyer().getUserId().equals(userId);
+        boolean isSeller = order.getSeller().getUserId().equals(userId);
+        if (!isBuyer && !isSeller) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to access this order");
+        }
     }
 
     /**

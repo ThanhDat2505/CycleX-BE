@@ -45,7 +45,12 @@ public class BikeListingService {
         this.inspectorAssignmentService = inspectorAssignmentService;
     }
 
-    public BikeListingResponse create(BikeListingCreateRequest req) {
+    public BikeListingResponse create(BikeListingCreateRequest req, Integer authenticatedUserId) {
+        // Ownership check: seller can only create listings for themselves
+        if (!req.sellerId.equals(authenticatedUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only create listings for your own account");
+        }
+
         User seller = userRepository.findById(req.sellerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
 
@@ -111,9 +116,14 @@ public class BikeListingService {
         return mapToResponse(b);
     }
 
-    public BikeListingResponse update(Integer id, BikeListingUpdateRequest req) {
+    public BikeListingResponse update(Integer id, BikeListingUpdateRequest req, Integer authenticatedUserId) {
         BikeListing b = bikeListingRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "BikeListing not found"));
+
+        // Ownership check: only the seller who owns this listing can update it
+        if (!b.getSeller().getUserId().equals(authenticatedUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only update your own listings");
+        }
 
         if (req.title != null) b.setTitle(req.title);
         if (req.description != null) b.setDescription(req.description);
@@ -133,9 +143,15 @@ public class BikeListingService {
         return mapToResponse(saved);
     }
 
-    public void delete(Integer id) {
+    public void delete(Integer id, Integer authenticatedUserId) {
         BikeListing b = bikeListingRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "BikeListing not found"));
+
+        // Ownership check: only the seller who owns this listing can delete it
+        if (!b.getSeller().getUserId().equals(authenticatedUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only delete your own listings");
+        }
+
         b.setStatus(BikeListingStatus.REJECTED);
         bikeListingRepository.save(b);
     }

@@ -42,14 +42,14 @@ public class SecurityConfig {
                         // public endpoints - Auth
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // public endpoints - BikeListings (Read)
+                        // public endpoints - BikeListings (Read-only public, write requires SELLER)
                         .requestMatchers(HttpMethod.GET, "/api/bikelistings", "/api/bikelistings/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/bikelistings").permitAll()
-                        .requestMatchers(HttpMethod.PUT, "/api/bikelistings/**").permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/api/bikelistings/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/bikelistings").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.PUT, "/api/bikelistings/**").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/bikelistings/**").hasRole("SELLER")
 
                         // Inspector
-                        .requestMatchers("/api/inspector/**").permitAll()
+                        .requestMatchers("/api/inspector/**").hasAnyRole("INSPECTOR", "ADMIN")
 
                         // Disputes - public reasons endpoint, authenticated for the rest
                         .requestMatchers(HttpMethod.GET, "/api/disputes/reasons").permitAll()
@@ -58,13 +58,13 @@ public class SecurityConfig {
 
                         // Authenticated endpoints - Seller (Batch 1)
                         .requestMatchers(HttpMethod.GET, "/api/seller/*/dashboard/stats").hasRole("SELLER")
-                        .requestMatchers(HttpMethod.GET, "/api/seller/*/listings/search").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/seller/listings/detail").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/seller/listings/rejection").permitAll()
-                        .requestMatchers(HttpMethod.PATCH, "/api/seller/listings/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/seller/*/listings/search").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.POST, "/api/seller/listings/detail").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.POST, "/api/seller/listings/rejection").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/seller/listings/**").hasRole("SELLER")
 
                         // Authenticated endpoints - Seller (Future batches)
-                        .requestMatchers("/api/seller/{sellerId}/**").permitAll()
+                        .requestMatchers("/api/seller/{sellerId}/**").hasRole("SELLER")
 
                         // Authenticated endpoints - Inspection Chat (S-40)
                         .requestMatchers("/api/inspection-requests/**").hasAnyRole("SELLER", "INSPECTOR", "ADMIN")
@@ -93,6 +93,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/orders/buyer").hasRole("BUYER")
                         .requestMatchers(HttpMethod.GET, "/api/orders/seller").hasRole("SELLER")
                         .requestMatchers(HttpMethod.GET, "/api/orders/**").authenticated()
+
+                        // Authenticated endpoints - Notifications (all roles)
+                        .requestMatchers("/api/notifications/**").authenticated()
 
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
