@@ -12,14 +12,20 @@ import com.example.cyclexbe.repository.BikeListingRepository;
 import com.example.cyclexbe.repository.ListingImageRepository;
 import com.example.cyclexbe.repository.ProductRepository;
 import com.example.cyclexbe.repository.UserRepository;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Subquery;
+import jakarta.persistence.criteria.Root;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -79,7 +85,9 @@ public class BikeListingService {
         return mapToResponse(saved);
     }
 
-    public Page<BikeListingResponse> getAll(int page, int size, BikeListingStatus status, String city, String title, String sortBy) {
+    public Page<BikeListingResponse> getAll(int page, int size, BikeListingStatus status, String city, String title,
+                                             List<String> bikeType, List<String> brand, List<String> condition,
+                                             Double minPrice, Double maxPrice, String sortBy) {
         Sort sort;
         switch (sortBy != null ? sortBy : "newest") {
             case "priceAsc":
@@ -97,16 +105,51 @@ public class BikeListingService {
                 break;
         }
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<BikeListing> pageResult;
-        if (status != null) {
-            pageResult = bikeListingRepository.findByStatus(status, pageable);
-        } else if (city != null) {
-            pageResult = bikeListingRepository.findByLocationCityContainingIgnoreCase(city, pageable);
-        } else if (title != null) {
-            pageResult = bikeListingRepository.findByTitleContainingIgnoreCase(title, pageable);
-        } else {
-            pageResult = bikeListingRepository.findAll(pageable);
-        }
+
+        Specification<BikeListing> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (city != null && !city.isBlank()) {
+                predicates.add(cb.like(cb.lower(root.get("locationCity")), "%" + city.toLowerCase() + "%"));
+            }
+            if (title != null && !title.isBlank()) {
+                predicates.add(cb.like(cb.lower(root.get("title")), "%" + title.toLowerCase() + "%"));
+            }
+            if (bikeType != null && !bikeType.isEmpty()) {
+                List<String> lowerTypes = bikeType.stream().map(String::toLowerCase).toList();
+                predicates.add(cb.lower(root.get("bikeType")).in(lowerTypes));
+            }
+            if (brand != null && !brand.isEmpty()) {
+                List<String> lowerBrands = brand.stream().map(String::toLowerCase).toList();
+                predicates.add(cb.lower(root.get("brand")).in(lowerBrands));
+            }
+            if (condition != null && !condition.isEmpty()) {
+                List<String> lowerConditions = condition.stream().map(String::toLowerCase).toList();
+                predicates.add(cb.lower(root.get("condition")).in(lowerConditions));
+            }
+            if (minPrice != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("price"), BigDecimal.valueOf(minPrice)));
+            }
+            if (maxPrice != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("price"), BigDecimal.valueOf(maxPrice)));
+            }
+
+            // For public view (APPROVED listings), only show products that are AVAILABLE
+            if (status == BikeListingStatus.APPROVED) {
+                Subquery<Integer> productSubquery = query.subquery(Integer.class);
+                Root<Product> productRoot = productSubquery.from(Product.class);
+                productSubquery.select(productRoot.get("listing").get("listingId"))
+                        .where(cb.equal(productRoot.get("status"), "AVAILABLE"));
+                predicates.add(root.get("listingId").in(productSubquery));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<BikeListing> pageResult = bikeListingRepository.findAll(spec, pageable);
         return pageResult.map(this::mapToResponse);
     }
 
@@ -159,6 +202,7 @@ public class BikeListingService {
     private BikeListingResponse mapToResponse(BikeListing listing) {
         Optional<Product> productOpt = productRepository.findByListing_ListingId(listing.getListingId());
         Integer productId = productOpt.map(Product::getProductId).orElse(null);
+        String productStatus = productOpt.map(Product::getStatus).orElse(null);
 
         List<String> imagePaths = listingImageRepository.findByBikeListingOrderByImageOrder(listing)
                 .stream()
@@ -166,6 +210,6 @@ public class BikeListingService {
                 .filter(path -> path != null && !path.isBlank())
                 .collect(Collectors.toList());
 
-        return BikeListingResponse.from(listing, productId, imagePaths);
+        return BikeListingResponse.from(listing, productId, imagePaths, productStatus);
     }
 }

@@ -76,6 +76,7 @@ public class SecurityConfig {
 
                         // Authenticated endpoints - Seller Transactions (S-52)
                         .requestMatchers(HttpMethod.GET, "/api/seller/transactions/**").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.POST, "/api/seller/transactions/**").hasRole("SELLER")
                         // S54
                         .requestMatchers(HttpMethod.GET, "/api/buyer/transactions/**").hasRole("BUYER")
                         .requestMatchers(HttpMethod.POST, "/api/buyer/transactions/**").hasRole("BUYER")
@@ -90,6 +91,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/notifications/**").authenticated()
 
                         // Authenticated endpoints - Orders
+                        .requestMatchers(HttpMethod.POST, "/api/orders").hasRole("BUYER")
                         .requestMatchers(HttpMethod.GET, "/api/orders/buyer").hasRole("BUYER")
                         .requestMatchers(HttpMethod.GET, "/api/orders/seller").hasRole("SELLER")
                         .requestMatchers(HttpMethod.GET, "/api/orders/**").authenticated()

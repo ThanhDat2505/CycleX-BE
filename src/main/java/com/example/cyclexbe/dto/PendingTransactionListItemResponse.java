@@ -1,5 +1,6 @@
 package com.example.cyclexbe.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -9,9 +10,11 @@ import java.time.LocalDateTime;
 public class PendingTransactionListItemResponse {
 
     private Integer requestId;
+    private Integer orderId;
     private String buyerName;
     private String listingTitle;
     private String transactionType;
+    private BigDecimal productPrice;
     private LocalDateTime createdAt;
     private String status;
     private String displayStatus;
@@ -95,5 +98,20 @@ public class PendingTransactionListItemResponse {
     public void setDisplayStatus(String displayStatus) {
         this.displayStatus = displayStatus;
     }
-}
 
+    public Integer getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(Integer orderId) {
+        this.orderId = orderId;
+    }
+
+    public BigDecimal getProductPrice() {
+        return productPrice;
+    }
+
+    public void setProductPrice(BigDecimal productPrice) {
+        this.productPrice = productPrice;
+    }
+}

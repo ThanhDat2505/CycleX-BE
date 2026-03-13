@@ -1,8 +1,12 @@
 package com.example.cyclexbe.controller;
 
 import com.example.cyclexbe.dto.OrderResponse;
+import com.example.cyclexbe.dto.PurchaseRequestCreateRequest;
+import com.example.cyclexbe.entity.Order;
 import com.example.cyclexbe.service.OrderService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +19,20 @@ public class OrderController {
 
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
+    }
+
+    /**
+     * Create an order directly from a product (new flow).
+     * POST /api/orders?productId=123
+     */
+    @PostMapping
+    public ResponseEntity<OrderResponse> createOrder(
+            Authentication authentication,
+            @RequestParam Integer productId,
+            @Valid @RequestBody PurchaseRequestCreateRequest request) {
+        Integer buyerId = Integer.parseInt(authentication.getPrincipal().toString());
+        Order order = orderService.createOrderFromProduct(productId, buyerId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(OrderResponse.from(order));
     }
 
     /**

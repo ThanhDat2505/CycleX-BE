@@ -12,9 +12,14 @@ public class OrderResponse {
     public String productName;
     public Integer listingId;
     public String listingTitle;
+    public BigDecimal productPrice;
     public BigDecimal totalAmount;
     public BigDecimal depositAmount;
     public BigDecimal platformFee;
+    public BigDecimal inspectionFee;
+    public String transactionType;
+    public String desiredTransactionTime;
+    public String buyerNote;
     public String status;
     public String sellerNote;
 
@@ -28,10 +33,16 @@ public class OrderResponse {
     public String sellerName;
     public String sellerPhone;
 
+    // Receiver info
+    public String receiverName;
+    public String receiverPhone;
+    public String receiverAddress;
+
     public String createdAt;
     public String updatedAt;
 
-    public OrderResponse() {}
+    public OrderResponse() {
+    }
 
     public static OrderResponse from(Order order) {
         OrderResponse res = new OrderResponse();
@@ -40,9 +51,21 @@ public class OrderResponse {
         res.totalAmount = order.getTotalAmount();
         res.depositAmount = order.getDepositAmount();
         res.platformFee = order.getPlatformFee();
+        res.inspectionFee = order.getInspectionFee();
         res.sellerNote = order.getSellerNote();
+        res.buyerNote = order.getBuyerNote();
+        res.receiverName = order.getReceiverName();
+        res.receiverPhone = order.getReceiverPhone();
+        res.receiverAddress = order.getReceiverAddress();
         res.createdAt = order.getCreatedAt() != null ? order.getCreatedAt().toString() : null;
         res.updatedAt = order.getUpdatedAt() != null ? order.getUpdatedAt().toString() : null;
+
+        if (order.getTransactionType() != null) {
+            res.transactionType = order.getTransactionType().name();
+        }
+        if (order.getDesiredTransactionTime() != null) {
+            res.desiredTransactionTime = order.getDesiredTransactionTime().toString();
+        }
 
         if (order.getPurchaseRequest() != null) {
             res.requestId = order.getPurchaseRequest().getRequestId();
@@ -51,6 +74,7 @@ public class OrderResponse {
         if (order.getProduct() != null) {
             res.productId = order.getProduct().getProductId();
             res.productName = order.getProduct().getName();
+            res.productPrice = order.getProduct().getPrice();
             if (order.getProduct().getListing() != null) {
                 res.listingId = order.getProduct().getListing().getListingId();
                 res.listingTitle = order.getProduct().getListing().getTitle();

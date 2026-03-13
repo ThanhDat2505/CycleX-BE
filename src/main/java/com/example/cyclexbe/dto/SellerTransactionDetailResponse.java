@@ -18,6 +18,7 @@ public class SellerTransactionDetailResponse {
     private BigDecimal depositAmount;
     private BigDecimal platformFee;
     private BigDecimal inspectionFee;
+    private BigDecimal productPrice;
     private String status;
     private String displayStatus;
     private String note;
@@ -194,5 +195,12 @@ public class SellerTransactionDetailResponse {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
-}
 
+    public BigDecimal getProductPrice() {
+        return productPrice;
+    }
+
+    public void setProductPrice(BigDecimal productPrice) {
+        this.productPrice = productPrice;
+    }
+}

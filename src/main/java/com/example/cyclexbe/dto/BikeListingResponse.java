@@ -12,6 +12,7 @@ public class BikeListingResponse {
     public Integer listingId;
     public Integer sellerId;
     public Integer productId;
+    public String productStatus;
     public String title;
     public String description;
     public String bikeType;
@@ -33,18 +34,26 @@ public class BikeListingResponse {
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 
-    public BikeListingResponse() {}
+    public BikeListingResponse() {
+    }
 
     public static BikeListingResponse from(BikeListing b) {
         return from(b, null, Collections.emptyList());
     }
 
     public static BikeListingResponse from(BikeListing b, Integer productId, List<String> imagePaths) {
+        return from(b, productId, imagePaths, null);
+    }
+
+    public static BikeListingResponse from(BikeListing b, Integer productId, List<String> imagePaths,
+            String productStatus) {
         BikeListingResponse r = new BikeListingResponse();
-        if (b == null) return r;
+        if (b == null)
+            return r;
         r.listingId = b.getListingId();
         r.sellerId = b.getSeller() != null ? b.getSeller().getUserId() : null;
         r.productId = productId;
+        r.productStatus = productStatus;
         r.title = b.getTitle();
         r.description = b.getDescription();
         r.bikeType = b.getBikeType();

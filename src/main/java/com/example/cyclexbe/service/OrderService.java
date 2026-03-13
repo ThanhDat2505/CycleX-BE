@@ -1,10 +1,18 @@
 package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.OrderStatus;
+import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
+import com.example.cyclexbe.domain.enums.TransactionType;
 import com.example.cyclexbe.dto.OrderResponse;
+import com.example.cyclexbe.dto.PurchaseRequestCreateRequest;
 import com.example.cyclexbe.entity.Order;
+import com.example.cyclexbe.entity.Product;
 import com.example.cyclexbe.entity.PurchaseRequest;
+import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.OrderRepository;
+import com.example.cyclexbe.repository.ProductRepository;
+import com.example.cyclexbe.repository.PurchaseRequestRepository;
+import com.example.cyclexbe.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,22 +22,114 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 @Service
 public class OrderService {
 
-    private final OrderRepository orderRepository;
+    private static final int DEPOSIT_RATE_PERCENT = 10;
+    private static final BigDecimal DEFAULT_PLATFORM_FEE = BigDecimal.ZERO;
+    private static final BigDecimal DEFAULT_INSPECTION_FEE = BigDecimal.ZERO;
 
-    public OrderService(OrderRepository orderRepository) {
+    private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
+    private final PurchaseRequestRepository purchaseRequestRepository;
+
+    public OrderService(OrderRepository orderRepository,
+            ProductRepository productRepository,
+            UserRepository userRepository,
+            PurchaseRequestRepository purchaseRequestRepository) {
         this.orderRepository = orderRepository;
+        this.productRepository = productRepository;
+        this.userRepository = userRepository;
+        this.purchaseRequestRepository = purchaseRequestRepository;
     }
 
     /**
-     * Create an Order from a confirmed PurchaseRequest.
-     * Called when seller confirms the purchase request.
+     * Create an Order directly from a Product (new flow - replaces
+     * PurchaseRequest).
+     * Buyer clicks "Đặt hàng" → Order created with PENDING_SELLER_CONFIRM.
+     * Product status set to RESERVED so other buyers cannot order.
+     * A thin PurchaseRequest is also created internally for backward-compat with
+     * Delivery FK.
+     */
+    @Transactional
+    public Order createOrderFromProduct(Integer productId, Integer buyerId, PurchaseRequestCreateRequest request) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+        User buyer = userRepository.findById(buyerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Buyer not found"));
+        User seller = product.getSeller();
+
+        if (seller == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product seller not found");
+        }
+        if (seller.getUserId().equals(buyerId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot buy your own product");
+        }
+        if (!"AVAILABLE".equals(product.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Sản phẩm này đã có người đặt mua và đang chờ xác nhận. Vui lòng quay lại sau!");
+        }
+        if (request.getTransactionType() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Transaction type is required");
+        }
+        if (request.getDesiredTransactionTime() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Desired transaction time is required");
+        }
+
+        BigDecimal productPrice = product.getPrice();
+        BigDecimal depositAmount = productPrice.multiply(BigDecimal.valueOf(DEPOSIT_RATE_PERCENT))
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        // Create internal PurchaseRequest for Delivery FK compatibility
+        PurchaseRequest pr = new PurchaseRequest();
+        pr.setProduct(product);
+        pr.setBuyer(buyer);
+        pr.setTransactionType(request.getTransactionType());
+        pr.setDesiredTransactionTime(request.getDesiredTransactionTime());
+        pr.setNote(request.getNote());
+        pr.setDepositAmount(depositAmount);
+        pr.setPlatformFee(DEFAULT_PLATFORM_FEE);
+        pr.setInspectionFee(DEFAULT_INSPECTION_FEE);
+        pr.setStatus(PurchaseRequestStatus.PENDING_SELLER_CONFIRM);
+        PurchaseRequest savedPr = purchaseRequestRepository.save(pr);
+
+        // Create the Order
+        Order order = new Order();
+        order.setPurchaseRequest(savedPr);
+        order.setProduct(product);
+        order.setBuyer(buyer);
+        order.setSeller(seller);
+        order.setTotalAmount(productPrice);
+        order.setDepositAmount(depositAmount);
+        order.setPlatformFee(DEFAULT_PLATFORM_FEE);
+        order.setInspectionFee(DEFAULT_INSPECTION_FEE);
+        order.setTransactionType(request.getTransactionType());
+        order.setDesiredTransactionTime(request.getDesiredTransactionTime());
+        order.setBuyerNote(request.getNote());
+        order.setReceiverName(request.getReceiverName());
+        order.setReceiverPhone(request.getReceiverPhone());
+        order.setReceiverAddress(request.getReceiverAddress());
+        order.setStatus(OrderStatus.PENDING_SELLER_CONFIRM);
+
+        Order savedOrder = orderRepository.save(order);
+
+        // Mark product as RESERVED so other buyers cannot order it
+        product.setStatus("RESERVED");
+        productRepository.save(product);
+
+        return savedOrder;
+    }
+
+    /**
+     * Legacy: Create an Order from a confirmed PurchaseRequest.
+     * Kept for backward compatibility with existing data.
      */
     @Transactional
     public Order createOrderFromPurchaseRequest(PurchaseRequest purchaseRequest, String sellerNote) {
-        // Check if order already exists for this request
         if (orderRepository.findByPurchaseRequest_RequestId(purchaseRequest.getRequestId()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Order already exists for this purchase request");
         }
@@ -42,6 +142,10 @@ public class OrderService {
         order.setTotalAmount(purchaseRequest.getProduct().getPrice());
         order.setDepositAmount(purchaseRequest.getDepositAmount());
         order.setPlatformFee(purchaseRequest.getPlatformFee());
+        order.setInspectionFee(purchaseRequest.getInspectionFee());
+        order.setTransactionType(purchaseRequest.getTransactionType());
+        order.setDesiredTransactionTime(purchaseRequest.getDesiredTransactionTime());
+        order.setBuyerNote(purchaseRequest.getNote());
         order.setSellerNote(sellerNote);
         order.setStatus(OrderStatus.PENDING_DELIVERY);
 

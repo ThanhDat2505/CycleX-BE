@@ -565,6 +565,36 @@ public class SellerService {
     }
 
     /**
+     * Set an image as primary (imageOrder = 1) by swapping with current primary
+     */
+    public void setImageAsPrimary(Integer sellerId, Integer listingId, Integer imageId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+        if (!listing.getSeller().getUserId().equals(sellerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your listing");
+        }
+
+        List<ListingImage> images = listingImageRepository.findByBikeListingOrderByImageOrder(listing);
+        ListingImage target = images.stream()
+                .filter(img -> img.getImageId().equals(imageId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Image not found"));
+
+        if (target.getImageOrder() == 1) return; // Already primary
+
+        // Swap: give target order 1, give current primary the target's old order
+        int targetOldOrder = target.getImageOrder();
+        for (ListingImage img : images) {
+            if (img.getImageOrder() == 1) {
+                img.setImageOrder(targetOldOrder);
+                break;
+            }
+        }
+        target.setImageOrder(1);
+        listingImageRepository.saveAll(images);
+    }
+
+    /**
      * Validate image path format
      * Expected format: /public/{listingId}/[image_number].png/jpg
      */

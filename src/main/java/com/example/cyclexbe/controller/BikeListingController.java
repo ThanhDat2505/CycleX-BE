@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/bikelistings")
 public class BikeListingController {
@@ -35,9 +37,14 @@ public class BikeListingController {
             @RequestParam(required = false) BikeListingStatus status,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String title,
+            @RequestParam(required = false) List<String> bikeType,
+            @RequestParam(required = false) List<String> brand,
+            @RequestParam(required = false) List<String> condition,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
             @RequestParam(defaultValue = "newest") String sortBy
     ) {
-        return bikeListingService.getAll(page, size, status, city, title, sortBy);
+        return bikeListingService.getAll(page, size, status, city, title, bikeType, brand, condition, minPrice, maxPrice, sortBy);
     }
 
     @GetMapping("/{id}")
