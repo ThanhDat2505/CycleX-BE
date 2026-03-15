@@ -1,5 +1,6 @@
 package com.example.cyclexbe.service;
 
+import com.example.cyclexbe.domain.enums.OrderStatus;
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.domain.enums.Role;
 import com.example.cyclexbe.domain.enums.TransactionType;
@@ -9,6 +10,8 @@ import com.example.cyclexbe.entity.Order;
 import com.example.cyclexbe.entity.PurchaseRequest;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.DeliveryRepository;
+import com.example.cyclexbe.repository.OrderRepository;
+import com.example.cyclexbe.repository.ProductRepository;
 import com.example.cyclexbe.repository.PurchaseRequestRepository;
 import com.example.cyclexbe.repository.UserRepository;
 import org.slf4j.Logger;
@@ -22,7 +25,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,23 +32,26 @@ public class SellerTransactionService {
 
     private static final Logger log = LoggerFactory.getLogger(SellerTransactionService.class);
 
+    private final OrderRepository orderRepository;
     private final PurchaseRequestRepository purchaseRequestRepository;
+    private final ProductRepository productRepository;
     private final DeliveryRepository deliveryRepository;
     private final UserRepository userRepository;
-    private final OrderService orderService;
 
-    public SellerTransactionService(PurchaseRequestRepository purchaseRequestRepository,
-                                     DeliveryRepository deliveryRepository,
-                                     UserRepository userRepository,
-                                     OrderService orderService) {
+    public SellerTransactionService(OrderRepository orderRepository,
+            PurchaseRequestRepository purchaseRequestRepository,
+            ProductRepository productRepository,
+            DeliveryRepository deliveryRepository,
+            UserRepository userRepository) {
+        this.orderRepository = orderRepository;
         this.purchaseRequestRepository = purchaseRequestRepository;
+        this.productRepository = productRepository;
         this.deliveryRepository = deliveryRepository;
         this.userRepository = userRepository;
-        this.orderService = orderService;
     }
 
     // ==============================
-    // S-52: Get Pending Transactions
+    // S-52: Get Pending Transactions (now queries Orders)
     // ==============================
     public SellerPendingTransactionsResponse getPendingTransactions(
             Authentication authentication,
@@ -63,11 +68,8 @@ public class SellerTransactionService {
             sortBy = "createdAt";
         }
 
-        if (!sortBy.equals("createdAt") && !sortBy.equals("requestId")) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Invalid sortBy parameter. Allowed values: createdAt, requestId"
-            );
+        if (!sortBy.equals("createdAt") && !sortBy.equals("orderId")) {
+            sortBy = "createdAt";
         }
         if (keyword == null || keyword.trim().isEmpty()) {
             keyword = "";
@@ -77,33 +79,25 @@ public class SellerTransactionService {
         }
 
         if (!sortDir.equalsIgnoreCase("asc") && !sortDir.equalsIgnoreCase("desc")) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Invalid sortDir parameter. Allowed values: asc, desc"
-            );
+            sortDir = "desc";
         }
 
-        Sort.Direction direction =
-                sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        Page<PurchaseRequest> pageResult =
-                purchaseRequestRepository.findPendingTransactionsForSeller(
-                        sellerId,
-                        transactionType,
-                        keyword,
-                        pageable
-                );
+        Page<Order> pageResult = orderRepository.findPendingOrdersForSeller(
+                sellerId,
+                transactionType,
+                keyword,
+                pageable);
 
-        List<PendingTransactionListItemResponse> items =
-                pageResult.getContent()
-                        .stream()
-                        .map(this::mapToPendingTransactionListItem)
-                        .collect(Collectors.toList());
+        List<PendingTransactionListItemResponse> items = pageResult.getContent()
+                .stream()
+                .map(this::mapToPendingTransactionListItem)
+                .collect(Collectors.toList());
 
-        SellerPendingTransactionsResponse response =
-                new SellerPendingTransactionsResponse();
+        SellerPendingTransactionsResponse response = new SellerPendingTransactionsResponse();
 
         response.setContent(items);
         response.setPage(page);
@@ -113,11 +107,9 @@ public class SellerTransactionService {
         response.setSortBy(sortBy);
         response.setSortDir(sortDir);
 
-        SellerPendingTransactionsResponse.AppliedFilters filters =
-                new SellerPendingTransactionsResponse.AppliedFilters(
-                        "PENDING_SELLER_CONFIRM",
-                        transactionType != null ? transactionType.toString() : null
-                );
+        SellerPendingTransactionsResponse.AppliedFilters filters = new SellerPendingTransactionsResponse.AppliedFilters(
+                "PENDING_SELLER_CONFIRM",
+                transactionType != null ? transactionType.toString() : null);
 
         response.setAppliedFilters(filters);
 
@@ -125,169 +117,169 @@ public class SellerTransactionService {
     }
 
     // ==============================
-    // S-53: Transaction Detail
+    // S-53: Transaction Detail (now looks up Order by orderId)
     // ==============================
     public SellerTransactionDetailResponse getTransactionDetail(
             Authentication authentication,
-            Integer requestId) {
+            Integer orderId) {
 
         Integer sellerId = parseCurrentUserId(authentication);
 
-        Optional<PurchaseRequest> optionalTransaction =
-                purchaseRequestRepository
-                        .findByRequestIdAndProduct_Seller_UserId(requestId, sellerId);
+        Order order = orderRepository.findByOrderIdAndSeller_UserId(orderId, sellerId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Transaction not found or you don't have permission"));
 
-        if (optionalTransaction.isEmpty()) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Transaction not found or you don't have permission"
-            );
-        }
-
-        return mapToTransactionDetail(optionalTransaction.get());
+        return mapToTransactionDetail(order);
     }
 
     // ==============================
-    // Confirm Transaction
+    // Confirm Transaction (updates Order status)
     // ==============================
     @Transactional
     public ActionTransactionResponse confirmTransaction(
             Authentication authentication,
-            Integer requestId,
+            Integer orderId,
             ConfirmTransactionRequest request) {
 
         Integer sellerId = parseCurrentUserId(authentication);
 
-        PurchaseRequest transaction =
-                purchaseRequestRepository
-                        .findByRequestIdAndProduct_Seller_UserId(requestId, sellerId)
-                        .orElseThrow(() ->
-                                new ResponseStatusException(
-                                        HttpStatus.NOT_FOUND,
-                                        "Transaction not found or you don't have permission"
-                                )
-                        );
+        Order order = orderRepository.findByOrderIdAndSeller_UserId(orderId, sellerId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Transaction not found or you don't have permission"));
 
-        if (!transaction.getStatus()
-                .equals(PurchaseRequestStatus.PENDING_SELLER_CONFIRM)) {
-
+        if (!order.getStatus().equals(OrderStatus.PENDING_SELLER_CONFIRM)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Transaction cannot be confirmed in current status"
-            );
+                    "Transaction cannot be confirmed in current status");
         }
 
-        transaction.setStatus(PurchaseRequestStatus.SELLER_CONFIRMED);
-
-        if (request != null && request.getNote() != null) {
-            transaction.setNote(request.getNote());
-        }
-
-        PurchaseRequest updated =
-                purchaseRequestRepository.save(transaction);
-
-        // Create Order from the confirmed PurchaseRequest
+        // Update Order status
         String sellerNote = (request != null && request.getNote() != null) ? request.getNote() : null;
-        Order order = orderService.createOrderFromPurchaseRequest(updated, sellerNote);
+        order.setStatus(OrderStatus.PENDING_DELIVERY);
+        if (sellerNote != null) {
+            order.setSellerNote(sellerNote);
+        }
+        Order updatedOrder = orderRepository.save(order);
+
+        // Also update PurchaseRequest status for backward compatibility
+        PurchaseRequest pr = order.getPurchaseRequest();
+        if (pr != null) {
+            pr.setStatus(PurchaseRequestStatus.SELLER_CONFIRMED);
+            purchaseRequestRepository.save(pr);
+        }
 
         // Auto-create delivery and assign a shipper
-        createDeliveryForTransaction(updated, order);
+        createDeliveryForOrder(updatedOrder);
 
-        return mapToActionResponse(updated, "Transaction confirmed successfully");
+        ActionTransactionResponse response = new ActionTransactionResponse();
+        response.setRequestId(updatedOrder.getOrderId());
+        response.setStatus(updatedOrder.getStatus().name());
+        response.setDisplayStatus(getOrderDisplayStatus(updatedOrder.getStatus()));
+        response.setMessage("Transaction confirmed successfully");
+        response.setUpdatedAt(updatedOrder.getUpdatedAt());
+        return response;
     }
 
     /**
-     * Auto-create a Delivery when seller confirms transaction.
-     * Assigns the shipper with the fewest ASSIGNED deliveries (least-load strategy).
+     * Auto-create a Delivery when seller confirms order.
      */
-    private void createDeliveryForTransaction(PurchaseRequest transaction, Order order) {
-        // 1. Find all active shippers
+    private void createDeliveryForOrder(Order order) {
         List<User> shippers = userRepository.findByRoleAndStatus(Role.SHIPPER, "ACTIVE");
         if (shippers.isEmpty()) {
-            log.warn("No active shippers available for transaction ID: {}", transaction.getRequestId());
+            log.warn("No active shippers available for order ID: {}", order.getOrderId());
             return;
         }
 
-        // 2. Pick shipper with least ASSIGNED deliveries (least-load)
         User leastBusyShipper = shippers.stream()
-                .min(Comparator.comparingLong(s ->
-                        deliveryRepository.countByShipperAndStatus(s.getUserId(), "ASSIGNED")))
+                .min(Comparator
+                        .comparingLong(s -> deliveryRepository.countByShipperAndStatus(s.getUserId(), "ASSIGNED")))
                 .orElse(shippers.get(0));
 
-        log.info("Auto-assigning delivery for transaction ID {} to shipper {} (ID: {})",
-                transaction.getRequestId(),
+        log.info("Auto-assigning delivery for order ID {} to shipper {} (ID: {})",
+                order.getOrderId(),
                 leastBusyShipper.getFullName(),
                 leastBusyShipper.getUserId());
 
-        // 3. Build Delivery
         Delivery delivery = new Delivery();
         delivery.setShipper(leastBusyShipper);
-        delivery.setTransaction(transaction);
+        delivery.setTransaction(order.getPurchaseRequest());
         delivery.setOrder(order);
-        delivery.setListing(transaction.getProduct().getListing());
+        if (order.getProduct() != null && order.getProduct().getListing() != null) {
+            delivery.setListing(order.getProduct().getListing());
+            String pickupAddr = order.getProduct().getListing().getPickupAddress();
+            delivery.setPickupAddress(pickupAddr != null ? pickupAddr
+                    : order.getProduct().getListing().getLocationCity());
+        }
         delivery.setStatus("ASSIGNED");
 
-        // Pickup address from the listing (seller's address)
-        String pickupAddr = transaction.getProduct().getListing().getPickupAddress();
-        delivery.setPickupAddress(pickupAddr != null ? pickupAddr
-                : transaction.getProduct().getListing().getLocationCity());
-
-        // Dropoff address: use buyer note or default to buyer info
-        String dropoffAddr = transaction.getNote();
+        String dropoffAddr = order.getBuyerNote();
         delivery.setDropoffAddress(dropoffAddr != null && !dropoffAddr.isBlank()
-                ? dropoffAddr : "Địa chỉ người mua");
+                ? dropoffAddr
+                : "Địa chỉ người mua");
 
         deliveryRepository.save(delivery);
 
-        log.info("Delivery created (ID: {}) for transaction ID {} assigned to shipper ID {}",
-                delivery.getDeliveryId(), transaction.getRequestId(), leastBusyShipper.getUserId());
+        log.info("Delivery created (ID: {}) for order ID {} assigned to shipper ID {}",
+                delivery.getDeliveryId(), order.getOrderId(), leastBusyShipper.getUserId());
     }
 
     // ==============================
-    // Reject Transaction
+    // Reject Transaction (sets Order CANCELLED + Product AVAILABLE)
     // ==============================
+    @Transactional
     public ActionTransactionResponse rejectTransaction(
             Authentication authentication,
-            Integer requestId,
+            Integer orderId,
             RejectTransactionRequest request) {
 
         Integer sellerId = parseCurrentUserId(authentication);
 
         if (request == null || request.getReason() == null
                 || request.getReason().isBlank()) {
-
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Reason is required"
-            );
+                    "Reason is required");
         }
 
-        PurchaseRequest transaction =
-                purchaseRequestRepository
-                        .findByRequestIdAndProduct_Seller_UserId(requestId, sellerId)
-                        .orElseThrow(() ->
-                                new ResponseStatusException(
-                                        HttpStatus.NOT_FOUND,
-                                        "Transaction not found or you don't have permission"
-                                )
-                        );
+        Order order = orderRepository.findByOrderIdAndSeller_UserId(orderId, sellerId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Transaction not found or you don't have permission"));
 
-        if (!transaction.getStatus()
-                .equals(PurchaseRequestStatus.PENDING_SELLER_CONFIRM)) {
-
+        if (!order.getStatus().equals(OrderStatus.PENDING_SELLER_CONFIRM)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Transaction cannot be rejected in current status"
-            );
+                    "Transaction cannot be rejected in current status");
         }
 
-        transaction.setStatus(PurchaseRequestStatus.CANCELLED);
-        transaction.setNote("REJECTED by seller: " + request.getReason());
+        // Update Order status
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setSellerNote("REJECTED: " + request.getReason());
+        orderRepository.save(order);
 
-        PurchaseRequest updated =
-                purchaseRequestRepository.save(transaction);
+        // Update PurchaseRequest for backward compat
+        PurchaseRequest pr = order.getPurchaseRequest();
+        if (pr != null) {
+            pr.setStatus(PurchaseRequestStatus.CANCELLED);
+            pr.setNote("REJECTED by seller: " + request.getReason());
+            purchaseRequestRepository.save(pr);
+        }
 
-        return mapToActionResponse(updated, "Transaction rejected successfully");
+        // Set product back to AVAILABLE so other buyers can order
+        if (order.getProduct() != null) {
+            order.getProduct().setStatus("AVAILABLE");
+            productRepository.save(order.getProduct());
+        }
+
+        ActionTransactionResponse response = new ActionTransactionResponse();
+        response.setRequestId(order.getOrderId());
+        response.setStatus(OrderStatus.CANCELLED.name());
+        response.setDisplayStatus("Đã từ chối");
+        response.setMessage("Transaction rejected successfully");
+        response.setUpdatedAt(order.getUpdatedAt());
+        return response;
     }
 
     // ==============================
@@ -295,84 +287,77 @@ public class SellerTransactionService {
     // ==============================
 
     private Integer parseCurrentUserId(Authentication authentication) {
-
         if (authentication == null || authentication.getPrincipal() == null) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
-                    "No authentication found"
-            );
+                    "No authentication found");
         }
-
         try {
             return Integer.parseInt(authentication.getPrincipal().toString());
         } catch (NumberFormatException e) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
-                    "Invalid user ID in token"
-            );
+                    "Invalid user ID in token");
         }
     }
 
-    private PendingTransactionListItemResponse mapToPendingTransactionListItem(PurchaseRequest pr) {
+    private PendingTransactionListItemResponse mapToPendingTransactionListItem(Order order) {
         PendingTransactionListItemResponse response = new PendingTransactionListItemResponse();
-        response.setRequestId(pr.getRequestId());
-        response.setBuyerName(pr.getBuyer().getFullName());
-        response.setListingTitle(pr.getProduct().getName());
-        response.setTransactionType(pr.getTransactionType().toString());
-        response.setCreatedAt(pr.getCreatedAt());
-        response.setStatus(pr.getStatus().toString());
-        response.setDisplayStatus(getDisplayStatus(pr.getStatus()));
-
+        response.setOrderId(order.getOrderId());
+        response.setRequestId(order.getOrderId());
+        response.setBuyerName(order.getBuyer().getFullName());
+        response.setListingTitle(order.getProduct() != null
+                ? order.getProduct().getName()
+                : "");
+        response.setTransactionType(order.getTransactionType() != null
+                ? order.getTransactionType().toString()
+                : "");
+        response.setProductPrice(order.getProduct() != null
+                ? order.getProduct().getPrice()
+                : order.getTotalAmount());
+        response.setCreatedAt(order.getCreatedAt());
+        response.setStatus(order.getStatus().name());
+        response.setDisplayStatus(getOrderDisplayStatus(order.getStatus()));
         return response;
     }
 
-    private SellerTransactionDetailResponse mapToTransactionDetail(PurchaseRequest pr) {
+    private SellerTransactionDetailResponse mapToTransactionDetail(Order order) {
         SellerTransactionDetailResponse response = new SellerTransactionDetailResponse();
-        response.setRequestId(pr.getRequestId());
-        response.setBuyerName(pr.getBuyer().getFullName());
-        response.setBuyerEmail(pr.getBuyer().getEmail());
-        response.setBuyerPhone(pr.getBuyer().getPhone());
-        response.setListingTitle(pr.getProduct().getName());
-        response.setListingId(pr.getProduct().getListing().getListingId());
-        response.setTransactionType(pr.getTransactionType().toString());
-        response.setDepositAmount(pr.getDepositAmount());
-        response.setPlatformFee(pr.getPlatformFee());
-        response.setInspectionFee(pr.getInspectionFee());
-        response.setStatus(pr.getStatus().toString());
-        response.setDisplayStatus(getDisplayStatus(pr.getStatus()));
-        response.setNote(pr.getNote());
-        response.setDesiredTransactionTime(pr.getDesiredTransactionTime());
-        response.setCreatedAt(pr.getCreatedAt());
-        response.setUpdatedAt(pr.getUpdatedAt());
-
+        response.setRequestId(order.getOrderId());
+        response.setBuyerName(order.getBuyer().getFullName());
+        response.setBuyerEmail(order.getBuyer().getEmail());
+        response.setBuyerPhone(order.getBuyer().getPhone());
+        if (order.getProduct() != null) {
+            response.setListingTitle(order.getProduct().getName());
+            response.setProductPrice(order.getProduct().getPrice());
+            if (order.getProduct().getListing() != null) {
+                response.setListingId(order.getProduct().getListing().getListingId());
+            }
+        }
+        response.setTransactionType(order.getTransactionType() != null
+                ? order.getTransactionType().toString()
+                : "");
+        response.setDepositAmount(order.getDepositAmount());
+        response.setPlatformFee(order.getPlatformFee());
+        response.setInspectionFee(order.getInspectionFee());
+        response.setStatus(order.getStatus().name());
+        response.setDisplayStatus(getOrderDisplayStatus(order.getStatus()));
+        response.setNote(order.getBuyerNote());
+        response.setDesiredTransactionTime(order.getDesiredTransactionTime());
+        response.setCreatedAt(order.getCreatedAt());
+        response.setUpdatedAt(order.getUpdatedAt());
         return response;
     }
 
-    private ActionTransactionResponse
-    mapToActionResponse(PurchaseRequest pr, String message) {
-
-        ActionTransactionResponse response =
-                new ActionTransactionResponse();
-
-        response.setRequestId(pr.getRequestId());
-        response.setStatus(pr.getStatus().toString());
-        response.setDisplayStatus(getDisplayStatus(pr.getStatus()));
-        response.setMessage(message);
-        response.setUpdatedAt(pr.getUpdatedAt());
-
-        return response;
-    }
-
-    private String getDisplayStatus(PurchaseRequestStatus status) {
-
+    private String getOrderDisplayStatus(OrderStatus status) {
         return switch (status) {
             case PENDING_SELLER_CONFIRM -> "Chờ xác nhận";
-            case SELLER_CONFIRMED -> "Seller đã xác nhận";
-            case BUYER_CONFIRMED -> "Buyer đã xác nhận";
+            case PENDING_DELIVERY -> "Chờ giao hàng";
+            case IN_DELIVERY -> "Đang giao hàng";
+            case DELIVERED -> "Đã giao hàng";
             case COMPLETED -> "Hoàn tất";
             case CANCELLED -> "Hủy bỏ";
             case DISPUTED -> "Tranh chấp";
-            default -> status.toString();
         };
     }
 }

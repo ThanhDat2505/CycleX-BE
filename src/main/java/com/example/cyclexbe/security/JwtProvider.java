@@ -24,15 +24,15 @@ public class JwtProvider {
     public JwtProvider(
             @Value("${security.jwt.secret}") String secret,
             @Value("${security.jwt.expiration-seconds:86400}") long expirationSeconds,
-            @Value("${security.jwt.issuer:cyclex}") String issuer
-    ) {
+            @Value("${security.jwt.issuer:cyclex}") String issuer) {
         this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(ensureBase64(secret)));
         this.expirationSeconds = expirationSeconds;
         this.issuer = issuer;
     }
 
     /**
-     * Tạo JWT với subject = email/username, role là String (ví dụ: "ADMIN" hoặc "USER").
+     * Tạo JWT với subject = email/username, role là String (ví dụ: "ADMIN" hoặc
+     * "USER").
      */
     public String generateToken(User user) {
         Instant now = Instant.now();
@@ -58,6 +58,8 @@ public class JwtProvider {
                     .parseSignedClaims(token);
             return Optional.of(jws);
         } catch (Exception ex) {
+            System.err.println(
+                    "[JWT DEBUG] Token validation failed: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
             return Optional.empty();
         }
     }
@@ -85,7 +87,8 @@ public class JwtProvider {
             Decoders.BASE64.decode(secretOrBase64);
             return secretOrBase64;
         } catch (Exception ignored) {
-            return java.util.Base64.getEncoder().encodeToString(secretOrBase64.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.Base64.getEncoder()
+                    .encodeToString(secretOrBase64.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
     }
 }
