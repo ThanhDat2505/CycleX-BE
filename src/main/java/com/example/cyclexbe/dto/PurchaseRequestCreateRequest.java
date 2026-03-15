@@ -24,6 +24,15 @@ public class PurchaseRequestCreateRequest {
     @Size(max = 500, message = "Note must not exceed 500 characters")
     private String note;
 
+    @Size(max = 100, message = "Receiver name must not exceed 100 characters")
+    private String receiverName;
+
+    @Size(max = 20, message = "Receiver phone must not exceed 20 characters")
+    private String receiverPhone;
+
+    @Size(max = 500, message = "Receiver address must not exceed 500 characters")
+    private String receiverAddress;
+
     public PurchaseRequestCreateRequest() {}
 
     public PurchaseRequestCreateRequest(
@@ -57,6 +66,30 @@ public class PurchaseRequestCreateRequest {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public String getReceiverName() {
+        return receiverName;
+    }
+
+    public void setReceiverName(String receiverName) {
+        this.receiverName = receiverName;
+    }
+
+    public String getReceiverPhone() {
+        return receiverPhone;
+    }
+
+    public void setReceiverPhone(String receiverPhone) {
+        this.receiverPhone = receiverPhone;
+    }
+
+    public String getReceiverAddress() {
+        return receiverAddress;
+    }
+
+    public void setReceiverAddress(String receiverAddress) {
+        this.receiverAddress = receiverAddress;
     }
 }
 

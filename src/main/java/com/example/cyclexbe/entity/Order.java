@@ -1,6 +1,7 @@
 package com.example.cyclexbe.entity;
 
 import com.example.cyclexbe.domain.enums.OrderStatus;
+import com.example.cyclexbe.domain.enums.TransactionType;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -43,8 +44,30 @@ public class Order {
     private String sellerNote;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_type", length = 20)
+    private TransactionType transactionType;
+
+    @Column(name = "desired_transaction_time")
+    private LocalDateTime desiredTransactionTime;
+
+    @Column(name = "buyer_note", columnDefinition = "TEXT")
+    private String buyerNote;
+
+    @Column(name = "inspection_fee", precision = 15, scale = 2)
+    private BigDecimal inspectionFee;
+
+    @Column(name = "receiver_name", length = 100)
+    private String receiverName;
+
+    @Column(name = "receiver_phone", length = 20)
+    private String receiverPhone;
+
+    @Column(name = "receiver_address", columnDefinition = "TEXT")
+    private String receiverAddress;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 30, nullable = false)
-    private OrderStatus status = OrderStatus.PENDING_DELIVERY;
+    private OrderStatus status = OrderStatus.PENDING_SELLER_CONFIRM;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -52,7 +75,8 @@ public class Order {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Order() {}
+    public Order() {
+    }
 
     @PrePersist
     protected void onCreate() {
@@ -68,39 +92,155 @@ public class Order {
 
     // Getters and Setters
 
-    public Integer getOrderId() { return orderId; }
-    public void setOrderId(Integer orderId) { this.orderId = orderId; }
+    public Integer getOrderId() {
+        return orderId;
+    }
 
-    public PurchaseRequest getPurchaseRequest() { return purchaseRequest; }
-    public void setPurchaseRequest(PurchaseRequest purchaseRequest) { this.purchaseRequest = purchaseRequest; }
+    public void setOrderId(Integer orderId) {
+        this.orderId = orderId;
+    }
 
-    public Product getProduct() { return product; }
-    public void setProduct(Product product) { this.product = product; }
+    public PurchaseRequest getPurchaseRequest() {
+        return purchaseRequest;
+    }
 
-    public User getBuyer() { return buyer; }
-    public void setBuyer(User buyer) { this.buyer = buyer; }
+    public void setPurchaseRequest(PurchaseRequest purchaseRequest) {
+        this.purchaseRequest = purchaseRequest;
+    }
 
-    public User getSeller() { return seller; }
-    public void setSeller(User seller) { this.seller = seller; }
+    public Product getProduct() {
+        return product;
+    }
 
-    public BigDecimal getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
+    public void setProduct(Product product) {
+        this.product = product;
+    }
 
-    public BigDecimal getDepositAmount() { return depositAmount; }
-    public void setDepositAmount(BigDecimal depositAmount) { this.depositAmount = depositAmount; }
+    public User getBuyer() {
+        return buyer;
+    }
 
-    public BigDecimal getPlatformFee() { return platformFee; }
-    public void setPlatformFee(BigDecimal platformFee) { this.platformFee = platformFee; }
+    public void setBuyer(User buyer) {
+        this.buyer = buyer;
+    }
 
-    public String getSellerNote() { return sellerNote; }
-    public void setSellerNote(String sellerNote) { this.sellerNote = sellerNote; }
+    public User getSeller() {
+        return seller;
+    }
 
-    public OrderStatus getStatus() { return status; }
-    public void setStatus(OrderStatus status) { this.status = status; }
+    public void setSeller(User seller) {
+        this.seller = seller;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
+    }
+
+    public BigDecimal getDepositAmount() {
+        return depositAmount;
+    }
+
+    public void setDepositAmount(BigDecimal depositAmount) {
+        this.depositAmount = depositAmount;
+    }
+
+    public BigDecimal getPlatformFee() {
+        return platformFee;
+    }
+
+    public void setPlatformFee(BigDecimal platformFee) {
+        this.platformFee = platformFee;
+    }
+
+    public String getSellerNote() {
+        return sellerNote;
+    }
+
+    public void setSellerNote(String sellerNote) {
+        this.sellerNote = sellerNote;
+    }
+
+    public TransactionType getTransactionType() {
+        return transactionType;
+    }
+
+    public void setTransactionType(TransactionType transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public LocalDateTime getDesiredTransactionTime() {
+        return desiredTransactionTime;
+    }
+
+    public void setDesiredTransactionTime(LocalDateTime desiredTransactionTime) {
+        this.desiredTransactionTime = desiredTransactionTime;
+    }
+
+    public String getBuyerNote() {
+        return buyerNote;
+    }
+
+    public void setBuyerNote(String buyerNote) {
+        this.buyerNote = buyerNote;
+    }
+
+    public BigDecimal getInspectionFee() {
+        return inspectionFee;
+    }
+
+    public void setInspectionFee(BigDecimal inspectionFee) {
+        this.inspectionFee = inspectionFee;
+    }
+
+    public OrderStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(OrderStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getReceiverName() {
+        return receiverName;
+    }
+
+    public void setReceiverName(String receiverName) {
+        this.receiverName = receiverName;
+    }
+
+    public String getReceiverPhone() {
+        return receiverPhone;
+    }
+
+    public void setReceiverPhone(String receiverPhone) {
+        this.receiverPhone = receiverPhone;
+    }
+
+    public String getReceiverAddress() {
+        return receiverAddress;
+    }
+
+    public void setReceiverAddress(String receiverAddress) {
+        this.receiverAddress = receiverAddress;
+    }
 }

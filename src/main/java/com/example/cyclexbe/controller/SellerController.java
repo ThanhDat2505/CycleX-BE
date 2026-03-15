@@ -186,6 +186,16 @@ public class SellerController {
         return ResponseEntity.ok(Map.of("message", "Image deleted successfully"));
     }
 
+    @PatchMapping("/listings/{listing_id}/images/{image_id}/set-primary")
+    public ResponseEntity<?> setImageAsPrimary(
+            @PathVariable Integer sellerId,
+            @PathVariable Integer listing_id,
+            @PathVariable Integer image_id) {
+        SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
+        sellerService.setImageAsPrimary(sellerId, listing_id, image_id);
+        return ResponseEntity.ok(Map.of("message", "Primary image updated"));
+    }
+
     @PostMapping("/listings/{listing_id}/images/{image_id}/retry")
     public ResponseEntity<?> retryImageUpload(
             @PathVariable Integer sellerId,

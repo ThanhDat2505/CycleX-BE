@@ -1,6 +1,7 @@
 package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
+import com.example.cyclexbe.domain.enums.TransactionType;
 import com.example.cyclexbe.dto.PricingPreviewDto;
 import com.example.cyclexbe.dto.PurchaseRequestCreateRequest;
 import com.example.cyclexbe.dto.PurchaseRequestInitResponse;
@@ -155,7 +156,11 @@ public class PurchaseRequestService {
         validateCreateRequestBusinessRules(product, buyerId, request);
 
         BigDecimal productPrice = product.getPrice();
-        BigDecimal depositAmount = calculateDepositAmount(productPrice);
+        // PURCHASE (Mua ngay) -> depositAmount = full listing price
+        // DEPOSIT (Đặt cọc)   -> depositAmount = 10% of listing price
+        BigDecimal depositAmount = request.getTransactionType() == TransactionType.PURCHASE
+                ? productPrice
+                : calculateDepositAmount(productPrice);
         BigDecimal platformFee = getPlatformFee(productPrice);
         BigDecimal inspectionFee = getInspectionFee(productPrice);
 
@@ -188,7 +193,11 @@ public class PurchaseRequestService {
         validateCreateRequestBusinessRules(product, buyerId, request);
 
         BigDecimal productPrice = product.getPrice();
-        BigDecimal depositAmount = calculateDepositAmount(productPrice);
+        // PURCHASE (Mua ngay) -> depositAmount = full listing price
+        // DEPOSIT (Đặt cọc)   -> depositAmount = 10% of listing price
+        BigDecimal depositAmount = request.getTransactionType() == TransactionType.PURCHASE
+                ? productPrice
+                : calculateDepositAmount(productPrice);
         BigDecimal platformFee = getPlatformFee(productPrice);
         BigDecimal inspectionFee = getInspectionFee(productPrice);
 
