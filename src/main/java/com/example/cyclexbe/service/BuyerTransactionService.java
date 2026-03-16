@@ -1,5 +1,6 @@
 package com.example.cyclexbe.service;
 
+import com.example.cyclexbe.domain.enums.OrderStatus;
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.dto.BuyerCancelTransactionResponse;
 import com.example.cyclexbe.dto.BuyerTransactionActionsDto;
@@ -209,6 +210,14 @@ public class BuyerTransactionService {
                 Product product = transaction.getProduct();
                 product.setStatus("AVAILABLE");
                 productRepository.save(product);
+
+                // Also cancel associated Order if it exists
+                Optional<Order> optionalOrder = orderRepository.findByPurchaseRequest_RequestId(requestId);
+                if (optionalOrder.isPresent()) {
+                        Order order = optionalOrder.get();
+                        order.setStatus(OrderStatus.CANCELLED);
+                        orderRepository.save(order);
+                }
 
                 // Build and return response
                 return new BuyerCancelTransactionResponse(
