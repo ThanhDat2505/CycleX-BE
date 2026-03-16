@@ -15,6 +15,7 @@ public class BuyerTransactionDetailResponse {
 
     private Integer requestId;
     private PurchaseRequestStatus status;
+    private String orderStatus;
 
     // Seller info
     private SellerInfoDto seller;
@@ -46,7 +47,8 @@ public class BuyerTransactionDetailResponse {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
 
-    public BuyerTransactionDetailResponse() {}
+    public BuyerTransactionDetailResponse() {
+    }
 
     public BuyerTransactionDetailResponse(
             Integer requestId,
@@ -81,50 +83,133 @@ public class BuyerTransactionDetailResponse {
     }
 
     // Getters & Setters
-    public Integer getRequestId() { return requestId; }
-    public void setRequestId(Integer requestId) { this.requestId = requestId; }
+    public Integer getRequestId() {
+        return requestId;
+    }
 
-    public PurchaseRequestStatus getStatus() { return status; }
-    public void setStatus(PurchaseRequestStatus status) { this.status = status; }
+    public void setRequestId(Integer requestId) {
+        this.requestId = requestId;
+    }
 
-    public SellerInfoDto getSeller() { return seller; }
-    public void setSeller(SellerInfoDto seller) { this.seller = seller; }
+    public PurchaseRequestStatus getStatus() {
+        return status;
+    }
 
-    public ListingInfoDto getListing() { return listing; }
-    public void setListing(ListingInfoDto listing) { this.listing = listing; }
+    public void setStatus(PurchaseRequestStatus status) {
+        this.status = status;
+    }
 
-    public BigDecimal getListingPrice() { return listingPrice; }
-    public void setListingPrice(BigDecimal listingPrice) { this.listingPrice = listingPrice; }
+    public String getOrderStatus() {
+        return orderStatus;
+    }
 
-    public BigDecimal getDepositAmount() { return depositAmount; }
-    public void setDepositAmount(BigDecimal depositAmount) { this.depositAmount = depositAmount; }
+    public void setOrderStatus(String orderStatus) {
+        this.orderStatus = orderStatus;
+    }
 
-    public BigDecimal getPlatformFee() { return platformFee; }
-    public void setPlatformFee(BigDecimal platformFee) { this.platformFee = platformFee; }
+    public SellerInfoDto getSeller() {
+        return seller;
+    }
 
-    public BigDecimal getInspectionFee() { return inspectionFee; }
-    public void setInspectionFee(BigDecimal inspectionFee) { this.inspectionFee = inspectionFee; }
+    public void setSeller(SellerInfoDto seller) {
+        this.seller = seller;
+    }
 
-    public BigDecimal getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
+    public ListingInfoDto getListing() {
+        return listing;
+    }
 
-    public String getNote() { return note; }
-    public void setNote(String note) { this.note = note; }
+    public void setListing(ListingInfoDto listing) {
+        this.listing = listing;
+    }
 
-    public LocalDateTime getDesiredTransactionTime() { return desiredTransactionTime; }
-    public void setDesiredTransactionTime(LocalDateTime desiredTransactionTime) { this.desiredTransactionTime = desiredTransactionTime; }
+    public BigDecimal getListingPrice() {
+        return listingPrice;
+    }
 
-    public TimelineDto getTimeline() { return timeline; }
-    public void setTimeline(TimelineDto timeline) { this.timeline = timeline; }
+    public void setListingPrice(BigDecimal listingPrice) {
+        this.listingPrice = listingPrice;
+    }
 
-    public BuyerTransactionActionsDto getActions() { return actions; }
-    public void setActions(BuyerTransactionActionsDto actions) { this.actions = actions; }
+    public BigDecimal getDepositAmount() {
+        return depositAmount;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setDepositAmount(BigDecimal depositAmount) {
+        this.depositAmount = depositAmount;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public BigDecimal getPlatformFee() {
+        return platformFee;
+    }
+
+    public void setPlatformFee(BigDecimal platformFee) {
+        this.platformFee = platformFee;
+    }
+
+    public BigDecimal getInspectionFee() {
+        return inspectionFee;
+    }
+
+    public void setInspectionFee(BigDecimal inspectionFee) {
+        this.inspectionFee = inspectionFee;
+    }
+
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public LocalDateTime getDesiredTransactionTime() {
+        return desiredTransactionTime;
+    }
+
+    public void setDesiredTransactionTime(LocalDateTime desiredTransactionTime) {
+        this.desiredTransactionTime = desiredTransactionTime;
+    }
+
+    public TimelineDto getTimeline() {
+        return timeline;
+    }
+
+    public void setTimeline(TimelineDto timeline) {
+        this.timeline = timeline;
+    }
+
+    public BuyerTransactionActionsDto getActions() {
+        return actions;
+    }
+
+    public void setActions(BuyerTransactionActionsDto actions) {
+        this.actions = actions;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 
     // Inner DTO classes
 
@@ -137,7 +222,8 @@ public class BuyerTransactionDetailResponse {
         private String phone;
         private String avatarUrl;
 
-        public SellerInfoDto() {}
+        public SellerInfoDto() {
+        }
 
         public SellerInfoDto(Integer userId, String fullName, String phone, String avatarUrl) {
             this.userId = userId;
@@ -146,17 +232,37 @@ public class BuyerTransactionDetailResponse {
             this.avatarUrl = avatarUrl;
         }
 
-        public Integer getUserId() { return userId; }
-        public void setUserId(Integer userId) { this.userId = userId; }
+        public Integer getUserId() {
+            return userId;
+        }
 
-        public String getFullName() { return fullName; }
-        public void setFullName(String fullName) { this.fullName = fullName; }
+        public void setUserId(Integer userId) {
+            this.userId = userId;
+        }
 
-        public String getPhone() { return phone; }
-        public void setPhone(String phone) { this.phone = phone; }
+        public String getFullName() {
+            return fullName;
+        }
 
-        public String getAvatarUrl() { return avatarUrl; }
-        public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+        public void setFullName(String fullName) {
+            this.fullName = fullName;
+        }
+
+        public String getPhone() {
+            return phone;
+        }
+
+        public void setPhone(String phone) {
+            this.phone = phone;
+        }
+
+        public String getAvatarUrl() {
+            return avatarUrl;
+        }
+
+        public void setAvatarUrl(String avatarUrl) {
+            this.avatarUrl = avatarUrl;
+        }
     }
 
     /**
@@ -175,7 +281,8 @@ public class BuyerTransactionDetailResponse {
         private String pickupAddress;
         private String locationCity;
 
-        public ListingInfoDto() {}
+        public ListingInfoDto() {
+        }
 
         public ListingInfoDto(
                 Integer listingId,
@@ -202,38 +309,93 @@ public class BuyerTransactionDetailResponse {
             this.locationCity = locationCity;
         }
 
-        public Integer getListingId() { return listingId; }
-        public void setListingId(Integer listingId) { this.listingId = listingId; }
+        public Integer getListingId() {
+            return listingId;
+        }
 
-        public String getTitle() { return title; }
-        public void setTitle(String title) { this.title = title; }
+        public void setListingId(Integer listingId) {
+            this.listingId = listingId;
+        }
 
-        public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
+        public String getTitle() {
+            return title;
+        }
 
-        public String getBikeType() { return bikeType; }
-        public void setBikeType(String bikeType) { this.bikeType = bikeType; }
+        public void setTitle(String title) {
+            this.title = title;
+        }
 
-        public String getBrand() { return brand; }
-        public void setBrand(String brand) { this.brand = brand; }
+        public String getDescription() {
+            return description;
+        }
 
-        public String getModel() { return model; }
-        public void setModel(String model) { this.model = model; }
+        public void setDescription(String description) {
+            this.description = description;
+        }
 
-        public Integer getManufactureYear() { return manufactureYear; }
-        public void setManufactureYear(Integer manufactureYear) { this.manufactureYear = manufactureYear; }
+        public String getBikeType() {
+            return bikeType;
+        }
 
-        public String getCondition() { return condition; }
-        public void setCondition(String condition) { this.condition = condition; }
+        public void setBikeType(String bikeType) {
+            this.bikeType = bikeType;
+        }
 
-        public BikeListingStatus getStatus() { return status; }
-        public void setStatus(BikeListingStatus status) { this.status = status; }
+        public String getBrand() {
+            return brand;
+        }
 
-        public String getPickupAddress() { return pickupAddress; }
-        public void setPickupAddress(String pickupAddress) { this.pickupAddress = pickupAddress; }
+        public void setBrand(String brand) {
+            this.brand = brand;
+        }
 
-        public String getLocationCity() { return locationCity; }
-        public void setLocationCity(String locationCity) { this.locationCity = locationCity; }
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public Integer getManufactureYear() {
+            return manufactureYear;
+        }
+
+        public void setManufactureYear(Integer manufactureYear) {
+            this.manufactureYear = manufactureYear;
+        }
+
+        public String getCondition() {
+            return condition;
+        }
+
+        public void setCondition(String condition) {
+            this.condition = condition;
+        }
+
+        public BikeListingStatus getStatus() {
+            return status;
+        }
+
+        public void setStatus(BikeListingStatus status) {
+            this.status = status;
+        }
+
+        public String getPickupAddress() {
+            return pickupAddress;
+        }
+
+        public void setPickupAddress(String pickupAddress) {
+            this.pickupAddress = pickupAddress;
+        }
+
+        public String getLocationCity() {
+            return locationCity;
+        }
+
+        public void setLocationCity(String locationCity) {
+            this.locationCity = locationCity;
+        }
     }
 
     /**
@@ -246,18 +408,28 @@ public class BuyerTransactionDetailResponse {
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         private LocalDateTime lastUpdatedAt;
 
-        public TimelineDto() {}
+        public TimelineDto() {
+        }
 
         public TimelineDto(LocalDateTime createdAt, LocalDateTime lastUpdatedAt) {
             this.createdAt = createdAt;
             this.lastUpdatedAt = lastUpdatedAt;
         }
 
-        public LocalDateTime getCreatedAt() { return createdAt; }
-        public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+        public LocalDateTime getCreatedAt() {
+            return createdAt;
+        }
 
-        public LocalDateTime getLastUpdatedAt() { return lastUpdatedAt; }
-        public void setLastUpdatedAt(LocalDateTime lastUpdatedAt) { this.lastUpdatedAt = lastUpdatedAt; }
+        public void setCreatedAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+        }
+
+        public LocalDateTime getLastUpdatedAt() {
+            return lastUpdatedAt;
+        }
+
+        public void setLastUpdatedAt(LocalDateTime lastUpdatedAt) {
+            this.lastUpdatedAt = lastUpdatedAt;
+        }
     }
 }
-
