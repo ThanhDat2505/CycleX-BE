@@ -37,9 +37,9 @@ public class ShipperDeliveryService {
     private final OrderService orderService;
 
     public ShipperDeliveryService(DeliveryRepository deliveryRepository,
-                                  NotificationService notificationService,
-                                  ListingImageRepository listingImageRepository,
-                                  OrderService orderService) {
+            NotificationService notificationService,
+            ListingImageRepository listingImageRepository,
+            OrderService orderService) {
         this.deliveryRepository = deliveryRepository;
         this.notificationService = notificationService;
         this.listingImageRepository = listingImageRepository;
@@ -52,13 +52,11 @@ public class ShipperDeliveryService {
      */
     @Transactional(readOnly = true)
     public ShipperAssignedDeliveryListResponse getAssignedDeliveries(Integer shipperId, Pageable pageable) {
-        Page<Delivery> deliveriesPage =
-                deliveryRepository.findByShipper_UserIdAndStatusAndTransaction_Status(
-                        shipperId,
-                        "ASSIGNED",
-                        PurchaseRequestStatus.SELLER_CONFIRMED,
-                        pageable
-                );
+        Page<Delivery> deliveriesPage = deliveryRepository.findByShipper_UserIdAndStatusAndTransaction_Status(
+                shipperId,
+                "ASSIGNED",
+                PurchaseRequestStatus.SELLER_CONFIRMED,
+                pageable);
 
         List<ShipperAssignedDeliveryItemDto> items = deliveriesPage.getContent()
                 .stream()
@@ -70,8 +68,7 @@ public class ShipperDeliveryService {
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
                 deliveriesPage.getTotalElements(),
-                deliveriesPage.getTotalPages()
-        );
+                deliveriesPage.getTotalPages());
     }
 
     /**
@@ -85,18 +82,19 @@ public class ShipperDeliveryService {
                 delivery.getListing().getTitle(),
                 delivery.getListing().getSeller().getUserId(),
                 delivery.getListing().getSeller().getFullName(),
-                delivery.getUpdatedAt()
-        );
+                delivery.getUpdatedAt());
     }
 
     /**
      * Get deliveries for shipper with status filtering and pagination (S-61 F1/F2)
-     * Supports filtering by single or multiple statuses: ASSIGNED, IN_PROGRESS, FAILED
+     * Supports filtering by single or multiple statuses: ASSIGNED, IN_PROGRESS,
+     * FAILED
      * Validates status parameter and returns 400 if invalid
      *
      * @param shipperId Shipper ID extracted from authentication
-     * @param status Comma-separated or single status filter (optional, null = all statuses)
-     * @param pageable Pagination and sorting parameters
+     * @param status    Comma-separated or single status filter (optional, null =
+     *                  all statuses)
+     * @param pageable  Pagination and sorting parameters
      * @return Paginated list of deliveries matching filters
      * @throws ResponseStatusException 400 if status is invalid
      */
@@ -125,8 +123,7 @@ public class ShipperDeliveryService {
                 if (!validStatuses.contains(s)) {
                     throw new ResponseStatusException(
                             HttpStatus.BAD_REQUEST,
-                            "Invalid status: " + s + ". Valid values are: ASSIGNED, IN_PROGRESS, FAILED"
-                    );
+                            "Invalid status: " + s + ". Valid values are: ASSIGNED, IN_PROGRESS, FAILED");
                 }
             }
         }
@@ -135,8 +132,7 @@ public class ShipperDeliveryService {
         Page<Delivery> deliveriesPage = deliveryRepository.findByShipper_UserIdAndStatusIn(
                 shipperId,
                 statusesToFilter,
-                pageable
-        );
+                pageable);
 
         // Map entities to DTOs
         List<ShipperDeliveryListItemDto> items = deliveriesPage.getContent()
@@ -149,8 +145,7 @@ public class ShipperDeliveryService {
                 pageable.getPageSize(),
                 deliveriesPage.getTotalElements(),
                 deliveriesPage.getTotalPages(),
-                items
-        );
+                items);
     }
 
     /**
@@ -192,8 +187,7 @@ public class ShipperDeliveryService {
                 buyer != null ? buyer.getFullName() : null,
                 buyer != null ? buyer.getPhone() : null,
                 delivery.getCreatedAt(),
-                delivery.getCreatedAt()
-        );
+                delivery.getCreatedAt());
     }
 
     /**
@@ -210,11 +204,13 @@ public class ShipperDeliveryService {
     }
 
     /**
-     * Get delivery detail with full information, timeline, and actions (S-61 F3/F4/F7/F8)
-     * Security: Validates that the delivery belongs to the current shipper (throws 403 if not)
+     * Get delivery detail with full information, timeline, and actions (S-61
+     * F3/F4/F7/F8)
+     * Security: Validates that the delivery belongs to the current shipper (throws
+     * 403 if not)
      *
      * @param deliveryId Delivery ID from path parameter
-     * @param shipperId Shipper ID extracted from authentication
+     * @param shipperId  Shipper ID extracted from authentication
      * @return Full delivery detail response with timeline and available actions
      * @throws ResponseStatusException 403 if delivery doesn't belong to shipper
      * @throws ResponseStatusException 404 if delivery not found
@@ -224,35 +220,44 @@ public class ShipperDeliveryService {
 
         Delivery delivery = findDeliveryOrThrow(deliveryId, shipperId);
 
+        // Get product image (first image of listing)
+        String productImage = null;
+        try {
+            List<ListingImage> images = listingImageRepository
+                    .findByBikeListingOrderByImageOrder(delivery.getListing());
+            if (!images.isEmpty()) {
+                productImage = images.get(0).getImagePath();
+            }
+        } catch (Exception e) {
+            // Ignore image fetch errors
+        }
+        String productName = delivery.getListing().getTitle();
+
         ShipperContactInfoDto seller = new ShipperContactInfoDto(
                 delivery.getListing().getSeller().getUserId(),
                 delivery.getListing().getSeller().getFullName(),
                 delivery.getListing().getSeller().getPhone(),
                 delivery.getPickupAddress(),
-                extractCityFromAddress(delivery.getPickupAddress())
-        );
+                extractCityFromAddress(delivery.getPickupAddress()));
 
         ShipperContactInfoDto buyer = new ShipperContactInfoDto(
                 delivery.getTransaction().getBuyer().getUserId(),
                 delivery.getTransaction().getBuyer().getFullName(),
                 delivery.getTransaction().getBuyer().getPhone(),
                 delivery.getDropoffAddress(),
-                extractCityFromAddress(delivery.getDropoffAddress())
-        );
+                extractCityFromAddress(delivery.getDropoffAddress()));
 
         ShipperPickupLocationDto pickup = new ShipperPickupLocationDto(
                 delivery.getPickupAddress(),
                 extractCityFromAddress(delivery.getPickupAddress()),
                 delivery.getListing().getSeller().getFullName(),
-                delivery.getListing().getSeller().getPhone()
-        );
+                delivery.getListing().getSeller().getPhone());
 
         ShipperDeliveryLocationDto dropoff = new ShipperDeliveryLocationDto(
                 delivery.getDropoffAddress(),
                 extractCityFromAddress(delivery.getDropoffAddress()),
                 delivery.getTransaction().getBuyer().getFullName(),
-                delivery.getTransaction().getBuyer().getPhone()
-        );
+                delivery.getTransaction().getBuyer().getPhone());
 
         ShipperDeliveryTimelineDto timeline = buildTimeline(delivery);
         ShipperDeliveryActionsDto actions = buildActions(delivery); // <-- sửa theo đề
@@ -261,13 +266,14 @@ public class ShipperDeliveryService {
                 delivery.getDeliveryId(),
                 delivery.getTransaction().getRequestId(),
                 delivery.getStatus(),
+                productName,
+                productImage,
                 seller,
                 buyer,
                 pickup,
                 dropoff,
                 timeline,
-                actions
-        );
+                actions);
     }
 
     /**
@@ -290,7 +296,8 @@ public class ShipperDeliveryService {
         }
         if ("COMPLETED".equals(status)) {
             completedTime = delivery.getUpdatedAt();
-            if (expectedDeliveryTime == null) expectedDeliveryTime = delivery.getUpdatedAt();
+            if (expectedDeliveryTime == null)
+                expectedDeliveryTime = delivery.getUpdatedAt();
         }
 
         return new ShipperDeliveryTimelineDto(assignedTime, shippedTime, expectedDeliveryTime, completedTime);
@@ -327,8 +334,8 @@ public class ShipperDeliveryService {
      * POST /api/shipper/deliveries/{deliveryId}/start
      *
      * Rules:
-     *  - Only the assigned shipper can start
-     *  - delivery.status must be ASSIGNED, otherwise 409
+     * - Only the assigned shipper can start
+     * - delivery.status must be ASSIGNED, otherwise 409
      */
     @Transactional
     public ShipperStartDeliveryResponse startDelivery(Integer deliveryId, Integer shipperId) {
@@ -338,8 +345,7 @@ public class ShipperDeliveryService {
         if (!"ASSIGNED".equals(delivery.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Delivery can only be started when status is ASSIGNED. Current status: " + delivery.getStatus()
-            );
+                    "Delivery can only be started when status is ASSIGNED. Current status: " + delivery.getStatus());
         }
 
         delivery.setStatus("IN_PROGRESS");
@@ -353,8 +359,7 @@ public class ShipperDeliveryService {
                 delivery.getDeliveryId(),
                 delivery.getStatus(),
                 "Delivery started successfully",
-                LocalDateTime.now()
-        );
+                LocalDateTime.now());
     }
 
     // ========== S-63: Delivery Confirmation ==========
@@ -385,8 +390,7 @@ public class ShipperDeliveryService {
                 delivery.getListing().getTitle(),
                 delivery.getCreatedAt(),
                 delivery.getUpdatedAt(),
-                canConfirm
-        );
+                canConfirm);
     }
 
     /**
@@ -394,9 +398,9 @@ public class ShipperDeliveryService {
      * POST /api/shipper/deliveries/{deliveryId}/confirm
      *
      * Rules:
-     *  - delivery.status must be IN_PROGRESS, otherwise 409
-     *  - On success: delivery→DELIVERED, transaction→COMPLETED, listing→SOLD
-     *  - Double-submit is blocked by the same status check (409)
+     * - delivery.status must be IN_PROGRESS, otherwise 409
+     * - On success: delivery→DELIVERED, transaction→COMPLETED, listing→SOLD
+     * - Double-submit is blocked by the same status check (409)
      *
      * @param deliveryId Delivery ID
      * @param shipperId  Authenticated shipper's user ID
@@ -411,8 +415,7 @@ public class ShipperDeliveryService {
         if (!"IN_PROGRESS".equals(delivery.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Delivery cannot be confirmed in current status: " + delivery.getStatus()
-            );
+                    "Delivery cannot be confirmed in current status: " + delivery.getStatus());
         }
 
         // 1. delivery.status → DELIVERED
@@ -441,8 +444,7 @@ public class ShipperDeliveryService {
                 transaction.getStatus().name(),
                 listing.getStatus().name(),
                 "Delivery confirmed successfully",
-                LocalDateTime.now()
-        );
+                LocalDateTime.now());
     }
 
     /**
@@ -461,8 +463,7 @@ public class ShipperDeliveryService {
                 NotificationType.DELIVERY_SUCCESS,
                 "TRANSACTION",
                 requestId,
-                "/buyer/transactions/" + requestId
-        );
+                "/buyer/transactions/" + requestId);
 
         // Notify seller
         User seller = listing.getSeller();
@@ -473,8 +474,7 @@ public class ShipperDeliveryService {
                 NotificationType.DELIVERY_SUCCESS,
                 "TRANSACTION",
                 requestId,
-                "/seller/transactions/" + requestId
-        );
+                "/seller/transactions/" + requestId);
     }
 
     /**
@@ -511,8 +511,8 @@ public class ShipperDeliveryService {
         if (!"IN_PROGRESS".equals(delivery.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Can only report failure for deliveries with status IN_PROGRESS. Current status: " + delivery.getStatus()
-            );
+                    "Can only report failure for deliveries with status IN_PROGRESS. Current status: "
+                            + delivery.getStatus());
         }
 
         PurchaseRequest transaction = delivery.getTransaction();
@@ -527,8 +527,7 @@ public class ShipperDeliveryService {
                 delivery.getDropoffAddress(),
                 delivery.getListing().getTitle(),
                 delivery.getStatus(),
-                transaction.getStatus().name()
-        );
+                transaction.getStatus().name());
     }
 
     /**
@@ -536,10 +535,10 @@ public class ShipperDeliveryService {
      * POST /api/shipper/deliveries/{deliveryId}/failure-report
      *
      * Actions:
-     *  - delivery.status → FAILED
-     *  - transaction.status → DISPUTED
-     *  - Save failureReason
-     *  - Notify buyer and seller
+     * - delivery.status → FAILED
+     * - transaction.status → DISPUTED
+     * - Save failureReason
+     * - Notify buyer and seller
      */
     @Transactional
     public ShipperFailureReportResponse submitFailureReport(Integer deliveryId, Integer shipperId, String reason) {
@@ -549,8 +548,8 @@ public class ShipperDeliveryService {
         if (!"IN_PROGRESS".equals(delivery.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Can only report failure for deliveries with status IN_PROGRESS. Current status: " + delivery.getStatus()
-            );
+                    "Can only report failure for deliveries with status IN_PROGRESS. Current status: "
+                            + delivery.getStatus());
         }
 
         // 1. delivery.status → FAILED, save failureReason
@@ -573,8 +572,7 @@ public class ShipperDeliveryService {
                 "Delivery failed report submitted successfully",
                 delivery.getDeliveryId(),
                 delivery.getStatus(),
-                transaction.getStatus().name()
-        );
+                transaction.getStatus().name());
     }
 
     /**
@@ -589,23 +587,23 @@ public class ShipperDeliveryService {
         notificationService.createNotification(
                 buyer,
                 "Giao hàng thất bại",
-                "Đơn hàng #" + requestId + " (" + listingTitle + ") giao hàng thất bại. Lý do: " + delivery.getFailureReason(),
+                "Đơn hàng #" + requestId + " (" + listingTitle + ") giao hàng thất bại. Lý do: "
+                        + delivery.getFailureReason(),
                 NotificationType.DELIVERY_FAILED,
                 "TRANSACTION",
                 requestId,
-                "/buyer/transactions/" + requestId
-        );
+                "/buyer/transactions/" + requestId);
 
         // Notify seller
         User seller = delivery.getListing().getSeller();
         notificationService.createNotification(
                 seller,
                 "Giao hàng thất bại",
-                "Đơn hàng #" + requestId + " (" + listingTitle + ") giao hàng thất bại. Lý do: " + delivery.getFailureReason(),
+                "Đơn hàng #" + requestId + " (" + listingTitle + ") giao hàng thất bại. Lý do: "
+                        + delivery.getFailureReason(),
                 NotificationType.DELIVERY_FAILED,
                 "TRANSACTION",
                 requestId,
-                "/seller/transactions/" + requestId
-        );
+                "/seller/transactions/" + requestId);
     }
 }
