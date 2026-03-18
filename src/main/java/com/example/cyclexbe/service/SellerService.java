@@ -6,10 +6,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.cyclexbe.entity.BikeListing;
 import com.example.cyclexbe.entity.InspectionReport;
 import com.example.cyclexbe.entity.ListingImage;
+import com.example.cyclexbe.entity.ListingVideo;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.BikeListingRepository;
 import com.example.cyclexbe.repository.InspectionReportRepository;
 import com.example.cyclexbe.repository.ListingImageRepository;
+import com.example.cyclexbe.repository.ListingVideoRepository;
 import com.example.cyclexbe.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
@@ -31,16 +33,19 @@ public class SellerService {
     private final BikeListingRepository bikeListingRepository;
     private final UserRepository userRepository;
     private final ListingImageRepository listingImageRepository;
+    private final ListingVideoRepository listingVideoRepository;
     private final InspectorAssignmentService inspectorAssignmentService;
     private final InspectionReportRepository inspectionReportRepository;
 
     public SellerService(BikeListingRepository bikeListingRepository, UserRepository userRepository,
-                         ListingImageRepository listingImageRepository,
-                         InspectorAssignmentService inspectorAssignmentService,
-                         InspectionReportRepository inspectionReportRepository) {
+            ListingImageRepository listingImageRepository,
+            ListingVideoRepository listingVideoRepository,
+            InspectorAssignmentService inspectorAssignmentService,
+            InspectionReportRepository inspectionReportRepository) {
         this.bikeListingRepository = bikeListingRepository;
         this.userRepository = userRepository;
         this.listingImageRepository = listingImageRepository;
+        this.listingVideoRepository = listingVideoRepository;
         this.inspectorAssignmentService = inspectorAssignmentService;
         this.inspectionReportRepository = inspectionReportRepository;
     }
@@ -60,7 +65,8 @@ public class SellerService {
                 bikeListingRepository.countBySellerAndStatus(seller, BikeListingStatus.REJECTED);
 
         // Calculate total views from all approved listings
-        long totalViews = bikeListingRepository.findBySellerAndStatus(seller, BikeListingStatus.APPROVED, Pageable.unpaged())
+        long totalViews = bikeListingRepository
+                .findBySellerAndStatus(seller, BikeListingStatus.APPROVED, Pageable.unpaged())
                 .stream()
                 .mapToLong(BikeListing::getViewsCount)
                 .sum();
@@ -72,8 +78,8 @@ public class SellerService {
      * S-11: Get seller's listings with filtering and pagination
      */
     public Page<SellerListingResponse> getSellerListings(Integer sellerId, String status, String title, String brand,
-                                                         String model, BigDecimal minPrice, BigDecimal maxPrice,
-                                                         String sort, int page, int pageSize) {
+            String model, BigDecimal minPrice, BigDecimal maxPrice,
+            String sort, int page, int pageSize) {
         User seller = userRepository.findById(sellerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
 
@@ -82,7 +88,8 @@ public class SellerService {
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by(direction, "createdAt"));
 
         // Build dynamic specification with multiple filters
-        Specification<BikeListing> spec = buildSellerListingSpec(seller, status, title, brand, model, minPrice, maxPrice);
+        Specification<BikeListing> spec = buildSellerListingSpec(seller, status, title, brand, model, minPrice,
+                maxPrice);
 
         return bikeListingRepository.findAll(spec, pageable).map(SellerListingResponse::from);
     }
@@ -91,7 +98,7 @@ public class SellerService {
      * Build Specification for dynamic filtering
      */
     private Specification<BikeListing> buildSellerListingSpec(User seller, String status, String title, String brand,
-                                                              String model, BigDecimal minPrice, BigDecimal maxPrice) {
+            String model, BigDecimal minPrice, BigDecimal maxPrice) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -140,7 +147,8 @@ public class SellerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Listing not found or not owned by seller"));
 
         return SellerListingResponse.from(listing);
     }
@@ -153,7 +161,8 @@ public class SellerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Listing not found or not owned by seller"));
 
         if (listing.getStatus() != BikeListingStatus.REJECTED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Listing is not rejected");
@@ -172,7 +181,8 @@ public class SellerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Listing not found or not owned by seller"));
 
         if (listing.getStatus() != BikeListingStatus.APPROVED && listing.getStatus() != BikeListingStatus.REJECTED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -235,15 +245,23 @@ public class SellerService {
         }
 
         BikeListing saved = bikeListingRepository.save(listing);
+
+        // Save video if provided
+        if (req.videoPath != null && !req.videoPath.isBlank()) {
+            ListingVideo video = new ListingVideo(saved, req.videoPath);
+            listingVideoRepository.save(video);
+        }
+
         return BikeListingResponse.from(saved);
     }
 
     /**
      * S-12: Update existing listing (only DRAFT or REJECTED status allowed)
      * Seller can edit listing fields when status is DRAFT or REJECTED
-     * @param sellerId - Current seller ID (validated by controller)
+     * 
+     * @param sellerId  - Current seller ID (validated by controller)
      * @param listingId - Listing ID to update
-     * @param req - Update request with fields to modify
+     * @param req       - Update request with fields to modify
      * @return Updated BikeListingResponse
      */
     @Transactional
@@ -254,14 +272,15 @@ public class SellerService {
 
         // Get listing and verify ownership
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Listing not found or not owned by seller"));
 
         // Check if listing status allows editing (DRAFT or REJECTED only)
         if (listing.getStatus() != BikeListingStatus.DRAFT && listing.getStatus() != BikeListingStatus.REJECTED) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Cannot edit listing with status: " + listing.getStatus() + ". Only DRAFT or REJECTED listings can be edited."
-            );
+                    "Cannot edit listing with status: " + listing.getStatus()
+                            + ". Only DRAFT or REJECTED listings can be edited.");
         }
 
         // Update fields if provided
@@ -319,13 +338,15 @@ public class SellerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Listing not found or not owned by seller"));
 
         BikeListingStatus status = listing.getStatus();
         if (status != BikeListingStatus.PENDING && status != BikeListingStatus.REVIEWING
                 && status != BikeListingStatus.WAITING_INSPECTOR_REVIEW) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Cancel publish is only allowed for PENDING, REVIEWING, or WAITING_INSPECTOR_REVIEW listings. Current status: " + status);
+                    "Cancel publish is only allowed for PENDING, REVIEWING, or WAITING_INSPECTOR_REVIEW listings. Current status: "
+                            + status);
         }
 
         listing.setStatus(BikeListingStatus.DRAFT);
@@ -341,7 +362,8 @@ public class SellerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Listing not found or not owned by seller"));
 
         if (listing.getStatus() != BikeListingStatus.DRAFT) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT listings can be submitted");
@@ -373,9 +395,14 @@ public class SellerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Listing not found or not owned by seller"));
 
-        return PreviewListingResponse.from(listing);
+        String videoUrl = listingVideoRepository.findByBikeListing(listing)
+                .map(ListingVideo::getVideoPath)
+                .orElse(null);
+
+        return PreviewListingResponse.from(listing, java.util.Collections.emptyList(), videoUrl);
     }
 
     /**
@@ -400,7 +427,8 @@ public class SellerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found or not owned by seller"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Listing not found or not owned by seller"));
 
         if (listing.getStatus() != BikeListingStatus.DRAFT) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT listings can be deleted");
@@ -482,7 +510,8 @@ public class SellerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
         if (!listing.getSeller().getUserId().equals(sellerId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to upload images for this listing");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to upload images for this listing");
         }
 
         if (!listing.getStatus().equals(BikeListingStatus.DRAFT)) {
@@ -517,7 +546,8 @@ public class SellerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
         if (!listing.getSeller().getUserId().equals(sellerId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to view images for this listing");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to view images for this listing");
         }
 
         return listingImageRepository.findByBikeListingOrderByImageOrder(listing)
@@ -534,7 +564,8 @@ public class SellerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
         if (!listing.getSeller().getUserId().equals(sellerId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete images for this listing");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to delete images for this listing");
         }
 
         ListingImage image = listingImageRepository.findByImageIdAndBikeListing(imageId, listing)
@@ -580,7 +611,8 @@ public class SellerService {
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Image not found"));
 
-        if (target.getImageOrder() == 1) return; // Already primary
+        if (target.getImageOrder() == 1)
+            return; // Already primary
 
         // Swap: give target order 1, give current primary the target's old order
         int targetOldOrder = target.getImageOrder();
@@ -617,6 +649,62 @@ public class SellerService {
                     "Image must be PNG, JPG, or JPEG format");
         }
     }
+
+    /**
+     * Upload listing video (1 video per listing, replaces existing)
+     */
+    @Transactional
+    public ListingVideo uploadListingVideo(Integer sellerId, Integer listingId, String videoPath) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        if (!listing.getSeller().getUserId().equals(sellerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to upload video for this listing");
+        }
+
+        if (videoPath == null || videoPath.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Video path cannot be empty");
+        }
+
+        // Delete existing video if any (1 video per listing)
+        listingVideoRepository.findByBikeListing(listing)
+                .ifPresent(existing -> listingVideoRepository.delete(existing));
+
+        ListingVideo video = new ListingVideo(listing, videoPath);
+        return listingVideoRepository.save(video);
+    }
+
+    /**
+     * Get listing video
+     */
+    public String getListingVideoUrl(Integer sellerId, Integer listingId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        if (!listing.getSeller().getUserId().equals(sellerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to view video for this listing");
+        }
+
+        return listingVideoRepository.findByBikeListing(listing)
+                .map(ListingVideo::getVideoPath)
+                .orElse(null);
+    }
+
+    /**
+     * Delete listing video
+     */
+    @Transactional
+    public void deleteListingVideo(Integer sellerId, Integer listingId) {
+        BikeListing listing = bikeListingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        if (!listing.getSeller().getUserId().equals(sellerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You don't have permission to delete video for this listing");
+        }
+
+        listingVideoRepository.deleteByBikeListing(listing);
+    }
 }
-
-

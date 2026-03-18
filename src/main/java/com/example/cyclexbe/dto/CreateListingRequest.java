@@ -47,7 +47,10 @@ public class CreateListingRequest {
 
     public String pickupAddress;
 
+    public String videoPath;
+
     public Boolean saveDraft = true;
 
-    public CreateListingRequest() {}
+    public CreateListingRequest() {
+    }
 }

@@ -94,7 +94,8 @@ public class SellerController {
     /**
      * Get listing result: listing info + inspection report (lý do approve/reject)
      * GET /api/seller/{sellerId}/listings/{listingId}/result
-     * Response: { listing: SellerListingResponse, inspectionReport: InspectionReportResponse }
+     * Response: { listing: SellerListingResponse, inspectionReport:
+     * InspectionReportResponse }
      */
     @GetMapping("/listings/{listingId}/result")
     public ResponseEntity<ListingResultResponse> getListingResult(
@@ -129,9 +130,9 @@ public class SellerController {
     @GetMapping("/drafts")
     public ResponseEntity<Page<SellerListingResponse>> getDrafts(
             @PathVariable Integer sellerId,
-            @RequestParam (required = false, defaultValue = "newest") String sort,
-            @RequestParam (required = false, defaultValue = "0") Integer page,
-            @RequestParam (required = false, defaultValue = "10") Integer pageSize) {
+            @RequestParam(required = false, defaultValue = "newest") String sort,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
         SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
         Page<SellerListingResponse> drafts = sellerService.getDraftListings(
                 sellerId, sort, page, pageSize);
@@ -204,5 +205,39 @@ public class SellerController {
         SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
         // TODO: implement retry logic if needed
         return ResponseEntity.ok(Map.of("message", "Retry image upload completed"));
+    }
+
+    // Listing Video (1 video per listing)
+    @PostMapping("/listings/{listing_id}/video")
+    public ResponseEntity<?> uploadListingVideo(
+            @PathVariable Integer sellerId,
+            @PathVariable Integer listing_id,
+            @RequestBody Map<String, String> req) {
+        SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
+        String videoPath = req.get("videoPath");
+        sellerService.uploadListingVideo(sellerId, listing_id, videoPath);
+        return ResponseEntity.status(201)
+                .body(Map.of("message", "Video uploaded successfully", "videoPath", videoPath));
+    }
+
+    @GetMapping("/listings/{listing_id}/video")
+    public ResponseEntity<?> getListingVideo(
+            @PathVariable Integer sellerId,
+            @PathVariable Integer listing_id) {
+        SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
+        String videoUrl = sellerService.getListingVideoUrl(sellerId, listing_id);
+        if (videoUrl == null) {
+            return ResponseEntity.ok(Map.of("videoUrl", ""));
+        }
+        return ResponseEntity.ok(Map.of("videoUrl", videoUrl));
+    }
+
+    @DeleteMapping("/listings/{listing_id}/video")
+    public ResponseEntity<?> deleteListingVideo(
+            @PathVariable Integer sellerId,
+            @PathVariable Integer listing_id) {
+        SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
+        sellerService.deleteListingVideo(sellerId, listing_id);
+        return ResponseEntity.ok(Map.of("message", "Video deleted successfully"));
     }
 }
