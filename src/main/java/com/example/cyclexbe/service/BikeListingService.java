@@ -6,10 +6,12 @@ import com.example.cyclexbe.dto.BikeListingUpdateRequest;
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.entity.BikeListing;
 import com.example.cyclexbe.entity.ListingImage;
+import com.example.cyclexbe.entity.ListingVideo;
 import com.example.cyclexbe.entity.Product;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.repository.BikeListingRepository;
 import com.example.cyclexbe.repository.ListingImageRepository;
+import com.example.cyclexbe.repository.ListingVideoRepository;
 import com.example.cyclexbe.repository.ProductRepository;
 import com.example.cyclexbe.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
@@ -36,17 +38,20 @@ public class BikeListingService {
     private final BikeListingRepository bikeListingRepository;
     private final ProductRepository productRepository;
     private final ListingImageRepository listingImageRepository;
+    private final ListingVideoRepository listingVideoRepository;
     private final UserRepository userRepository;
     private final InspectorAssignmentService inspectorAssignmentService;
 
     public BikeListingService(BikeListingRepository bikeListingRepository,
-                              ProductRepository productRepository,
-                              ListingImageRepository listingImageRepository,
-                              UserRepository userRepository,
-                              InspectorAssignmentService inspectorAssignmentService) {
+            ProductRepository productRepository,
+            ListingImageRepository listingImageRepository,
+            ListingVideoRepository listingVideoRepository,
+            UserRepository userRepository,
+            InspectorAssignmentService inspectorAssignmentService) {
         this.bikeListingRepository = bikeListingRepository;
         this.productRepository = productRepository;
         this.listingImageRepository = listingImageRepository;
+        this.listingVideoRepository = listingVideoRepository;
         this.userRepository = userRepository;
         this.inspectorAssignmentService = inspectorAssignmentService;
     }
@@ -54,7 +59,8 @@ public class BikeListingService {
     public BikeListingResponse create(BikeListingCreateRequest req, Integer authenticatedUserId) {
         // Ownership check: seller can only create listings for themselves
         if (!req.sellerId.equals(authenticatedUserId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only create listings for your own account");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You can only create listings for your own account");
         }
 
         User seller = userRepository.findById(req.sellerId)
@@ -74,7 +80,8 @@ public class BikeListingService {
         b.setPrice(req.price);
         b.setLocationCity(req.locationCity);
         b.setPickupAddress(req.pickupAddress);
-        if (req.status != null) b.setStatus(req.status);
+        if (req.status != null)
+            b.setStatus(req.status);
 
         // Auto-assign inspector if listing is created with PENDING status
         if (b.getStatus() == BikeListingStatus.PENDING) {
@@ -86,8 +93,8 @@ public class BikeListingService {
     }
 
     public Page<BikeListingResponse> getAll(int page, int size, BikeListingStatus status, String city, String title,
-                                             List<String> bikeType, List<String> brand, List<String> condition,
-                                             Double minPrice, Double maxPrice, String sortBy) {
+            List<String> bikeType, List<String> brand, List<String> condition,
+            Double minPrice, Double maxPrice, String sortBy) {
         Sort sort;
         switch (sortBy != null ? sortBy : "newest") {
             case "priceAsc":
@@ -168,19 +175,32 @@ public class BikeListingService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only update your own listings");
         }
 
-        if (req.title != null) b.setTitle(req.title);
-        if (req.description != null) b.setDescription(req.description);
-        if (req.bikeType != null) b.setBikeType(req.bikeType);
-        if (req.brand != null) b.setBrand(req.brand);
-        if (req.model != null) b.setModel(req.model);
-        if (req.manufactureYear != null) b.setManufactureYear(req.manufactureYear);
-        if (req.condition != null) b.setCondition(req.condition);
-        if (req.usageTime != null) b.setUsageTime(req.usageTime);
-        if (req.reasonForSale != null) b.setReasonForSale(req.reasonForSale);
-        if (req.price != null) b.setPrice(req.price);
-        if (req.locationCity != null) b.setLocationCity(req.locationCity);
-        if (req.pickupAddress != null) b.setPickupAddress(req.pickupAddress);
-        if (req.status != null) b.setStatus(req.status);
+        if (req.title != null)
+            b.setTitle(req.title);
+        if (req.description != null)
+            b.setDescription(req.description);
+        if (req.bikeType != null)
+            b.setBikeType(req.bikeType);
+        if (req.brand != null)
+            b.setBrand(req.brand);
+        if (req.model != null)
+            b.setModel(req.model);
+        if (req.manufactureYear != null)
+            b.setManufactureYear(req.manufactureYear);
+        if (req.condition != null)
+            b.setCondition(req.condition);
+        if (req.usageTime != null)
+            b.setUsageTime(req.usageTime);
+        if (req.reasonForSale != null)
+            b.setReasonForSale(req.reasonForSale);
+        if (req.price != null)
+            b.setPrice(req.price);
+        if (req.locationCity != null)
+            b.setLocationCity(req.locationCity);
+        if (req.pickupAddress != null)
+            b.setPickupAddress(req.pickupAddress);
+        if (req.status != null)
+            b.setStatus(req.status);
 
         BikeListing saved = bikeListingRepository.save(b);
         return mapToResponse(saved);
@@ -210,6 +230,10 @@ public class BikeListingService {
                 .filter(path -> path != null && !path.isBlank())
                 .collect(Collectors.toList());
 
-        return BikeListingResponse.from(listing, productId, imagePaths, productStatus);
+        String videoUrl = listingVideoRepository.findByBikeListing(listing)
+                .map(ListingVideo::getVideoPath)
+                .orElse(null);
+
+        return BikeListingResponse.from(listing, productId, imagePaths, productStatus, videoUrl);
     }
 }

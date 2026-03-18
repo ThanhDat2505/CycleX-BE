@@ -31,6 +31,7 @@ public class BikeListingResponse {
     public String inspectorName;
     public List<String> images;
     public String imageUrl;
+    public String videoUrl;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 
@@ -42,11 +43,16 @@ public class BikeListingResponse {
     }
 
     public static BikeListingResponse from(BikeListing b, Integer productId, List<String> imagePaths) {
-        return from(b, productId, imagePaths, null);
+        return from(b, productId, imagePaths, null, null);
     }
 
     public static BikeListingResponse from(BikeListing b, Integer productId, List<String> imagePaths,
             String productStatus) {
+        return from(b, productId, imagePaths, productStatus, null);
+    }
+
+    public static BikeListingResponse from(BikeListing b, Integer productId, List<String> imagePaths,
+            String productStatus, String videoUrl) {
         BikeListingResponse r = new BikeListingResponse();
         if (b == null)
             return r;
@@ -72,6 +78,7 @@ public class BikeListingResponse {
         r.inspectorName = b.getInspector() != null ? b.getInspector().getFullName() : null;
         r.images = imagePaths == null ? Collections.emptyList() : imagePaths;
         r.imageUrl = r.images.isEmpty() ? null : r.images.get(0);
+        r.videoUrl = videoUrl;
         r.createdAt = b.getCreatedAt();
         r.updatedAt = b.getUpdatedAt();
         return r;
