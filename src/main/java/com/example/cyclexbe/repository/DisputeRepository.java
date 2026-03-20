@@ -28,8 +28,20 @@ public interface DisputeRepository extends JpaRepository<Dispute, Integer> {
 
     long countByAssignee(User assignee);
 
+    long countByAssigneeAndStatusIn(User assignee, java.util.List<DisputeStatus> statuses);
+
     boolean existsByPurchaseRequest_RequestId(Integer requestId);
 
     @Query("SELECT d FROM Dispute d WHERE d.requester.userId = :buyerId AND d.purchaseRequest.requestId = :requestId")
     Dispute findByRequesterAndPurchaseRequest(@Param("buyerId") Integer buyerId, @Param("requestId") Integer requestId);
+
+    @Query("SELECT d FROM Dispute d WHERE d.assignee.userId = :assigneeId AND " +
+            "(:status IS NULL OR d.status = :status) AND " +
+            "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR CAST(d.disputeId AS string) = :search)")
+    Page<Dispute> findByAssigneeAndFilters(
+            @Param("assigneeId") Integer assigneeId,
+            @Param("status") DisputeStatus status,
+            @Param("search") String search,
+            Pageable pageable);
 }

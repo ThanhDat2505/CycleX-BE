@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +26,7 @@ public class OrderController {
      * Create an order directly from a product (new flow).
      * POST /api/orders?productId=123
      */
+    @PreAuthorize("hasRole('BUYER')")
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(
             Authentication authentication,
@@ -57,6 +59,7 @@ public class OrderController {
     /**
      * Get buyer's orders
      */
+    @PreAuthorize("hasRole('BUYER')")
     @GetMapping("/buyer")
     public ResponseEntity<Page<OrderResponse>> getBuyerOrders(
             Authentication authentication,
@@ -71,6 +74,7 @@ public class OrderController {
     /**
      * Get seller's orders
      */
+    @PreAuthorize("hasRole('SELLER')")
     @GetMapping("/seller")
     public ResponseEntity<Page<OrderResponse>> getSellerOrders(
             Authentication authentication,

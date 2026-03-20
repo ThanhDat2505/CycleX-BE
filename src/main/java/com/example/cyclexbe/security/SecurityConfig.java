@@ -56,6 +56,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/disputes/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/buyers/*/dispute-eligibility").hasRole("BUYER")
 
+                        // Admin dispute management (S-83)
+                        .requestMatchers("/api/admin/disputes/**").hasRole("ADMIN")
+
                         // Authenticated endpoints - Seller (Batch 1)
                         .requestMatchers(HttpMethod.GET, "/api/seller/*/dashboard/stats").hasRole("SELLER")
                         .requestMatchers(HttpMethod.GET, "/api/seller/*/listings/search").hasRole("SELLER")
@@ -90,11 +93,10 @@ public class SecurityConfig {
                         // Authenticated endpoints - Notifications (all roles)
                         .requestMatchers("/api/notifications/**").authenticated()
 
-                        // Authenticated endpoints - Orders
-                        .requestMatchers(HttpMethod.POST, "/api/orders").hasRole("BUYER")
-                        .requestMatchers(HttpMethod.GET, "/api/orders/buyer").hasRole("BUYER")
-                        .requestMatchers(HttpMethod.GET, "/api/orders/seller").hasRole("SELLER")
-                        .requestMatchers(HttpMethod.GET, "/api/orders/**").authenticated()
+                        // Authenticated endpoints - Orders (role checks via @PreAuthorize on controller)
+                        .requestMatchers("/api/orders").authenticated()
+                        .requestMatchers("/api/orders/**").authenticated()
+                        .requestMatchers("/api/debug-post-auth").authenticated()
 
                         // Authenticated endpoints - Notifications (all roles)
                         .requestMatchers("/api/notifications/**").authenticated()

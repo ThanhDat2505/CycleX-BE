@@ -4,9 +4,12 @@ import com.example.cyclexbe.domain.enums.DisputeReasonCode;
 import com.example.cyclexbe.domain.enums.DisputeStatus;
 import com.example.cyclexbe.domain.enums.NotificationType;
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
+import com.example.cyclexbe.domain.enums.Role;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.entity.*;
 import com.example.cyclexbe.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,11 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 public class DisputeService {
+
+    private static final Logger log = LoggerFactory.getLogger(DisputeService.class);
 
     private final DisputeRepository disputeRepository;
     private final PurchaseRequestRepository purchaseRequestRepository;
@@ -101,6 +108,7 @@ public class DisputeService {
 
     /**
      * Create a new dispute (buyer action)
+     * Flow: Check order → Check COMPLETED → Check 24h → Auto-assign Inspector
      */
     @Transactional
     public DisputeDetailResponse createDispute(CreateDisputeRequest req) {
@@ -111,6 +119,15 @@ public class DisputeService {
         // Must be COMPLETED to dispute
         if (pr.getStatus() != PurchaseRequestStatus.COMPLETED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ có thể khiếu nại đơn hàng đã hoàn thành");
+        }
+
+        // Check 24h time window from completion
+        if (pr.getUpdatedAt() != null) {
+            long hoursSinceCompleted = ChronoUnit.HOURS.between(pr.getUpdatedAt(), LocalDateTime.now());
+            if (hoursSinceCompleted > 24) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Đã hết thời hạn khiếu nại (24h kể từ khi hoàn thành đơn hàng)");
+            }
         }
 
         // Check no existing dispute
@@ -142,6 +159,14 @@ public class DisputeService {
         dispute.setReasonText(getReasonTitle(reasonCode));
         dispute.setStatus(DisputeStatus.OPEN);
 
+        // Auto-assign to Inspector (least-load strategy)
+        User assignedInspector = autoAssignInspector();
+        if (assignedInspector != null) {
+            dispute.setAssignee(assignedInspector);
+            log.info("Dispute auto-assigned to inspector {} (ID: {})",
+                    assignedInspector.getFullName(), assignedInspector.getUserId());
+        }
+
         // Update purchase request status to DISPUTED
         pr.setStatus(PurchaseRequestStatus.DISPUTED);
         purchaseRequestRepository.save(pr);
@@ -170,6 +195,18 @@ public class DisputeService {
                 "DISPUTE",
                 saved.getDisputeId(),
                 "/disputes/" + saved.getDisputeId());
+
+        // Notify assigned inspector
+        if (assignedInspector != null) {
+            notificationService.createNotification(
+                    assignedInspector,
+                    "Khiếu nại mới được giao",
+                    "Bạn được giao xử lý khiếu nại #" + saved.getDisputeId() + " cho đơn hàng #" + pr.getRequestId(),
+                    NotificationType.SYSTEM,
+                    "DISPUTE",
+                    saved.getDisputeId(),
+                    "/inspector/disputes/" + saved.getDisputeId());
+        }
 
         return buildDetailResponse(saved);
     }
@@ -299,7 +336,216 @@ public class DisputeService {
                 + disputeRepository.countByStatus(DisputeStatus.IN_PROGRESS);
     }
 
+    /**
+     * Claim/accept a dispute (inspector picks it up → IN_PROGRESS)
+     */
+    @Transactional
+    public DisputeDetailResponse claimDispute(Integer disputeId, Integer inspectorId) {
+        Dispute dispute = disputeRepository.findById(disputeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khiếu nại không tồn tại"));
+
+        if (dispute.getStatus() != DisputeStatus.OPEN) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ có thể nhận xử lý khiếu nại ở trạng thái OPEN");
+        }
+
+        User inspector = userRepository.findById(inspectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector không tồn tại"));
+
+        dispute.setAssignee(inspector);
+        dispute.setStatus(DisputeStatus.IN_PROGRESS);
+        Dispute saved = disputeRepository.save(dispute);
+
+        log.info("Dispute #{} claimed by inspector {} (ID: {})", disputeId, inspector.getFullName(), inspectorId);
+
+        // Notify buyer that dispute is being reviewed
+        notificationService.createNotification(
+                dispute.getRequester(),
+                "Khiếu nại đang được xử lý",
+                "Khiếu nại #" + disputeId + " đang được kiểm duyệt viên xem xét.",
+                NotificationType.SYSTEM,
+                "DISPUTE",
+                disputeId,
+                "/disputes/" + disputeId);
+
+        return buildDetailResponse(saved);
+    }
+
+    /**
+     * Escalate a dispute to Admin (when inspector cannot resolve)
+     * Flow: Inspector cannot handle → assignedTo = ADMIN
+     */
+    @Transactional
+    public DisputeDetailResponse escalateDispute(Integer disputeId, String escalationNote) {
+        Dispute dispute = disputeRepository.findById(disputeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khiếu nại không tồn tại"));
+
+        if (dispute.getStatus() == DisputeStatus.RESOLVED || dispute.getStatus() == DisputeStatus.REJECTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Khiếu nại đã được xử lý, không thể chuyển tiếp");
+        }
+
+        // Find an admin to assign to
+        List<User> admins = userRepository.findByRoleAndStatus(Role.ADMIN, "ACTIVE");
+        if (admins.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Không tìm thấy admin hoạt động");
+        }
+        User admin = admins.get(0);
+
+        User previousAssignee = dispute.getAssignee();
+        dispute.setAssignee(admin);
+        dispute.setStatus(DisputeStatus.IN_PROGRESS);
+
+        // Append escalation note to resolution note
+        String existingNote = dispute.getResolutionNote() != null ? dispute.getResolutionNote() + "\n" : "";
+        dispute.setResolutionNote(existingNote + "[Escalated] " + (escalationNote != null ? escalationNote : "Chuyển tiếp lên Admin"));
+
+        Dispute saved = disputeRepository.save(dispute);
+
+        log.info("Dispute #{} escalated to admin {} (ID: {})", disputeId, admin.getFullName(), admin.getUserId());
+
+        // Notify admin about escalation
+        notificationService.createNotification(
+                admin,
+                "Khiếu nại cần xử lý",
+                "Khiếu nại #" + disputeId + " được chuyển tiếp từ kiểm duyệt viên. " +
+                        (escalationNote != null ? "Ghi chú: " + escalationNote : ""),
+                NotificationType.SYSTEM,
+                "DISPUTE",
+                disputeId,
+                "/disputes/" + disputeId);
+
+        // Notify buyer about escalation
+        notificationService.createNotification(
+                dispute.getRequester(),
+                "Khiếu nại được chuyển tiếp",
+                "Khiếu nại #" + disputeId + " đã được chuyển lên quản trị viên để xem xét.",
+                NotificationType.SYSTEM,
+                "DISPUTE",
+                disputeId,
+                "/disputes/" + disputeId);
+
+        return buildDetailResponse(saved);
+    }
+
+    /**
+     * Admin override / final decision (S-83)
+     * Actions: BUYER_WIN → buyer thắng, SELLER_WIN → seller thắng, SPLIT → chia
+     */
+    @Transactional
+    public DisputeDetailResponse adminOverride(Integer disputeId, AdminOverrideRequest req) {
+        Dispute dispute = disputeRepository.findById(disputeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khiếu nại không tồn tại"));
+
+        // Validate action
+        String action = req.action;
+        if (!"BUYER_WIN".equals(action) && !"SELLER_WIN".equals(action) && !"SPLIT".equals(action)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hành động không hợp lệ: " + action);
+        }
+
+        // Map to resolution
+        DisputeStatus newStatus;
+        String resolutionAction;
+        if ("BUYER_WIN".equals(action)) {
+            newStatus = DisputeStatus.RESOLVED;
+            resolutionAction = "REFUND_BUYER";
+        } else if ("SELLER_WIN".equals(action)) {
+            newStatus = DisputeStatus.REJECTED;
+            resolutionAction = "RELEASE_FUND_SELLER";
+        } else { // SPLIT
+            newStatus = DisputeStatus.RESOLVED;
+            resolutionAction = "SPLIT";
+        }
+
+        dispute.setStatus(newStatus);
+        dispute.setResolutionAction(resolutionAction);
+        dispute.setResolutionNote(req.reason);
+        dispute.setResolvedAt(LocalDateTime.now());
+
+        // Set admin as assignee
+        try {
+            String authUserId = com.example.cyclexbe.security.SecurityUtils.getAuthenticatedUserId();
+            userRepository.findById(Integer.parseInt(authUserId))
+                    .ifPresent(dispute::setAssignee);
+        } catch (Exception ignored) {
+        }
+
+        Dispute saved = disputeRepository.save(dispute);
+
+        log.info("Dispute #{} overridden by admin. Action: {}", disputeId, action);
+
+        // Notify buyer
+        String resultMessage;
+        if ("BUYER_WIN".equals(action)) {
+            resultMessage = "Quản trị viên đã quyết định hoàn tiền cho bạn.";
+        } else if ("SELLER_WIN".equals(action)) {
+            resultMessage = "Quản trị viên đã quyết định từ chối khiếu nại.";
+        } else {
+            resultMessage = "Quản trị viên đã quyết định xử lý chia đều.";
+        }
+
+        notificationService.createNotification(
+                dispute.getRequester(),
+                "Kết quả khiếu nại (Admin)",
+                "Khiếu nại #" + disputeId + ": " + resultMessage + " Ghi chú: " + req.reason,
+                NotificationType.SYSTEM,
+                "DISPUTE",
+                disputeId,
+                "/disputes/" + disputeId);
+
+        // Notify seller
+        notificationService.createNotification(
+                dispute.getSeller(),
+                "Kết quả khiếu nại (Admin)",
+                "Khiếu nại #" + disputeId + ": " + resultMessage,
+                NotificationType.SYSTEM,
+                "DISPUTE",
+                disputeId,
+                "/disputes/" + disputeId);
+
+        return buildDetailResponse(saved);
+    }
+
+    /**
+     * Get disputes assigned to a specific inspector
+     */
+    @Transactional(readOnly = true)
+    public Page<DisputeListRowResponse> getDisputesByAssignee(Integer assigneeId, String status, String search,
+            String sortBy, String sortDir, int page, int pageSize) {
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        String sortField = sortBy != null ? sortBy : "createdAt";
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by(direction, sortField));
+
+        DisputeStatus statusEnum = null;
+        if (status != null && !status.isEmpty() && !"ALL".equalsIgnoreCase(status)) {
+            try {
+                statusEnum = DisputeStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid status
+            }
+        }
+
+        Page<Dispute> disputes = disputeRepository.findByAssigneeAndFilters(assigneeId, statusEnum, search, pageable);
+        return disputes.map(DisputeListRowResponse::from);
+    }
+
     // --- Helper methods ---
+
+    /**
+     * Auto-assign inspector using least-load strategy
+     * Pick the ACTIVE inspector with fewest OPEN + IN_PROGRESS disputes
+     */
+    private User autoAssignInspector() {
+        List<User> inspectors = userRepository.findByRoleAndStatus(Role.INSPECTOR, "ACTIVE");
+        if (inspectors.isEmpty()) {
+            log.warn("No active inspectors available for dispute assignment");
+            return null;
+        }
+
+        List<DisputeStatus> activeStatuses = List.of(DisputeStatus.OPEN, DisputeStatus.IN_PROGRESS);
+        return inspectors.stream()
+                .min(Comparator.comparingLong(inspector ->
+                        disputeRepository.countByAssigneeAndStatusIn(inspector, activeStatuses)))
+                .orElse(inspectors.get(0));
+    }
 
     private DisputeDetailResponse buildDetailResponse(Dispute dispute) {
         DisputeDetailResponse res = DisputeDetailResponse.from(dispute);

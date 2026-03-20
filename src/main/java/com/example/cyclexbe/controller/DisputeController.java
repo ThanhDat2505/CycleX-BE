@@ -1,6 +1,7 @@
 package com.example.cyclexbe.controller;
 
 import com.example.cyclexbe.dto.*;
+import com.example.cyclexbe.security.SecurityUtils;
 import com.example.cyclexbe.service.DisputeService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -16,7 +17,8 @@ import java.util.Map;
  * Dispute Controller - Quản lý khiếu nại
  *
  * Buyer endpoints: create dispute, get dispute reasons, check eligibility
- * Inspector/Admin endpoints: list disputes, get detail, resolve
+ * Inspector endpoints: list disputes, get detail, resolve, escalate
+ * Admin endpoints: list all disputes, override, final decision
  */
 @RestController
 public class DisputeController {
@@ -26,6 +28,8 @@ public class DisputeController {
     public DisputeController(DisputeService disputeService) {
         this.disputeService = disputeService;
     }
+
+    // ==================== BUYER ENDPOINTS ====================
 
     /**
      * Get available dispute reasons
@@ -73,8 +77,10 @@ public class DisputeController {
         return ResponseEntity.ok(Map.of("allowed", allowed));
     }
 
+    // ==================== INSPECTOR / ADMIN SHARED ENDPOINTS ====================
+
     /**
-     * Get paginated list of disputes (inspector/admin)
+     * Get paginated list of all disputes (inspector/admin)
      * GET /api/disputes?status=&page=&limit=&q=&sortBy=&sortDir=
      */
     @GetMapping("/api/disputes")
@@ -104,6 +110,7 @@ public class DisputeController {
     /**
      * Resolve a dispute (inspector/admin)
      * POST /api/disputes/{disputeId}/resolve
+     * Actions: REFUND_BUYER (buyer wins), RELEASE_FUND_SELLER (seller wins), CLOSE_CASE (reject)
      */
     @PostMapping("/api/disputes/{disputeId}/resolve")
     @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
@@ -112,5 +119,123 @@ public class DisputeController {
             @Valid @RequestBody ResolveDisputeRequest req) {
         DisputeDetailResponse response = disputeService.resolveDispute(disputeId, req);
         return ResponseEntity.ok(response);
+    }
+
+    // ==================== INSPECTOR-SPECIFIC ENDPOINTS ====================
+
+    /**
+     * Get disputes assigned to a specific inspector
+     * GET /api/inspector/{userId}/disputes
+     */
+    @GetMapping("/api/inspector/{userId}/disputes")
+    @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
+    public ResponseEntity<Page<DisputeListRowResponse>> getInspectorDisputes(
+            @PathVariable Integer userId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "DESC") String sortDir,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+        Page<DisputeListRowResponse> disputes = disputeService.getDisputesByAssignee(userId, status, q, sortBy, sortDir, page, limit);
+        return ResponseEntity.ok(disputes);
+    }
+
+    /**
+     * Get dispute detail for inspector
+     * GET /api/inspector/{userId}/disputes/{disputeId}
+     */
+    @GetMapping("/api/inspector/{userId}/disputes/{disputeId}")
+    @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
+    public ResponseEntity<DisputeDetailResponse> getInspectorDisputeDetail(
+            @PathVariable Integer userId,
+            @PathVariable Integer disputeId) {
+        return ResponseEntity.ok(disputeService.getDisputeDetail(disputeId));
+    }
+
+    /**
+     * Claim/accept a dispute (inspector picks it up → IN_PROGRESS)
+     * POST /api/disputes/{disputeId}/claim
+     */
+    @PostMapping("/api/disputes/{disputeId}/claim")
+    @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
+    public ResponseEntity<DisputeDetailResponse> claimDispute(@PathVariable Integer disputeId) {
+        String authUserId = SecurityUtils.getAuthenticatedUserId();
+        DisputeDetailResponse response = disputeService.claimDispute(disputeId, Integer.parseInt(authUserId));
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Escalate a dispute to Admin (inspector cannot resolve)
+     * POST /api/disputes/{disputeId}/escalate
+     */
+    @PostMapping("/api/disputes/{disputeId}/escalate")
+    @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
+    public ResponseEntity<DisputeDetailResponse> escalateDispute(
+            @PathVariable Integer disputeId,
+            @RequestBody(required = false) Map<String, String> body) {
+        String note = body != null ? body.get("note") : null;
+        DisputeDetailResponse response = disputeService.escalateDispute(disputeId, note);
+        return ResponseEntity.ok(response);
+    }
+
+    // ==================== ADMIN-SPECIFIC ENDPOINTS ====================
+
+    /**
+     * Get all disputes for admin view
+     * GET /api/admin/disputes
+     */
+    @GetMapping("/api/admin/disputes")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<DisputeListRowResponse>> getAdminDisputes(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "DESC") String sortDir,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit);
+        return ResponseEntity.ok(disputes);
+    }
+
+    /**
+     * Get dispute detail for admin
+     * GET /api/admin/disputes/{disputeId}
+     */
+    @GetMapping("/api/admin/disputes/{disputeId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DisputeDetailResponse> getAdminDisputeDetail(@PathVariable Integer disputeId) {
+        return ResponseEntity.ok(disputeService.getDisputeDetail(disputeId));
+    }
+
+    /**
+     * Admin list disputes (alternate endpoint for FE compatibility)
+     * GET /api/admin/disputes/list
+     */
+    @GetMapping("/api/admin/disputes/list")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<DisputeListRowResponse>> getAdminDisputesList(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "DESC") String sortDir,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit);
+        return ResponseEntity.ok(disputes);
+    }
+
+    /**
+     * Admin override / final decision (S-83)
+     * POST /api/admin/disputes/{disputeId}/override
+     * Actions: BUYER_WIN, SELLER_WIN, SPLIT
+     */
+    @PostMapping("/api/admin/disputes/{disputeId}/override")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> adminOverride(
+            @PathVariable Integer disputeId,
+            @Valid @RequestBody AdminOverrideRequest req) {
+        disputeService.adminOverride(disputeId, req);
+        return ResponseEntity.ok().build();
     }
 }
