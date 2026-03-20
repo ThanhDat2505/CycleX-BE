@@ -10,10 +10,25 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+
 @Repository
 public interface DisputeRepository extends JpaRepository<Dispute, Integer> {
 
     Page<Dispute> findByStatus(DisputeStatus status, Pageable pageable);
+
+    @Query("SELECT d FROM Dispute d WHERE " +
+            "(:status IS NULL OR d.status = :status) AND " +
+            "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR CAST(d.disputeId AS string) = :search) AND " +
+            "(:fromDate IS NULL OR d.createdAt >= :fromDate) AND " +
+            "(:toDate IS NULL OR d.createdAt <= :toDate)")
+    Page<Dispute> findByFilters(
+            @Param("status") DisputeStatus status,
+            @Param("search") String search,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            Pageable pageable);
 
     @Query("SELECT d FROM Dispute d WHERE " +
             "(:status IS NULL OR d.status = :status) AND " +
@@ -38,10 +53,27 @@ public interface DisputeRepository extends JpaRepository<Dispute, Integer> {
     @Query("SELECT d FROM Dispute d WHERE d.assignee.userId = :assigneeId AND " +
             "(:status IS NULL OR d.status = :status) AND " +
             "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR CAST(d.disputeId AS string) = :search) AND " +
+            "(:fromDate IS NULL OR d.createdAt >= :fromDate) AND " +
+            "(:toDate IS NULL OR d.createdAt <= :toDate)")
+    Page<Dispute> findByAssigneeAndFilters(
+            @Param("assigneeId") Integer assigneeId,
+            @Param("status") DisputeStatus status,
+            @Param("search") String search,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            Pageable pageable);
+
+    @Query("SELECT d FROM Dispute d WHERE d.assignee.userId = :assigneeId AND " +
+            "(:status IS NULL OR d.status = :status) AND " +
+            "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
             "OR CAST(d.disputeId AS string) = :search)")
     Page<Dispute> findByAssigneeAndFilters(
             @Param("assigneeId") Integer assigneeId,
             @Param("status") DisputeStatus status,
             @Param("search") String search,
             Pageable pageable);
+
+    @Query("SELECT d FROM Dispute d WHERE d.requester.userId = :buyerId")
+    Page<Dispute> findByRequesterId(@Param("buyerId") Integer buyerId, Pageable pageable);
 }

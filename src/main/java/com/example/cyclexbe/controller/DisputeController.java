@@ -81,7 +81,7 @@ public class DisputeController {
 
     /**
      * Get paginated list of all disputes (inspector/admin)
-     * GET /api/disputes?status=&page=&limit=&q=&sortBy=&sortDir=
+     * GET /api/disputes?status=&page=&limit=&q=&sortBy=&sortDir=&fromDate=&toDate=
      */
     @GetMapping("/api/disputes")
     @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
@@ -91,8 +91,10 @@ public class DisputeController {
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false, defaultValue = "DESC") String sortDir,
             @RequestParam(required = false, defaultValue = "0") Integer page,
-            @RequestParam(required = false, defaultValue = "10") Integer limit) {
-        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit);
+            @RequestParam(required = false, defaultValue = "10") Integer limit,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate) {
+        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit, fromDate, toDate);
         return ResponseEntity.ok(disputes);
     }
 
@@ -119,6 +121,30 @@ public class DisputeController {
             @Valid @RequestBody ResolveDisputeRequest req) {
         DisputeDetailResponse response = disputeService.resolveDispute(disputeId, req);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Resolve a dispute (PUT variant for FE compatibility)
+     * PUT /api/disputes/{disputeId}/resolve
+     */
+    @PutMapping("/api/disputes/{disputeId}/resolve")
+    @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
+    public ResponseEntity<DisputeDetailResponse> resolveDisputePut(
+            @PathVariable Integer disputeId,
+            @Valid @RequestBody ResolveDisputeRequest req) {
+        DisputeDetailResponse response = disputeService.resolveDispute(disputeId, req);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get dispute result for buyer/seller
+     * GET /api/disputes/{disputeId}/result
+     */
+    @GetMapping("/api/disputes/{disputeId}/result")
+    @PreAuthorize("hasAnyRole('BUYER', 'SELLER', 'INSPECTOR', 'ADMIN')")
+    public ResponseEntity<DisputeResultResponse> getDisputeResult(@PathVariable Integer disputeId) {
+        DisputeResultResponse result = disputeService.getDisputeResult(disputeId);
+        return ResponseEntity.ok(result);
     }
 
     // ==================== INSPECTOR-SPECIFIC ENDPOINTS ====================
@@ -166,12 +192,64 @@ public class DisputeController {
     }
 
     /**
+     * Claim/accept a dispute (PUT variant)
+     * PUT /api/disputes/{disputeId}/claim
+     */
+    @PutMapping("/api/disputes/{disputeId}/claim")
+    @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
+    public ResponseEntity<DisputeDetailResponse> claimDisputePut(@PathVariable Integer disputeId) {
+        String authUserId = SecurityUtils.getAuthenticatedUserId();
+        DisputeDetailResponse response = disputeService.claimDispute(disputeId, Integer.parseInt(authUserId));
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Request more info from buyer (inspector action)
+     * PUT /api/disputes/{disputeId}/request-more-info
+     */
+    @PutMapping("/api/disputes/{disputeId}/request-more-info")
+    @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
+    public ResponseEntity<DisputeDetailResponse> requestMoreInfo(
+            @PathVariable Integer disputeId,
+            @Valid @RequestBody RequestMoreInfoRequest req) {
+        DisputeDetailResponse response = disputeService.requestMoreInfo(disputeId, req.message);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Reply to a dispute (buyer/seller provides more info)
+     * PUT /api/disputes/{disputeId}/reply
+     */
+    @PutMapping("/api/disputes/{disputeId}/reply")
+    @PreAuthorize("hasAnyRole('BUYER', 'SELLER')")
+    public ResponseEntity<DisputeDetailResponse> replyToDispute(
+            @PathVariable Integer disputeId,
+            @Valid @RequestBody DisputeReplyRequest req) {
+        DisputeDetailResponse response = disputeService.replyToDispute(disputeId, req.content, null);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Escalate a dispute to Admin (inspector cannot resolve)
      * POST /api/disputes/{disputeId}/escalate
      */
     @PostMapping("/api/disputes/{disputeId}/escalate")
     @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
     public ResponseEntity<DisputeDetailResponse> escalateDispute(
+            @PathVariable Integer disputeId,
+            @RequestBody(required = false) Map<String, String> body) {
+        String note = body != null ? body.get("note") : null;
+        DisputeDetailResponse response = disputeService.escalateDispute(disputeId, note);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Escalate a dispute to Admin (PUT variant)
+     * PUT /api/disputes/{disputeId}/escalate
+     */
+    @PutMapping("/api/disputes/{disputeId}/escalate")
+    @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
+    public ResponseEntity<DisputeDetailResponse> escalateDisputePut(
             @PathVariable Integer disputeId,
             @RequestBody(required = false) Map<String, String> body) {
         String note = body != null ? body.get("note") : null;
@@ -193,8 +271,10 @@ public class DisputeController {
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false, defaultValue = "DESC") String sortDir,
             @RequestParam(required = false, defaultValue = "0") Integer page,
-            @RequestParam(required = false, defaultValue = "10") Integer limit) {
-        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit);
+            @RequestParam(required = false, defaultValue = "10") Integer limit,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate) {
+        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit, fromDate, toDate);
         return ResponseEntity.ok(disputes);
     }
 
@@ -220,8 +300,10 @@ public class DisputeController {
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false, defaultValue = "DESC") String sortDir,
             @RequestParam(required = false, defaultValue = "0") Integer page,
-            @RequestParam(required = false, defaultValue = "10") Integer limit) {
-        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit);
+            @RequestParam(required = false, defaultValue = "10") Integer limit,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate) {
+        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit, fromDate, toDate);
         return ResponseEntity.ok(disputes);
     }
 
@@ -237,5 +319,26 @@ public class DisputeController {
             @Valid @RequestBody AdminOverrideRequest req) {
         disputeService.adminOverride(disputeId, req);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Admin resolve dispute (S-73)
+     * PUT /api/disputes/{disputeId}/admin-resolve
+     * Actions: ACCEPT (buyer wins), REJECT (seller wins)
+     */
+    @PutMapping("/api/disputes/{disputeId}/admin-resolve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DisputeDetailResponse> adminResolve(
+            @PathVariable Integer disputeId,
+            @Valid @RequestBody ResolveDisputeRequest req) {
+        // Map ACCEPT/REJECT to internal actions
+        String action = req.action;
+        if ("ACCEPT".equalsIgnoreCase(action)) {
+            req.action = "REFUND_BUYER";
+        } else if ("REJECT".equalsIgnoreCase(action)) {
+            req.action = "RELEASE_FUND_SELLER";
+        }
+        DisputeDetailResponse response = disputeService.resolveDispute(disputeId, req);
+        return ResponseEntity.ok(response);
     }
 }

@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -212,11 +213,20 @@ public class DisputeService {
     }
 
     /**
-     * Get paginated list of disputes with optional status filter and search
+     * Get paginated list of disputes with optional status filter, search, and date range
      */
     @Transactional(readOnly = true)
     public Page<DisputeListRowResponse> getDisputes(String status, String search, String sortBy, String sortDir,
             int page, int pageSize) {
+        return getDisputes(status, search, sortBy, sortDir, page, pageSize, null, null);
+    }
+
+    /**
+     * Get paginated list of disputes with optional status filter, search, date range
+     */
+    @Transactional(readOnly = true)
+    public Page<DisputeListRowResponse> getDisputes(String status, String search, String sortBy, String sortDir,
+            int page, int pageSize, String fromDate, String toDate) {
         Sort.Direction direction = "ASC".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
         String sortField = sortBy != null ? sortBy : "createdAt";
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by(direction, sortField));
@@ -228,6 +238,14 @@ public class DisputeService {
             } catch (IllegalArgumentException e) {
                 // Ignore invalid status, return all
             }
+        }
+
+        LocalDateTime from = parseDate(fromDate, true);
+        LocalDateTime to = parseDate(toDate, false);
+
+        if (from != null || to != null) {
+            Page<Dispute> disputes = disputeRepository.findByFilters(statusEnum, search, from, to, pageable);
+            return disputes.map(DisputeListRowResponse::from);
         }
 
         Page<Dispute> disputes = disputeRepository.findByFilters(statusEnum, search, pageable);
@@ -372,7 +390,7 @@ public class DisputeService {
 
     /**
      * Escalate a dispute to Admin (when inspector cannot resolve)
-     * Flow: Inspector cannot handle → assignedTo = ADMIN
+     * Flow: Inspector cannot handle → status = ESCALATED, assignedTo = ADMIN
      */
     @Transactional
     public DisputeDetailResponse escalateDispute(Integer disputeId, String escalationNote) {
@@ -392,7 +410,7 @@ public class DisputeService {
 
         User previousAssignee = dispute.getAssignee();
         dispute.setAssignee(admin);
-        dispute.setStatus(DisputeStatus.IN_PROGRESS);
+        dispute.setStatus(DisputeStatus.ESCALATED);
 
         // Append escalation note to resolution note
         String existingNote = dispute.getResolutionNote() != null ? dispute.getResolutionNote() + "\n" : "";
@@ -510,6 +528,15 @@ public class DisputeService {
     @Transactional(readOnly = true)
     public Page<DisputeListRowResponse> getDisputesByAssignee(Integer assigneeId, String status, String search,
             String sortBy, String sortDir, int page, int pageSize) {
+        return getDisputesByAssignee(assigneeId, status, search, sortBy, sortDir, page, pageSize, null, null);
+    }
+
+    /**
+     * Get disputes assigned to a specific inspector with date range
+     */
+    @Transactional(readOnly = true)
+    public Page<DisputeListRowResponse> getDisputesByAssignee(Integer assigneeId, String status, String search,
+            String sortBy, String sortDir, int page, int pageSize, String fromDate, String toDate) {
         Sort.Direction direction = "ASC".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
         String sortField = sortBy != null ? sortBy : "createdAt";
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by(direction, sortField));
@@ -523,8 +550,133 @@ public class DisputeService {
             }
         }
 
+        LocalDateTime from = parseDate(fromDate, true);
+        LocalDateTime to = parseDate(toDate, false);
+
+        if (from != null || to != null) {
+            Page<Dispute> disputes = disputeRepository.findByAssigneeAndFilters(assigneeId, statusEnum, search, from, to, pageable);
+            return disputes.map(DisputeListRowResponse::from);
+        }
+
         Page<Dispute> disputes = disputeRepository.findByAssigneeAndFilters(assigneeId, statusEnum, search, pageable);
         return disputes.map(DisputeListRowResponse::from);
+    }
+
+    /**
+     * Request more info from buyer (inspector action)
+     * Status → NEED_MORE_INFO
+     */
+    @Transactional
+    public DisputeDetailResponse requestMoreInfo(Integer disputeId, String message) {
+        Dispute dispute = disputeRepository.findById(disputeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khiếu nại không tồn tại"));
+
+        if (dispute.getStatus() == DisputeStatus.RESOLVED || dispute.getStatus() == DisputeStatus.REJECTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Khiếu nại đã được xử lý");
+        }
+
+        dispute.setStatus(DisputeStatus.NEED_MORE_INFO);
+
+        // Add inspector message as TEXT evidence
+        DisputeEvidence evidence = new DisputeEvidence();
+        evidence.setDispute(dispute);
+        evidence.setType("TEXT");
+        evidence.setText(message);
+        evidence.setUploaderRole("INSPECTOR");
+        dispute.getEvidenceList().add(evidence);
+
+        Dispute saved = disputeRepository.save(dispute);
+
+        log.info("Dispute #{} - Inspector requested more info", disputeId);
+
+        // Notify buyer
+        notificationService.createNotification(
+                dispute.getRequester(),
+                "Yêu cầu bổ sung thông tin",
+                "Kiểm duyệt viên yêu cầu bạn cung cấp thêm thông tin cho khiếu nại #" + disputeId + ": " + message,
+                NotificationType.SYSTEM,
+                "DISPUTE",
+                disputeId,
+                "/disputes/" + disputeId);
+
+        return buildDetailResponse(saved);
+    }
+
+    /**
+     * Reply to a dispute (buyer/seller provides more info)
+     * Status → IN_PROGRESS
+     */
+    @Transactional
+    public DisputeDetailResponse replyToDispute(Integer disputeId, String content, List<String> evidenceUrls) {
+        Dispute dispute = disputeRepository.findById(disputeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khiếu nại không tồn tại"));
+
+        if (dispute.getStatus() == DisputeStatus.RESOLVED || dispute.getStatus() == DisputeStatus.REJECTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Khiếu nại đã được xử lý");
+        }
+
+        // Set status back to IN_PROGRESS
+        dispute.setStatus(DisputeStatus.IN_PROGRESS);
+
+        // Determine uploader role from auth context
+        String uploaderRole = "BUYER";
+        try {
+            String authUserId = com.example.cyclexbe.security.SecurityUtils.getAuthenticatedUserId();
+            if (dispute.getSeller() != null && dispute.getSeller().getUserId().toString().equals(authUserId)) {
+                uploaderRole = "SELLER";
+            }
+        } catch (Exception ignored) {
+        }
+
+        // Add text reply as evidence
+        if (content != null && !content.isBlank()) {
+            DisputeEvidence textEvidence = new DisputeEvidence();
+            textEvidence.setDispute(dispute);
+            textEvidence.setType("TEXT");
+            textEvidence.setText(content);
+            textEvidence.setUploaderRole(uploaderRole);
+            dispute.getEvidenceList().add(textEvidence);
+        }
+
+        // Add image evidence
+        if (evidenceUrls != null) {
+            for (String url : evidenceUrls) {
+                DisputeEvidence imgEvidence = new DisputeEvidence();
+                imgEvidence.setDispute(dispute);
+                imgEvidence.setType("IMAGE");
+                imgEvidence.setUrl(url);
+                imgEvidence.setUploaderRole(uploaderRole);
+                dispute.getEvidenceList().add(imgEvidence);
+            }
+        }
+
+        Dispute saved = disputeRepository.save(dispute);
+
+        log.info("Dispute #{} - {} replied", disputeId, uploaderRole);
+
+        // Notify assignee (inspector/admin)
+        if (dispute.getAssignee() != null) {
+            notificationService.createNotification(
+                    dispute.getAssignee(),
+                    "Phản hồi khiếu nại",
+                    "Khiếu nại #" + disputeId + " có phản hồi mới từ " + ("BUYER".equals(uploaderRole) ? "người mua" : "người bán"),
+                    NotificationType.SYSTEM,
+                    "DISPUTE",
+                    disputeId,
+                    "/inspector/disputes/" + disputeId);
+        }
+
+        return buildDetailResponse(saved);
+    }
+
+    /**
+     * Get dispute result for buyer/seller viewing
+     */
+    @Transactional(readOnly = true)
+    public DisputeResultResponse getDisputeResult(Integer disputeId) {
+        Dispute dispute = disputeRepository.findById(disputeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khiếu nại không tồn tại"));
+        return DisputeResultResponse.from(dispute);
     }
 
     // --- Helper methods ---
@@ -587,6 +739,16 @@ public class DisputeService {
                 return "Giao hàng thất bại";
             default:
                 return "Khác";
+        }
+    }
+
+    private LocalDateTime parseDate(String dateStr, boolean startOfDay) {
+        if (dateStr == null || dateStr.isBlank()) return null;
+        try {
+            LocalDate date = LocalDate.parse(dateStr);
+            return startOfDay ? date.atStartOfDay() : date.atTime(23, 59, 59);
+        } catch (Exception e) {
+            return null;
         }
     }
 }
