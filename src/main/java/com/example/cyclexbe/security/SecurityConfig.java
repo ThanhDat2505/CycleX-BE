@@ -96,7 +96,8 @@ public class SecurityConfig {
                         // Authenticated endpoints - Notifications (all roles)
                         .requestMatchers("/api/notifications/**").authenticated()
 
-                        // Authenticated endpoints - Orders (role checks via @PreAuthorize on controller)
+                        // Authenticated endpoints - Orders (role checks via @PreAuthorize on
+                        // controller)
                         .requestMatchers("/api/orders").authenticated()
                         .requestMatchers("/api/orders/**").authenticated()
                         .requestMatchers("/api/debug-post-auth").authenticated()
