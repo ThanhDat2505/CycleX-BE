@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -49,6 +50,20 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
             Pageable pageable);
 
     Optional<Order> findByOrderIdAndSeller_UserId(Integer orderId, Integer sellerId);
+
+    Optional<Order> findByOrderIdAndBuyer_UserId(Integer orderId, Integer buyerId);
+
+    @Query("SELECT o FROM Order o " +
+           "JOIN FETCH o.product p " +
+           "JOIN FETCH p.listing l " +
+           "JOIN FETCH p.seller " +
+           "JOIN FETCH o.buyer " +
+           "WHERE o.orderId = :orderId AND o.buyer.userId = :buyerId")
+    Optional<Order> findByOrderIdAndBuyerIdWithEager(
+            @Param("orderId") Integer orderId,
+            @Param("buyerId") Integer buyerId);
+
+    List<Order> findByBuyer_UserIdOrderByCreatedAtDesc(Integer buyerId);
 
     @Query("SELECT COUNT(o) > 0 FROM Order o WHERE o.product.productId = :productId AND o.status IN ('PENDING_SELLER_CONFIRM', 'PENDING_DELIVERY', 'IN_DELIVERY')")
     boolean existsActiveOrderForProduct(@Param("productId") Integer productId);

@@ -1,14 +1,12 @@
 package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.OrderStatus;
-import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.dto.BuyerCancelTransactionResponse;
 import com.example.cyclexbe.dto.BuyerTransactionActionsDto;
 import com.example.cyclexbe.dto.BuyerTransactionDetailResponse;
 import com.example.cyclexbe.dto.BuyerTransactionListItemResponse;
 import com.example.cyclexbe.entity.Product;
 import com.example.cyclexbe.entity.Order;
-import com.example.cyclexbe.entity.PurchaseRequest;
 import com.example.cyclexbe.entity.User;
 import com.example.cyclexbe.exception.ForbiddenException;
 import com.example.cyclexbe.exception.InvalidListingException;
@@ -16,35 +14,31 @@ import com.example.cyclexbe.exception.PurchaseRequestException;
 import com.example.cyclexbe.repository.ListingImageRepository;
 import com.example.cyclexbe.repository.OrderRepository;
 import com.example.cyclexbe.repository.ProductRepository;
-import com.example.cyclexbe.repository.PurchaseRequestRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * Service for S-54: Buyer Transaction Detail
  * Handles buyer-specific transaction operations like viewing details and
- * cancellation
+ * cancellation.
+ * Now uses Order entity directly (PurchaseRequest removed from flow).
  */
 @Service
 @Transactional
 public class BuyerTransactionService {
 
-        private final PurchaseRequestRepository purchaseRequestRepository;
         private final ProductRepository productRepository;
         private final ListingImageRepository listingImageRepository;
         private final OrderRepository orderRepository;
 
         public BuyerTransactionService(
-                        PurchaseRequestRepository purchaseRequestRepository,
                         ProductRepository productRepository,
                         ListingImageRepository listingImageRepository,
                         OrderRepository orderRepository) {
-                this.purchaseRequestRepository = purchaseRequestRepository;
                 this.productRepository = productRepository;
                 this.listingImageRepository = listingImageRepository;
                 this.orderRepository = orderRepository;
@@ -52,10 +46,9 @@ public class BuyerTransactionService {
 
         @Transactional(readOnly = true)
         public List<BuyerTransactionListItemResponse> getBuyerTransactions(Integer buyerId) {
-                return purchaseRequestRepository.findByBuyer_UserId(buyerId)
+                return orderRepository.findByBuyer_UserIdOrderByCreatedAtDesc(buyerId)
                                 .stream()
-                                .sorted(Comparator.comparing(PurchaseRequest::getCreatedAt).reversed())
-                                .map(pr -> mapToBuyerTransactionItem(pr, buyerId))
+                                .map(order -> mapToBuyerTransactionItem(order, buyerId))
                                 .toList();
         }
 
@@ -63,41 +56,41 @@ public class BuyerTransactionService {
          * F1: Load transaction detail for buyer
          * GET /api/buyer/transactions/{id}
          *
-         * @param requestId The transaction/purchase request ID
-         * @param buyerId   The buyer ID from authentication
+         * @param orderId The order ID
+         * @param buyerId The buyer ID from authentication
          * @return Transaction detail with seller info, listing info, and available
          *         actions
-         * @throws PurchaseRequestException if transaction not found (404)
+         * @throws PurchaseRequestException if order not found (404)
          * @throws ForbiddenException       if buyer mismatch (403)
          */
         @Transactional(readOnly = true)
-        public BuyerTransactionDetailResponse getTransactionDetail(Integer requestId, Integer buyerId) {
-                // First check if transaction exists at all
-                Optional<PurchaseRequest> optionalRequest = purchaseRequestRepository.findByRequestId(requestId);
+        public BuyerTransactionDetailResponse getTransactionDetail(Integer orderId, Integer buyerId) {
+                // First check if order exists at all
+                Optional<Order> optionalOrder = orderRepository.findById(orderId);
 
-                if (optionalRequest.isEmpty()) {
+                if (optionalOrder.isEmpty()) {
                         throw new PurchaseRequestException("TRANSACTION_NOT_FOUND",
                                         "Transaction not found");
                 }
 
-                PurchaseRequest transaction = optionalRequest.get();
+                Order order = optionalOrder.get();
 
                 // Check if buyer matches
-                if (!transaction.getBuyer().getUserId().equals(buyerId)) {
+                if (!order.getBuyer().getUserId().equals(buyerId)) {
                         throw new ForbiddenException("FORBIDDEN_BUYER_MISMATCH",
                                         "You don't have permission to view this transaction");
                 }
 
                 // Fetch with eager loading
-                Optional<PurchaseRequest> optionalRequestWithEager = purchaseRequestRepository
-                                .findByRequestIdAndBuyerId(requestId, buyerId);
-                if (optionalRequestWithEager.isEmpty()) {
+                Optional<Order> optionalOrderWithEager = orderRepository
+                                .findByOrderIdAndBuyerIdWithEager(orderId, buyerId);
+                if (optionalOrderWithEager.isEmpty()) {
                         throw new PurchaseRequestException("TRANSACTION_NOT_FOUND",
                                         "Transaction not found");
                 }
 
-                transaction = optionalRequestWithEager.get();
-                Product product = transaction.getProduct();
+                order = optionalOrderWithEager.get();
+                Product product = order.getProduct();
                 User seller = product.getSeller();
 
                 if (seller == null) {
@@ -105,7 +98,7 @@ public class BuyerTransactionService {
                 }
 
                 // Determine if buyer can cancel
-                BuyerTransactionActionsDto actions = determineActions(transaction);
+                BuyerTransactionActionsDto actions = determineActions(order);
 
                 // Build seller info
                 BuyerTransactionDetailResponse.SellerInfoDto sellerInfo = new BuyerTransactionDetailResponse.SellerInfoDto(
@@ -114,7 +107,7 @@ public class BuyerTransactionService {
                                 seller.getPhone(),
                                 seller.getAvatarUrl());
 
-                // Build product info (thay thế listing info cũ)
+                // Build listing info from product
                 BuyerTransactionDetailResponse.ListingInfoDto productInfo = new BuyerTransactionDetailResponse.ListingInfoDto(
                                 product.getListing().getListingId(),
                                 product.getName(),
@@ -130,31 +123,27 @@ public class BuyerTransactionService {
 
                 // Build timeline
                 BuyerTransactionDetailResponse.TimelineDto timeline = new BuyerTransactionDetailResponse.TimelineDto(
-                                transaction.getCreatedAt(),
-                                transaction.getUpdatedAt());
+                                order.getCreatedAt(),
+                                order.getUpdatedAt());
 
-                // Build response
+                // Build response using orderId
                 BuyerTransactionDetailResponse response = new BuyerTransactionDetailResponse(
-                                transaction.getRequestId(),
-                                transaction.getStatus(),
+                                order.getOrderId(),
+                                order.getStatus(),
                                 sellerInfo,
                                 productInfo,
                                 product.getPrice(),
-                                transaction.getDepositAmount(),
-                                transaction.getPlatformFee(),
-                                transaction.getInspectionFee(),
-                                transaction.getNote(),
-                                transaction.getDesiredTransactionTime(),
+                                order.getDepositAmount(),
+                                order.getPlatformFee(),
+                                order.getInspectionFee(),
+                                order.getBuyerNote(),
+                                order.getDesiredTransactionTime(),
                                 timeline,
                                 actions,
-                                transaction.getCreatedAt(),
-                                transaction.getUpdatedAt());
+                                order.getCreatedAt(),
+                                order.getUpdatedAt());
 
-                // Resolve effective order status from Order entity (has IN_DELIVERY, DELIVERED,
-                // etc.)
-                orderRepository.findByPurchaseRequest_RequestId(requestId).ifPresent(order -> {
-                        response.setOrderStatus(order.getStatus().name());
-                });
+                response.setOrderStatus(order.getStatus().name());
 
                 return response;
         }
@@ -163,90 +152,78 @@ public class BuyerTransactionService {
          * F2: Cancel transaction
          * POST /api/buyer/transactions/{id}/cancel
          *
-         * Only allowed when transaction.status == PENDING_SELLER_CONFIRM
+         * Only allowed when order.status == PENDING_SELLER_CONFIRM
          * When cancelled:
-         * - transaction.status -> CANCELLED
-         * - listing.status -> APPROVED
+         * - order.status -> CANCELLED
+         * - product.status -> AVAILABLE
          *
-         * @param requestId The transaction/purchase request ID
-         * @param buyerId   The buyer ID from authentication
+         * @param orderId The order ID
+         * @param buyerId The buyer ID from authentication
          * @return Cancel transaction response with status updates and redirect URL
-         * @throws PurchaseRequestException if transaction not found (404), or invalid
+         * @throws PurchaseRequestException if order not found (404), or invalid
          *                                  status (409)
          * @throws ForbiddenException       if buyer mismatch (403)
          */
-        public BuyerCancelTransactionResponse cancelTransaction(Integer requestId, Integer buyerId) {
-                // First check if transaction exists at all
-                Optional<PurchaseRequest> optionalRequest = purchaseRequestRepository.findByRequestId(requestId);
+        public BuyerCancelTransactionResponse cancelTransaction(Integer orderId, Integer buyerId) {
+                Optional<Order> optionalOrder = orderRepository.findById(orderId);
 
-                if (optionalRequest.isEmpty()) {
+                if (optionalOrder.isEmpty()) {
                         throw new PurchaseRequestException("TRANSACTION_NOT_FOUND",
                                         "Transaction not found");
                 }
 
-                PurchaseRequest transaction = optionalRequest.get();
+                Order order = optionalOrder.get();
 
                 // Check if buyer matches
-                if (!transaction.getBuyer().getUserId().equals(buyerId)) {
+                if (!order.getBuyer().getUserId().equals(buyerId)) {
                         throw new ForbiddenException("FORBIDDEN_BUYER_MISMATCH",
                                         "You don't have permission to cancel this transaction");
                 }
 
-                // Validate transaction status
-                if (transaction.getStatus() != PurchaseRequestStatus.PENDING_SELLER_CONFIRM) {
+                // Validate order status
+                if (order.getStatus() != OrderStatus.PENDING_SELLER_CONFIRM) {
                         throw new PurchaseRequestException("INVALID_TRANSACTION_STATUS",
                                         "Transaction can only be cancelled when status is PENDING_SELLER_CONFIRM. " +
-                                                        "Current status: " + transaction.getStatus());
+                                                        "Current status: " + order.getStatus());
                 }
 
-                // Perform atomic cancel operation
-                PurchaseRequestStatus oldStatus = transaction.getStatus();
+                OrderStatus oldStatus = order.getStatus();
 
-                // Update transaction status
-                transaction.setStatus(PurchaseRequestStatus.CANCELLED);
-                PurchaseRequest savedTransaction = purchaseRequestRepository.save(transaction);
+                // Update order status
+                order.setStatus(OrderStatus.CANCELLED);
+                Order savedOrder = orderRepository.save(order);
 
-                // Update product status -> AVAILABLE (thay vì cập nhật listing)
-                Product product = transaction.getProduct();
+                // Update product status -> AVAILABLE
+                Product product = order.getProduct();
                 product.setStatus("AVAILABLE");
                 productRepository.save(product);
 
-                // Also cancel associated Order if it exists
-                Optional<Order> optionalOrder = orderRepository.findByPurchaseRequest_RequestId(requestId);
-                if (optionalOrder.isPresent()) {
-                        Order order = optionalOrder.get();
-                        order.setStatus(OrderStatus.CANCELLED);
-                        orderRepository.save(order);
-                }
-
                 // Build and return response
                 return new BuyerCancelTransactionResponse(
-                                savedTransaction.getRequestId(),
+                                savedOrder.getOrderId(),
                                 oldStatus,
-                                savedTransaction.getStatus(),
-                                null, // không còn trả listingStatus
+                                savedOrder.getStatus(),
                                 "/buyer/transactions");
         }
 
         /**
-         * Determine available actions for buyer on this transaction
-         * Currently only supports canCancel action
+         * Determine available actions for buyer on this order.
          */
-        private BuyerTransactionActionsDto determineActions(PurchaseRequest transaction) {
-                boolean canCancel = transaction.getStatus() == PurchaseRequestStatus.PENDING_SELLER_CONFIRM;
+        private BuyerTransactionActionsDto determineActions(Order order) {
+                boolean canCancel = order.getStatus() == OrderStatus.PENDING_SELLER_CONFIRM;
                 String cancelDisabledReason = null;
 
                 if (!canCancel) {
                         cancelDisabledReason = "Transaction can only be cancelled when status is PENDING_SELLER_CONFIRM. "
                                         +
-                                        "Current status: " + transaction.getStatus();
+                                        "Current status: " + order.getStatus();
                 }
 
                 return new BuyerTransactionActionsDto(canCancel, cancelDisabledReason);
         }
 
-        private BuyerTransactionListItemResponse mapToBuyerTransactionItem(PurchaseRequest pr, Integer buyerId) {
-                Product product = pr.getProduct();
+        private BuyerTransactionListItemResponse mapToBuyerTransactionItem(Order order, Integer buyerId) {
+                Product product = order.getProduct();
                 Integer listingId = product != null && product.getListing() != null
                                 ? product.getListing().getListingId()
                                 : null;
@@ -261,18 +238,12 @@ public class BuyerTransactionService {
                                         .orElse(null);
                 }
 
-                BigDecimal totalAmount = safeAmount(pr.getDepositAmount())
-                                .add(safeAmount(pr.getPlatformFee()))
-                                .add(safeAmount(pr.getInspectionFee()));
-
-                // Use Order status (has IN_DELIVERY, DELIVERED, etc.) when available
-                String effectiveStatus = pr.getStatus() != null ? pr.getStatus().name() : null;
-                String orderStatus = orderRepository.findByPurchaseRequest_RequestId(pr.getRequestId())
-                                .map(order -> order.getStatus().name())
-                                .orElse(effectiveStatus);
+                BigDecimal totalAmount = safeAmount(order.getDepositAmount())
+                                .add(safeAmount(order.getPlatformFee()))
+                                .add(safeAmount(order.getInspectionFee()));
 
                 return new BuyerTransactionListItemResponse(
-                                pr.getRequestId(),
+                                order.getOrderId(),
                                 buyerId,
                                 product != null && product.getSeller() != null ? product.getSeller().getUserId() : null,
                                 listingId,
@@ -281,10 +252,10 @@ public class BuyerTransactionService {
                                 product != null && product.getSeller() != null ? product.getSeller().getFullName()
                                                 : null,
                                 product != null && product.getSeller() != null ? product.getSeller().getPhone() : null,
-                                pr.getTransactionType() != null ? pr.getTransactionType().name() : null,
-                                orderStatus,
+                                order.getTransactionType() != null ? order.getTransactionType().name() : null,
+                                order.getStatus().name(),
                                 totalAmount,
-                                pr.getCreatedAt());
+                                order.getCreatedAt());
         }
 
         private BigDecimal safeAmount(BigDecimal value) {

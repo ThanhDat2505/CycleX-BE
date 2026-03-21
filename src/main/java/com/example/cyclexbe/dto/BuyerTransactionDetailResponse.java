@@ -1,7 +1,7 @@
 package com.example.cyclexbe.dto;
 
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
-import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
+import com.example.cyclexbe.domain.enums.OrderStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.math.BigDecimal;
@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
  */
 public class BuyerTransactionDetailResponse {
 
-    private Integer requestId;
-    private PurchaseRequestStatus status;
+    private Integer orderId;
+    private OrderStatus status;
     private String orderStatus;
 
     // Seller info
@@ -51,8 +51,8 @@ public class BuyerTransactionDetailResponse {
     }
 
     public BuyerTransactionDetailResponse(
-            Integer requestId,
-            PurchaseRequestStatus status,
+            Integer orderId,
+            OrderStatus status,
             SellerInfoDto seller,
             ListingInfoDto listing,
             BigDecimal listingPrice,
@@ -65,7 +65,7 @@ public class BuyerTransactionDetailResponse {
             BuyerTransactionActionsDto actions,
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {
-        this.requestId = requestId;
+        this.orderId = orderId;
         this.status = status;
         this.seller = seller;
         this.listing = listing;
@@ -83,19 +83,19 @@ public class BuyerTransactionDetailResponse {
     }
 
     // Getters & Setters
-    public Integer getRequestId() {
-        return requestId;
+    public Integer getOrderId() {
+        return orderId;
     }
 
-    public void setRequestId(Integer requestId) {
-        this.requestId = requestId;
+    public void setOrderId(Integer orderId) {
+        this.orderId = orderId;
     }
 
-    public PurchaseRequestStatus getStatus() {
+    public OrderStatus getStatus() {
         return status;
     }
 
-    public void setStatus(PurchaseRequestStatus status) {
+    public void setStatus(OrderStatus status) {
         this.status = status;
     }
 
