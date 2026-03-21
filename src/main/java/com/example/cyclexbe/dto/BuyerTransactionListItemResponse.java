@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  */
 public class BuyerTransactionListItemResponse {
 
-    private Integer requestId;
+    private Integer orderId;
     private Integer buyerId;
     private Integer sellerId;
     private Integer listingId;
@@ -26,7 +26,7 @@ public class BuyerTransactionListItemResponse {
     }
 
     public BuyerTransactionListItemResponse(
-            Integer requestId,
+            Integer orderId,
             Integer buyerId,
             Integer sellerId,
             Integer listingId,
@@ -39,7 +39,7 @@ public class BuyerTransactionListItemResponse {
             BigDecimal totalAmount,
             LocalDateTime createdAt
     ) {
-        this.requestId = requestId;
+        this.orderId = orderId;
         this.buyerId = buyerId;
         this.sellerId = sellerId;
         this.listingId = listingId;
@@ -53,12 +53,12 @@ public class BuyerTransactionListItemResponse {
         this.createdAt = createdAt;
     }
 
-    public Integer getRequestId() {
-        return requestId;
+    public Integer getOrderId() {
+        return orderId;
     }
 
-    public void setRequestId(Integer requestId) {
-        this.requestId = requestId;
+    public void setOrderId(Integer orderId) {
+        this.orderId = orderId;
     }
 
     public Integer getBuyerId() {
