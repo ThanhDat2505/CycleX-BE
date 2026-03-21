@@ -26,6 +26,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
         long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
 
         @Query("SELECT u FROM User u WHERE " +
+                        "u.role <> com.example.cyclexbe.domain.enums.Role.ADMIN AND " +
                         "(:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
                         "OR LOWER(u.email) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
                         "(:role IS NULL OR u.role = :role) AND " +
