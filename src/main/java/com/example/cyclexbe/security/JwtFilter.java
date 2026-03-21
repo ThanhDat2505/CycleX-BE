@@ -1,5 +1,7 @@
 package com.example.cyclexbe.security;
 
+import com.example.cyclexbe.entity.User;
+import com.example.cyclexbe.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,9 +24,11 @@ import java.util.Optional;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
+    private final UserRepository userRepository;
 
-    public JwtFilter(JwtProvider jwtProvider) {
+    public JwtFilter(JwtProvider jwtProvider, UserRepository userRepository) {
         this.jwtProvider = jwtProvider;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -46,6 +50,21 @@ public class JwtFilter extends OncePerRequestFilter {
                     || (existingAuth instanceof AnonymousAuthenticationToken);
             if (subjectOpt.isPresent() && notYetAuthenticated) {
                 String subject = subjectOpt.get();
+
+                // Check if user is banned/suspended
+                try {
+                    Integer userId = Integer.parseInt(subject);
+                    Optional<User> userOpt = userRepository.findById(userId);
+                    if (userOpt.isPresent() && "SUSPENDED".equals(userOpt.get().getStatus())) {
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\":\"Account is suspended\",\"message\":\"Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.\"}");
+                        return;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // If subject is not a number, skip user check
+                }
+
                 String role = jwtProvider.extractRole(token).orElse("USER");
 
                 // Spring Security convention: ROLE_*

@@ -32,6 +32,13 @@ public class AuthService {
             );
         }
 
+        // Block suspended/banned users from logging in
+        if ("SUSPENDED".equals(user.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
+            );
+        }
+
         LoginResponse response = new LoginResponse();
         response.accessToken = jwtProvider.generateToken(user);
         response.tokenType = "Bearer";

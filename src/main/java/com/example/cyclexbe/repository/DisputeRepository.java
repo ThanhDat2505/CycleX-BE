@@ -41,6 +41,8 @@ public interface DisputeRepository extends JpaRepository<Dispute, Integer> {
 
     long countByStatus(DisputeStatus status);
 
+    long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
+
     long countByAssignee(User assignee);
 
     long countByAssigneeAndStatusIn(User assignee, java.util.List<DisputeStatus> statuses);

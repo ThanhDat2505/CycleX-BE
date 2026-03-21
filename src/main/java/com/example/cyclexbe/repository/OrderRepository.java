@@ -10,6 +10,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -52,4 +55,10 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 
     @Query("SELECT COUNT(o) > 0 FROM Order o WHERE o.product.productId = :productId AND o.status IN ('PENDING_SELLER_CONFIRM', 'PENDING_DELIVERY', 'IN_DELIVERY')")
     boolean existsActiveOrderForProduct(@Param("productId") Integer productId);
+
+    // Admin weekly stats
+    long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
+
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status IN :statuses")
+    BigDecimal sumTotalAmountByStatuses(@Param("statuses") List<OrderStatus> statuses);
 }

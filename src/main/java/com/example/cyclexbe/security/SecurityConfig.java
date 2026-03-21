@@ -59,6 +59,9 @@ public class SecurityConfig {
                         // Admin dispute management (S-83)
                         .requestMatchers("/api/admin/disputes/**").hasRole("ADMIN")
 
+                        // Admin management (dashboard, users, etc.)
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
                         // Authenticated endpoints - Seller (Batch 1)
                         .requestMatchers(HttpMethod.GET, "/api/seller/*/dashboard/stats").hasRole("SELLER")
                         .requestMatchers(HttpMethod.GET, "/api/seller/*/listings/search").hasRole("SELLER")
