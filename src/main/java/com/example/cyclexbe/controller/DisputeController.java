@@ -3,6 +3,8 @@ package com.example.cyclexbe.controller;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.security.SecurityUtils;
 import com.example.cyclexbe.service.DisputeService;
+import com.example.cyclexbe.service.AuditLogService;
+import com.example.cyclexbe.domain.enums.AuditLogAction;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -24,9 +26,11 @@ import java.util.Map;
 public class DisputeController {
 
     private final DisputeService disputeService;
+    private final AuditLogService auditLogService;
 
-    public DisputeController(DisputeService disputeService) {
+    public DisputeController(DisputeService disputeService, AuditLogService auditLogService) {
         this.disputeService = disputeService;
+        this.auditLogService = auditLogService;
     }
 
     // ==================== BUYER ENDPOINTS ====================
@@ -94,7 +98,8 @@ public class DisputeController {
             @RequestParam(required = false, defaultValue = "10") Integer limit,
             @RequestParam(required = false) String fromDate,
             @RequestParam(required = false) String toDate) {
-        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit, fromDate, toDate);
+        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit,
+                fromDate, toDate);
         return ResponseEntity.ok(disputes);
     }
 
@@ -112,7 +117,8 @@ public class DisputeController {
     /**
      * Resolve a dispute (inspector/admin)
      * POST /api/disputes/{disputeId}/resolve
-     * Actions: REFUND_BUYER (buyer wins), RELEASE_FUND_SELLER (seller wins), CLOSE_CASE (reject)
+     * Actions: REFUND_BUYER (buyer wins), RELEASE_FUND_SELLER (seller wins),
+     * CLOSE_CASE (reject)
      */
     @PostMapping("/api/disputes/{disputeId}/resolve")
     @PreAuthorize("hasAnyRole('INSPECTOR', 'ADMIN')")
@@ -163,7 +169,8 @@ public class DisputeController {
             @RequestParam(required = false, defaultValue = "DESC") String sortDir,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer limit) {
-        Page<DisputeListRowResponse> disputes = disputeService.getDisputesByAssignee(userId, status, q, sortBy, sortDir, page, limit);
+        Page<DisputeListRowResponse> disputes = disputeService.getDisputesByAssignee(userId, status, q, sortBy, sortDir,
+                page, limit);
         return ResponseEntity.ok(disputes);
     }
 
@@ -274,7 +281,8 @@ public class DisputeController {
             @RequestParam(required = false, defaultValue = "10") Integer limit,
             @RequestParam(required = false) String fromDate,
             @RequestParam(required = false) String toDate) {
-        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit, fromDate, toDate);
+        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit,
+                fromDate, toDate);
         return ResponseEntity.ok(disputes);
     }
 
@@ -303,7 +311,8 @@ public class DisputeController {
             @RequestParam(required = false, defaultValue = "10") Integer limit,
             @RequestParam(required = false) String fromDate,
             @RequestParam(required = false) String toDate) {
-        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit, fromDate, toDate);
+        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit,
+                fromDate, toDate);
         return ResponseEntity.ok(disputes);
     }
 
@@ -318,6 +327,8 @@ public class DisputeController {
             @PathVariable Integer disputeId,
             @Valid @RequestBody AdminOverrideRequest req) {
         disputeService.adminOverride(disputeId, req);
+        auditLogService.log(AuditLogAction.OVERRIDE_DISPUTE, String.valueOf(disputeId),
+                "Override dispute #" + disputeId + " with action: " + req.action);
         return ResponseEntity.ok().build();
     }
 
