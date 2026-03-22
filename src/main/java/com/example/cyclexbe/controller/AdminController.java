@@ -2,6 +2,8 @@ package com.example.cyclexbe.controller;
 
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.service.AdminService;
+import com.example.cyclexbe.service.AuditLogService;
+import com.example.cyclexbe.domain.enums.AuditLogAction;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +16,11 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
 
     private final AdminService adminService;
+    private final AuditLogService auditLogService;
 
-    public AdminController(AdminService adminService) {
+    public AdminController(AdminService adminService, AuditLogService auditLogService) {
         this.adminService = adminService;
+        this.auditLogService = auditLogService;
     }
 
     // ==================== DASHBOARD ====================
@@ -50,19 +54,38 @@ public class AdminController {
     public ResponseEntity<UserResponse> updateUserStatus(
             @PathVariable Integer userId,
             @Valid @RequestBody AdminUpdateStatusRequest req) {
-        return ResponseEntity.ok(adminService.updateUserStatus(userId, req.status));
+        UserResponse result = adminService.updateUserStatus(userId, req.status);
+        auditLogService.log(AuditLogAction.UPDATE_STATUS, String.valueOf(userId),
+                "Changed status to " + req.status + " for user: " + result.fullName);
+        return ResponseEntity.ok(result);
     }
 
     @PatchMapping("/users/{userId}/role")
     public ResponseEntity<UserResponse> updateUserRole(
             @PathVariable Integer userId,
             @Valid @RequestBody AdminUpdateRoleRequest req) {
-        return ResponseEntity.ok(adminService.updateUserRole(userId, req.role));
+        UserResponse result = adminService.updateUserRole(userId, req.role);
+        auditLogService.log(AuditLogAction.UPDATE_ROLE, String.valueOf(userId),
+                "Changed role to " + req.role + " for user: " + result.fullName);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/users")
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse createAccount(@Valid @RequestBody AdminCreateAccountRequest req) {
         return adminService.createAccount(req);
+    }
+
+    // ==================== AUDIT LOGS ====================
+
+    @GetMapping("/audit-logs")
+    public ResponseEntity<AuditLogListResponse> getAuditLogs(
+            @RequestParam(required = false) String actionType,
+            @RequestParam(required = false) Integer adminId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "15") int pageSize) {
+        return ResponseEntity.ok(auditLogService.getLogs(actionType, adminId, startDate, endDate, page, pageSize));
     }
 }

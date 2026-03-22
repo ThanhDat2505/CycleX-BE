@@ -51,6 +51,57 @@ public class SellerTransactionService {
     }
 
     // ==============================
+    // Get All Transactions for Seller
+    // ==============================
+    public SellerPendingTransactionsResponse getAllTransactions(
+            Authentication authentication,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir,
+            OrderStatus status) {
+
+        Integer sellerId = parseCurrentUserId(authentication);
+
+        if (sortBy == null || sortBy.isEmpty())
+            sortBy = "createdAt";
+        if (!sortBy.equals("createdAt") && !sortBy.equals("orderId"))
+            sortBy = "createdAt";
+        if (sortDir == null || sortDir.isEmpty())
+            sortDir = "desc";
+        if (!sortDir.equalsIgnoreCase("asc") && !sortDir.equalsIgnoreCase("desc"))
+            sortDir = "desc";
+
+        Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        Page<Order> pageResult;
+        if (status != null) {
+            pageResult = orderRepository.findBySeller_UserIdAndStatus(sellerId, status, pageable);
+        } else {
+            pageResult = orderRepository.findBySeller_UserId(sellerId, pageable);
+        }
+
+        List<PendingTransactionListItemResponse> items = pageResult.getContent()
+                .stream()
+                .map(this::mapToPendingTransactionListItem)
+                .collect(Collectors.toList());
+
+        SellerPendingTransactionsResponse response = new SellerPendingTransactionsResponse();
+        response.setContent(items);
+        response.setPage(page);
+        response.setSize(size);
+        response.setTotalElements(pageResult.getTotalElements());
+        response.setTotalPages(pageResult.getTotalPages());
+        response.setSortBy(sortBy);
+        response.setSortDir(sortDir);
+        response.setAppliedFilters(new SellerPendingTransactionsResponse.AppliedFilters(
+                status != null ? status.name() : "ALL", null));
+
+        return response;
+    }
+
+    // ==============================
     // S-52: Get Pending Transactions (now queries Orders)
     // ==============================
     public SellerPendingTransactionsResponse getPendingTransactions(

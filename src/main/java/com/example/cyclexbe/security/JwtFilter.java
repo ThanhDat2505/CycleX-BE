@@ -35,8 +35,7 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
@@ -58,7 +57,8 @@ public class JwtFilter extends OncePerRequestFilter {
                     if (userOpt.isPresent() && "SUSPENDED".equals(userOpt.get().getStatus())) {
                         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                         response.setContentType("application/json");
-                        response.getWriter().write("{\"error\":\"Account is suspended\",\"message\":\"Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.\"}");
+                        response.getWriter().write(
+                                "{\"error\":\"Account is suspended\",\"message\":\"Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.\"}");
                         return;
                     }
                 } catch (NumberFormatException ignored) {
@@ -69,11 +69,13 @@ public class JwtFilter extends OncePerRequestFilter {
 
                 // Spring Security convention: ROLE_*
                 SimpleGrantedAuthority authority = new SimpleGrantedAuthority(
-                        role.startsWith("ROLE_") ? role : "ROLE_" + role
-                );
+                        role.startsWith("ROLE_") ? role : "ROLE_" + role);
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(subject, null, List.of(authority));
+                System.out.println("[JWT DEBUG] subject=" + subject + " role=" + role + " authority="
+                        + authority.getAuthority() + " path=" + request.getRequestURI());
+
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(subject,
+                        null, List.of(authority));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
             }

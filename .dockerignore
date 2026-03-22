@@ -1,0 +1,12 @@
+target/
+uploads/
+.git
+.gitignore
+.idea
+*.iml
+*.md
+*.txt
+*.sql
+*.postman_collection.json
+maven-err.txt
+maven-out.txt

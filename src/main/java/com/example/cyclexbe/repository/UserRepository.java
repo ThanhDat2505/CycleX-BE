@@ -13,24 +13,27 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Integer> {
-    Optional<User> findByEmail(String email);
-    boolean existsByEmail(String email);
+        Optional<User> findByEmail(String email);
 
-    // Inspector assignment queries
-    List<User> findByRoleAndStatus(Role role, String status);
+        boolean existsByEmail(String email);
 
-    // Admin queries
-    long countByStatus(String status);
-    long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
+        // Inspector assignment queries
+        List<User> findByRoleAndStatus(Role role, String status);
 
-    @Query("SELECT u FROM User u WHERE " +
-            "(:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
-            "(:role IS NULL OR u.role = :role) AND " +
-            "(:status IS NULL OR u.status = :status)")
-    Page<User> findByAdminFilters(
-            @Param("search") String search,
-            @Param("role") Role role,
-            @Param("status") String status,
-            Pageable pageable);
+        // Admin queries
+        long countByStatus(String status);
+
+        long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
+
+        @Query("SELECT u FROM User u WHERE " +
+                        "u.role <> com.example.cyclexbe.domain.enums.Role.ADMIN AND " +
+                        "(:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+                        "OR LOWER(u.email) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
+                        "(:role IS NULL OR u.role = :role) AND " +
+                        "(:status IS NULL OR u.status = :status)")
+        Page<User> findByAdminFilters(
+                        @Param("search") String search,
+                        @Param("role") Role role,
+                        @Param("status") String status,
+                        Pageable pageable);
 }

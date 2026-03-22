@@ -1,5 +1,6 @@
 package com.example.cyclexbe.controller;
 
+import com.example.cyclexbe.domain.enums.OrderStatus;
 import com.example.cyclexbe.domain.enums.TransactionType;
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.service.SellerTransactionService;
@@ -10,12 +11,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Controller for seller transaction operations (S-52: Pending Transactions, S-53: Transaction Detail)
+ * Controller for seller transaction operations (S-52: Pending Transactions,
+ * S-53: Transaction Detail)
  * API endpoints:
  * - GET /api/v1/seller/transactions/pending - List pending transactions
  * - GET /api/v1/seller/transactions/{requestId} - Get transaction detail
- * - POST /api/v1/seller/transactions/{requestId}/confirm - Confirm transaction (optional)
- * - POST /api/v1/seller/transactions/{requestId}/reject - Reject transaction (optional)
+ * - POST /api/v1/seller/transactions/{requestId}/confirm - Confirm transaction
+ * (optional)
+ * - POST /api/v1/seller/transactions/{requestId}/reject - Reject transaction
+ * (optional)
  */
 @RestController
 @RequestMapping("/api/seller/transactions")
@@ -28,16 +32,38 @@ public class SellerTransactionController {
     }
 
     /**
+     * GET /api/seller/transactions
+     * Retrieve all transactions for authenticated seller with pagination and
+     * optional status filter
+     */
+    @GetMapping
+    public ResponseEntity<SellerPendingTransactionsResponse> getAllTransactions(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "50") int size,
+            @RequestParam(name = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(name = "sortDir", defaultValue = "desc") String sortDir,
+            @RequestParam(name = "status", required = false) OrderStatus status,
+            Authentication authentication) {
+
+        SellerPendingTransactionsResponse response = sellerTransactionService.getAllTransactions(
+                authentication, page, size, sortBy, sortDir, status);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * GET /api/v1/seller/transactions/pending
-     * Retrieve pending transactions for authenticated seller with pagination and filtering
+     * Retrieve pending transactions for authenticated seller with pagination and
+     * filtering
      *
-     * @param page Page number (0-indexed, default 0)
-     * @param size Page size (default 10)
-     * @param sortBy Sort field (default "createdAt")
-     * @param sortDir Sort direction ("asc" or "desc", default "desc")
-     * @param transactionType Optional filter by transaction type (PURCHASE or DEPOSIT)
-     * @param keyword Optional keyword search in buyer name or listing title
-     * @param authentication Current authenticated user (injected by Spring Security)
+     * @param page            Page number (0-indexed, default 0)
+     * @param size            Page size (default 10)
+     * @param sortBy          Sort field (default "createdAt")
+     * @param sortDir         Sort direction ("asc" or "desc", default "desc")
+     * @param transactionType Optional filter by transaction type (PURCHASE or
+     *                        DEPOSIT)
+     * @param keyword         Optional keyword search in buyer name or listing title
+     * @param authentication  Current authenticated user (injected by Spring
+     *                        Security)
      * @return Paginated list of pending transactions
      */
     @GetMapping("/pending")
@@ -58,8 +84,7 @@ public class SellerTransactionController {
                 sortBy,
                 sortDir,
                 transactionType,
-                keyword
-        );
+                keyword);
         System.out.println("HIT PENDING API");
         return ResponseEntity.ok(response);
     }
@@ -69,8 +94,9 @@ public class SellerTransactionController {
      * Retrieve detailed information about a specific transaction
      * Verifies the transaction belongs to the seller's listings
      *
-     * @param requestId Transaction request ID
-     * @param authentication Current authenticated user (injected by Spring Security)
+     * @param requestId      Transaction request ID
+     * @param authentication Current authenticated user (injected by Spring
+     *                       Security)
      * @return Transaction detail response
      */
     @GetMapping("/{requestId}")
@@ -80,8 +106,7 @@ public class SellerTransactionController {
 
         SellerTransactionDetailResponse response = sellerTransactionService.getTransactionDetail(
                 authentication,
-                requestId
-        );
+                requestId);
 
         return ResponseEntity.ok(response);
     }
@@ -91,9 +116,10 @@ public class SellerTransactionController {
      * Confirm a pending transaction (change status to SELLER_CONFIRMED)
      * Only allowed if transaction status is PENDING_SELLER_CONFIRM
      *
-     * @param requestId Transaction request ID
-     * @param request Confirm request with optional note
-     * @param authentication Current authenticated user (injected by Spring Security)
+     * @param requestId      Transaction request ID
+     * @param request        Confirm request with optional note
+     * @param authentication Current authenticated user (injected by Spring
+     *                       Security)
      * @return Action response with updated transaction status
      */
     @PostMapping("/{requestId}/confirm")
@@ -105,8 +131,7 @@ public class SellerTransactionController {
         ActionTransactionResponse response = sellerTransactionService.confirmTransaction(
                 authentication,
                 requestId,
-                request
-        );
+                request);
 
         return ResponseEntity.ok(response);
     }
@@ -116,9 +141,10 @@ public class SellerTransactionController {
      * Reject a pending transaction (change status to CANCELLED)
      * Only allowed if transaction status is PENDING_SELLER_CONFIRM
      *
-     * @param requestId Transaction request ID
-     * @param request Reject request with mandatory reason
-     * @param authentication Current authenticated user (injected by Spring Security)
+     * @param requestId      Transaction request ID
+     * @param request        Reject request with mandatory reason
+     * @param authentication Current authenticated user (injected by Spring
+     *                       Security)
      * @return Action response with updated transaction status
      */
     @PostMapping("/{requestId}/reject")
@@ -130,10 +156,8 @@ public class SellerTransactionController {
         ActionTransactionResponse response = sellerTransactionService.rejectTransaction(
                 authentication,
                 requestId,
-                request
-        );
+                request);
 
         return ResponseEntity.ok(response);
     }
 }
-
