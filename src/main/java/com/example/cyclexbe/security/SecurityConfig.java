@@ -39,6 +39,7 @@ public class SecurityConfig {
                         // Swagger UI
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 
+
                         // public endpoints - Auth
                         .requestMatchers("/api/auth/**").permitAll()
 
@@ -47,6 +48,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/bikelistings").hasRole("SELLER")
                         .requestMatchers(HttpMethod.PUT, "/api/bikelistings/**").hasRole("SELLER")
                         .requestMatchers(HttpMethod.DELETE, "/api/bikelistings/**").hasRole("SELLER")
+                        
+                        // public endpoints - Users (Read-only public, write requires authentication)
+                        .requestMatchers(HttpMethod.PUT, "/api/users/**").authenticated()
 
                         // Inspector
                         .requestMatchers("/api/inspector/**").hasAnyRole("INSPECTOR", "ADMIN")
