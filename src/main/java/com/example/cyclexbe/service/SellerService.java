@@ -91,7 +91,16 @@ public class SellerService {
         Specification<BikeListing> spec = buildSellerListingSpec(seller, status, title, brand, model, minPrice,
                 maxPrice);
 
-        return bikeListingRepository.findAll(spec, pageable).map(SellerListingResponse::from);
+        return bikeListingRepository.findAll(spec, pageable).map(listing -> {
+            String rejectionReason = null;
+            if (listing.getStatus() == BikeListingStatus.REJECTED) {
+                rejectionReason = inspectionReportRepository
+                        .findTopByListingOrderByCreatedAtDesc(listing)
+                        .map(r -> r.getReasonText() != null ? r.getReasonText() : r.getNote())
+                        .orElse(null);
+            }
+            return SellerListingResponse.from(listing, rejectionReason);
+        });
     }
 
     /**
