@@ -15,67 +15,106 @@ import java.time.LocalDateTime;
 @Repository
 public interface DisputeRepository extends JpaRepository<Dispute, Integer> {
 
-    Page<Dispute> findByStatus(DisputeStatus status, Pageable pageable);
+        Page<Dispute> findByStatus(DisputeStatus status, Pageable pageable);
 
-    @Query("SELECT d FROM Dispute d WHERE " +
-            "(:status IS NULL OR d.status = :status) AND " +
-            "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "OR CAST(d.disputeId AS string) = :search) AND " +
-            "(:fromDate IS NULL OR d.createdAt >= :fromDate) AND " +
-            "(:toDate IS NULL OR d.createdAt <= :toDate)")
-    Page<Dispute> findByFilters(
-            @Param("status") DisputeStatus status,
-            @Param("search") String search,
-            @Param("fromDate") LocalDateTime fromDate,
-            @Param("toDate") LocalDateTime toDate,
-            Pageable pageable);
+        @Query(value = "SELECT d FROM Dispute d LEFT JOIN FETCH d.requester LEFT JOIN FETCH d.assignee WHERE " +
+                        "(:status IS NULL OR d.status = :status) AND " +
+                        "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                        "OR CAST(d.disputeId AS string) = :search) AND " +
+                        "(:fromDate IS NULL OR d.createdAt >= :fromDate) AND " +
+                        "(:toDate IS NULL OR d.createdAt <= :toDate)", countQuery = "SELECT COUNT(d) FROM Dispute d WHERE "
+                                        +
+                                        "(:status IS NULL OR d.status = :status) AND " +
+                                        "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                                        "OR CAST(d.disputeId AS string) = :search) AND " +
+                                        "(:fromDate IS NULL OR d.createdAt >= :fromDate) AND " +
+                                        "(:toDate IS NULL OR d.createdAt <= :toDate)")
+        Page<Dispute> findByFilters(
+                        @Param("status") DisputeStatus status,
+                        @Param("search") String search,
+                        @Param("fromDate") LocalDateTime fromDate,
+                        @Param("toDate") LocalDateTime toDate,
+                        Pageable pageable);
 
-    @Query("SELECT d FROM Dispute d WHERE " +
-            "(:status IS NULL OR d.status = :status) AND " +
-            "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "OR CAST(d.disputeId AS string) = :search)")
-    Page<Dispute> findByFilters(
-            @Param("status") DisputeStatus status,
-            @Param("search") String search,
-            Pageable pageable);
+        @Query(value = "SELECT d FROM Dispute d LEFT JOIN FETCH d.requester LEFT JOIN FETCH d.assignee WHERE " +
+                        "(:status IS NULL OR d.status = :status) AND " +
+                        "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                        "OR CAST(d.disputeId AS string) = :search)", countQuery = "SELECT COUNT(d) FROM Dispute d WHERE "
+                                        +
+                                        "(:status IS NULL OR d.status = :status) AND " +
+                                        "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                                        "OR CAST(d.disputeId AS string) = :search)")
+        Page<Dispute> findByFilters(
+                        @Param("status") DisputeStatus status,
+                        @Param("search") String search,
+                        Pageable pageable);
 
-    long countByStatus(DisputeStatus status);
+        long countByStatus(DisputeStatus status);
 
-    long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
+        long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
 
-    long countByAssignee(User assignee);
+        long countByAssignee(User assignee);
 
-    long countByAssigneeAndStatusIn(User assignee, java.util.List<DisputeStatus> statuses);
+        long countByAssigneeAndStatusIn(User assignee, java.util.List<DisputeStatus> statuses);
 
-    boolean existsByPurchaseRequest_RequestId(Integer requestId);
+        boolean existsByPurchaseRequest_RequestId(Integer requestId);
 
-    @Query("SELECT d FROM Dispute d WHERE d.requester.userId = :buyerId AND d.purchaseRequest.requestId = :requestId")
-    Dispute findByRequesterAndPurchaseRequest(@Param("buyerId") Integer buyerId, @Param("requestId") Integer requestId);
+        long countByPurchaseRequest_RequestId(Integer requestId);
 
-    @Query("SELECT d FROM Dispute d WHERE d.assignee.userId = :assigneeId AND " +
-            "(:status IS NULL OR d.status = :status) AND " +
-            "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "OR CAST(d.disputeId AS string) = :search) AND " +
-            "(:fromDate IS NULL OR d.createdAt >= :fromDate) AND " +
-            "(:toDate IS NULL OR d.createdAt <= :toDate)")
-    Page<Dispute> findByAssigneeAndFilters(
-            @Param("assigneeId") Integer assigneeId,
-            @Param("status") DisputeStatus status,
-            @Param("search") String search,
-            @Param("fromDate") LocalDateTime fromDate,
-            @Param("toDate") LocalDateTime toDate,
-            Pageable pageable);
+        @Query("SELECT d FROM Dispute d WHERE d.requester.userId = :buyerId AND d.purchaseRequest.requestId = :requestId")
+        Dispute findByRequesterAndPurchaseRequest(@Param("buyerId") Integer buyerId,
+                        @Param("requestId") Integer requestId);
 
-    @Query("SELECT d FROM Dispute d WHERE d.assignee.userId = :assigneeId AND " +
-            "(:status IS NULL OR d.status = :status) AND " +
-            "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "OR CAST(d.disputeId AS string) = :search)")
-    Page<Dispute> findByAssigneeAndFilters(
-            @Param("assigneeId") Integer assigneeId,
-            @Param("status") DisputeStatus status,
-            @Param("search") String search,
-            Pageable pageable);
+        @Query(value = "SELECT d FROM Dispute d JOIN FETCH d.requester LEFT JOIN FETCH d.assignee WHERE d.assignee.userId = :assigneeId AND "
+                        +
+                        "(:status IS NULL OR d.status = :status) AND " +
+                        "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                        "OR CAST(d.disputeId AS string) = :search) AND " +
+                        "(:fromDate IS NULL OR d.createdAt >= :fromDate) AND " +
+                        "(:toDate IS NULL OR d.createdAt <= :toDate)", countQuery = "SELECT COUNT(d) FROM Dispute d WHERE d.assignee.userId = :assigneeId AND "
+                                        +
+                                        "(:status IS NULL OR d.status = :status) AND " +
+                                        "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                                        "OR CAST(d.disputeId AS string) = :search) AND " +
+                                        "(:fromDate IS NULL OR d.createdAt >= :fromDate) AND " +
+                                        "(:toDate IS NULL OR d.createdAt <= :toDate)")
+        Page<Dispute> findByAssigneeAndFilters(
+                        @Param("assigneeId") Integer assigneeId,
+                        @Param("status") DisputeStatus status,
+                        @Param("search") String search,
+                        @Param("fromDate") LocalDateTime fromDate,
+                        @Param("toDate") LocalDateTime toDate,
+                        Pageable pageable);
 
-    @Query("SELECT d FROM Dispute d WHERE d.requester.userId = :buyerId")
-    Page<Dispute> findByRequesterId(@Param("buyerId") Integer buyerId, Pageable pageable);
+        @Query(value = "SELECT d FROM Dispute d JOIN FETCH d.requester LEFT JOIN FETCH d.assignee WHERE d.assignee.userId = :assigneeId AND "
+                        +
+                        "(:status IS NULL OR d.status = :status) AND " +
+                        "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                        "OR CAST(d.disputeId AS string) = :search)", countQuery = "SELECT COUNT(d) FROM Dispute d WHERE d.assignee.userId = :assigneeId AND "
+                                        +
+                                        "(:status IS NULL OR d.status = :status) AND " +
+                                        "(:search IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                                        "OR CAST(d.disputeId AS string) = :search)")
+        Page<Dispute> findByAssigneeAndFilters(
+                        @Param("assigneeId") Integer assigneeId,
+                        @Param("status") DisputeStatus status,
+                        @Param("search") String search,
+                        Pageable pageable);
+
+        @Query("SELECT d FROM Dispute d WHERE d.requester.userId = :buyerId")
+        Page<Dispute> findByRequesterId(@Param("buyerId") Integer buyerId, Pageable pageable);
+
+        @Query(value = "SELECT * FROM disputes d WHERE d.requester_id = :buyerId " +
+                        "AND (CAST(:status AS varchar) IS NULL OR :status = '' OR d.status = :status) " +
+                        "AND (CAST(:search AS varchar) IS NULL OR :search = '' OR LOWER(d.title) LIKE LOWER(CONCAT('%', :search, '%'))) "
+                        +
+                        "AND (CAST(:fromDate AS timestamp) IS NULL OR d.created_at >= CAST(:fromDate AS timestamp)) " +
+                        "AND (CAST(:toDate AS timestamp) IS NULL OR d.created_at <= CAST(:toDate AS timestamp))", nativeQuery = true)
+        Page<Dispute> findByRequesterAndFilters(
+                        @Param("buyerId") Integer buyerId,
+                        @Param("status") String status,
+                        @Param("search") String search,
+                        @Param("fromDate") LocalDateTime fromDate,
+                        @Param("toDate") LocalDateTime toDate,
+                        Pageable pageable);
 }

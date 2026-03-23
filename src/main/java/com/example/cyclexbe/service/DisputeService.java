@@ -31,19 +31,28 @@ public class DisputeService {
 
     private static final Logger log = LoggerFactory.getLogger(DisputeService.class);
 
+    private static final int MAX_DISPUTES_PER_ORDER = 3;
+    private static final int DISPUTE_DEADLINE_HOURS = 24;
+
     private final DisputeRepository disputeRepository;
     private final PurchaseRequestRepository purchaseRequestRepository;
+    private final OrderRepository orderRepository;
+    private final DeliveryRepository deliveryRepository;
     private final UserRepository userRepository;
     private final ListingImageRepository listingImageRepository;
     private final NotificationService notificationService;
 
     public DisputeService(DisputeRepository disputeRepository,
             PurchaseRequestRepository purchaseRequestRepository,
+            OrderRepository orderRepository,
+            DeliveryRepository deliveryRepository,
             UserRepository userRepository,
             ListingImageRepository listingImageRepository,
             NotificationService notificationService) {
         this.disputeRepository = disputeRepository;
         this.purchaseRequestRepository = purchaseRequestRepository;
+        this.orderRepository = orderRepository;
+        this.deliveryRepository = deliveryRepository;
         this.userRepository = userRepository;
         this.listingImageRepository = listingImageRepository;
         this.notificationService = notificationService;
@@ -74,6 +83,30 @@ public class DisputeService {
                             title = "Giao hàng thất bại";
                             description = "Đơn hàng giao hàng không thành công";
                             break;
+                        case WRONG_ITEM:
+                            title = "Nhận sai xe";
+                            description = "Xe nhận được không đúng với xe đã đặt mua";
+                            break;
+                        case DAMAGED_DURING_DELIVERY:
+                            title = "Hư hỏng trong quá trình vận chuyển";
+                            description = "Xe bị trầy xước, móp méo hoặc hư hỏng do vận chuyển";
+                            break;
+                        case INCOMPLETE_ACCESSORIES:
+                            title = "Thiếu phụ kiện/linh kiện";
+                            description = "Không nhận đủ phụ kiện đi kèm như đã thỏa thuận";
+                            break;
+                        case FRAUDULENT_LISTING:
+                            title = "Tin đăng gian lận";
+                            description = "Thông tin hoặc hình ảnh tin đăng có dấu hiệu lừa đảo";
+                            break;
+                        case SELLER_NOT_RESPONSIVE:
+                            title = "Người bán không phản hồi";
+                            description = "Không liên lạc được với người bán sau giao dịch";
+                            break;
+                        case PRICE_MISMATCH:
+                            title = "Giá không đúng thỏa thuận";
+                            description = "Số tiền bị tính khác so với giá đã thỏa thuận";
+                            break;
                         default:
                             title = "Khác";
                             description = "Lý do khác";
@@ -85,19 +118,32 @@ public class DisputeService {
     }
 
     /**
-     * Check if buyer is eligible to create a dispute for an order
+     * Check if buyer is eligible to create a dispute for an order.
+     * Allows up to 3 disputes per order.
      */
-    public boolean checkEligibility(Integer buyerId, Integer requestId) {
-        PurchaseRequest pr = purchaseRequestRepository.findById(requestId).orElse(null);
+    public boolean checkEligibility(Integer buyerId, Integer orderId) {
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order == null)
+            return false;
+
+        PurchaseRequest pr = order.getPurchaseRequest();
         if (pr == null)
             return false;
 
-        // Must be COMPLETED status
-        if (pr.getStatus() != PurchaseRequestStatus.COMPLETED)
+        // Must be COMPLETED or DISPUTED status (DISPUTED means a previous dispute was
+        // resolved)
+        if (pr.getStatus() != PurchaseRequestStatus.COMPLETED
+                && pr.getStatus() != PurchaseRequestStatus.DISPUTED)
             return false;
 
-        // Must not already have a dispute
-        if (disputeRepository.existsByPurchaseRequest_RequestId(requestId))
+        // Must be within dispute deadline (24 hours after completion)
+        LocalDateTime deadline = pr.getUpdatedAt().plusHours(DISPUTE_DEADLINE_HOURS);
+        if (LocalDateTime.now().isAfter(deadline))
+            return false;
+
+        // Must not exceed max disputes
+        long disputeCount = disputeRepository.countByPurchaseRequest_RequestId(pr.getRequestId());
+        if (disputeCount >= MAX_DISPUTES_PER_ORDER)
             return false;
 
         // Must be the buyer of this order
@@ -113,27 +159,44 @@ public class DisputeService {
      */
     @Transactional
     public DisputeDetailResponse createDispute(CreateDisputeRequest req) {
-        // Validate purchase request exists
-        PurchaseRequest pr = purchaseRequestRepository.findById(req.orderId)
+        // Validate order exists and get linked PurchaseRequest
+        Order order = orderRepository.findById(req.orderId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Đơn hàng không tồn tại"));
 
-        // Must be COMPLETED to dispute
-        if (pr.getStatus() != PurchaseRequestStatus.COMPLETED) {
+        PurchaseRequest pr = order.getPurchaseRequest();
+        if (pr == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu mua hàng liên kết");
+        }
+
+        // Must be COMPLETED or DISPUTED to dispute
+        if (pr.getStatus() != PurchaseRequestStatus.COMPLETED
+                && pr.getStatus() != PurchaseRequestStatus.DISPUTED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ có thể khiếu nại đơn hàng đã hoàn thành");
         }
 
-        // Check 24h time window from completion
-        if (pr.getUpdatedAt() != null) {
-            long hoursSinceCompleted = ChronoUnit.HOURS.between(pr.getUpdatedAt(), LocalDateTime.now());
-            if (hoursSinceCompleted > 24) {
+        // Check 24h time window from delivery (success or failure)
+        Delivery delivery = deliveryRepository
+                .findTopByOrder_OrderIdAndStatusOrderByUpdatedAtDesc(req.orderId, "DELIVERED")
+                .orElse(null);
+        if (delivery == null) {
+            delivery = deliveryRepository
+                    .findTopByOrder_OrderIdAndStatusOrderByUpdatedAtDesc(req.orderId, "FAILED")
+                    .orElse(null);
+        }
+        LocalDateTime deliveredAt = delivery != null ? delivery.getUpdatedAt() : pr.getUpdatedAt();
+        if (deliveredAt != null) {
+            long hoursSinceDelivered = ChronoUnit.HOURS.between(deliveredAt, LocalDateTime.now());
+            if (hoursSinceDelivered > 24) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Đã hết thời hạn khiếu nại (24h kể từ khi hoàn thành đơn hàng)");
+                        "Đã hết thời hạn khiếu nại (24h kể từ khi giao hàng thành công)");
             }
         }
 
-        // Check no existing dispute
-        if (disputeRepository.existsByPurchaseRequest_RequestId(req.orderId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Đơn hàng này đã có khiếu nại");
+        // Check max disputes (3 per order)
+        long disputeCount = disputeRepository.countByPurchaseRequest_RequestId(pr.getRequestId());
+        if (disputeCount >= MAX_DISPUTES_PER_ORDER) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Đơn hàng này đã đạt giới hạn khiếu nại tối đa (" + MAX_DISPUTES_PER_ORDER + " lần)");
         }
 
         User buyer = userRepository.findById(req.buyerId)
@@ -160,8 +223,13 @@ public class DisputeService {
         dispute.setReasonText(getReasonTitle(reasonCode));
         dispute.setStatus(DisputeStatus.OPEN);
 
-        // Auto-assign to Inspector (least-load strategy)
-        User assignedInspector = autoAssignInspector();
+        // Auto-assign to the inspector who approved the listing (via Product →
+        // BikeListing)
+        User assignedInspector = getListingInspector(pr);
+        if (assignedInspector == null) {
+            // Fallback: least-load strategy if listing has no assigned inspector
+            assignedInspector = autoAssignInspector();
+        }
         if (assignedInspector != null) {
             dispute.setAssignee(assignedInspector);
             log.info("Dispute auto-assigned to inspector {} (ID: {})",
@@ -213,7 +281,8 @@ public class DisputeService {
     }
 
     /**
-     * Get paginated list of disputes with optional status filter, search, and date range
+     * Get paginated list of disputes with optional status filter, search, and date
+     * range
      */
     @Transactional(readOnly = true)
     public Page<DisputeListRowResponse> getDisputes(String status, String search, String sortBy, String sortDir,
@@ -222,7 +291,8 @@ public class DisputeService {
     }
 
     /**
-     * Get paginated list of disputes with optional status filter, search, date range
+     * Get paginated list of disputes with optional status filter, search, date
+     * range
      */
     @Transactional(readOnly = true)
     public Page<DisputeListRowResponse> getDisputes(String status, String search, String sortBy, String sortDir,
@@ -363,7 +433,8 @@ public class DisputeService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khiếu nại không tồn tại"));
 
         if (dispute.getStatus() != DisputeStatus.OPEN) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ có thể nhận xử lý khiếu nại ở trạng thái OPEN");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Chỉ có thể nhận xử lý khiếu nại ở trạng thái OPEN");
         }
 
         User inspector = userRepository.findById(inspectorId)
@@ -414,7 +485,8 @@ public class DisputeService {
 
         // Append escalation note to resolution note
         String existingNote = dispute.getResolutionNote() != null ? dispute.getResolutionNote() + "\n" : "";
-        dispute.setResolutionNote(existingNote + "[Escalated] " + (escalationNote != null ? escalationNote : "Chuyển tiếp lên Admin"));
+        dispute.setResolutionNote(
+                existingNote + "[Escalated] " + (escalationNote != null ? escalationNote : "Chuyển tiếp lên Admin"));
 
         Dispute saved = disputeRepository.save(dispute);
 
@@ -554,11 +626,61 @@ public class DisputeService {
         LocalDateTime to = parseDate(toDate, false);
 
         if (from != null || to != null) {
-            Page<Dispute> disputes = disputeRepository.findByAssigneeAndFilters(assigneeId, statusEnum, search, from, to, pageable);
+            Page<Dispute> disputes = disputeRepository.findByAssigneeAndFilters(assigneeId, statusEnum, search, from,
+                    to, pageable);
             return disputes.map(DisputeListRowResponse::from);
         }
 
         Page<Dispute> disputes = disputeRepository.findByAssigneeAndFilters(assigneeId, statusEnum, search, pageable);
+        return disputes.map(DisputeListRowResponse::from);
+    }
+
+    /**
+     * Get disputes created by a specific buyer (requester) with filters
+     */
+    @Transactional(readOnly = true)
+    public Page<DisputeListRowResponse> getDisputesByBuyer(Integer buyerId, String status, String search,
+            String sortBy, String sortDir, int page, int pageSize, String fromDate, String toDate) {
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        // Native query requires actual DB column names, not JPA field names
+        String sortField = "created_at";
+        if (sortBy != null) {
+            switch (sortBy) {
+                case "createdAt":
+                    sortField = "created_at";
+                    break;
+                case "updatedAt":
+                    sortField = "updated_at";
+                    break;
+                case "status":
+                    sortField = "status";
+                    break;
+                case "title":
+                    sortField = "title";
+                    break;
+                default:
+                    sortField = "created_at";
+            }
+        }
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by(direction, sortField));
+
+        // Validate and normalize status
+        String normalizedStatus = null;
+        if (status != null && !status.isEmpty() && !"ALL".equalsIgnoreCase(status)) {
+            try {
+                DisputeStatus.valueOf(status.toUpperCase()); // Validate enum
+                normalizedStatus = status.toUpperCase();
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid status
+            }
+        }
+
+        LocalDateTime from = parseDate(fromDate, true);
+        LocalDateTime to = parseDate(toDate, false);
+
+        Page<Dispute> disputes = disputeRepository.findByRequesterAndFilters(buyerId, normalizedStatus, search, from,
+                to,
+                pageable);
         return disputes.map(DisputeListRowResponse::from);
     }
 
@@ -659,7 +781,8 @@ public class DisputeService {
             notificationService.createNotification(
                     dispute.getAssignee(),
                     "Phản hồi khiếu nại",
-                    "Khiếu nại #" + disputeId + " có phản hồi mới từ " + ("BUYER".equals(uploaderRole) ? "người mua" : "người bán"),
+                    "Khiếu nại #" + disputeId + " có phản hồi mới từ "
+                            + ("BUYER".equals(uploaderRole) ? "người mua" : "người bán"),
                     NotificationType.SYSTEM,
                     "DISPUTE",
                     disputeId,
@@ -682,6 +805,29 @@ public class DisputeService {
     // --- Helper methods ---
 
     /**
+     * Get the inspector assigned to the listing associated with this purchase
+     * request.
+     * Chain: PurchaseRequest → Product → BikeListing → inspector (User)
+     */
+    private User getListingInspector(PurchaseRequest pr) {
+        try {
+            if (pr.getProduct() != null
+                    && pr.getProduct().getListing() != null
+                    && pr.getProduct().getListing().getInspector() != null) {
+                User inspector = pr.getProduct().getListing().getInspector();
+                // Only assign if the inspector is still active
+                if ("ACTIVE".equalsIgnoreCase(inspector.getStatus())) {
+                    return inspector;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not resolve listing inspector for PurchaseRequest #{}: {}", pr.getRequestId(),
+                    e.getMessage());
+        }
+        return null;
+    }
+
+    /**
      * Auto-assign inspector using least-load strategy
      * Pick the ACTIVE inspector with fewest OPEN + IN_PROGRESS disputes
      */
@@ -694,8 +840,8 @@ public class DisputeService {
 
         List<DisputeStatus> activeStatuses = List.of(DisputeStatus.OPEN, DisputeStatus.IN_PROGRESS);
         return inspectors.stream()
-                .min(Comparator.comparingLong(inspector ->
-                        disputeRepository.countByAssigneeAndStatusIn(inspector, activeStatuses)))
+                .min(Comparator.comparingLong(
+                        inspector -> disputeRepository.countByAssigneeAndStatusIn(inspector, activeStatuses)))
                 .orElse(inspectors.get(0));
     }
 
@@ -737,13 +883,26 @@ public class DisputeService {
                 return "Lỗi động cơ/kỹ thuật nghiêm trọng";
             case DELIVERY_FAILED:
                 return "Giao hàng thất bại";
+            case WRONG_ITEM:
+                return "Nhận sai xe";
+            case DAMAGED_DURING_DELIVERY:
+                return "Hư hỏng trong quá trình vận chuyển";
+            case INCOMPLETE_ACCESSORIES:
+                return "Thiếu phụ kiện/linh kiện";
+            case FRAUDULENT_LISTING:
+                return "Tin đăng gian lận";
+            case SELLER_NOT_RESPONSIVE:
+                return "Người bán không phản hồi";
+            case PRICE_MISMATCH:
+                return "Giá không đúng thỏa thuận";
             default:
                 return "Khác";
         }
     }
 
     private LocalDateTime parseDate(String dateStr, boolean startOfDay) {
-        if (dateStr == null || dateStr.isBlank()) return null;
+        if (dateStr == null || dateStr.isBlank())
+            return null;
         try {
             LocalDate date = LocalDate.parse(dateStr);
             return startOfDay ? date.atStartOfDay() : date.atTime(23, 59, 59);

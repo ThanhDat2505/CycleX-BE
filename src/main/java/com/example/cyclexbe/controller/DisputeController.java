@@ -49,7 +49,7 @@ public class DisputeController {
      * POST /api/disputes
      */
     @PostMapping("/api/disputes")
-    @PreAuthorize("hasRole('BUYER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<DisputeDetailResponse> createDispute(@Valid @RequestBody CreateDisputeRequest req) {
         DisputeDetailResponse response = disputeService.createDispute(req);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -81,6 +81,27 @@ public class DisputeController {
         return ResponseEntity.ok(Map.of("allowed", allowed));
     }
 
+    /**
+     * Get disputes created by a specific buyer
+     * GET /api/buyers/{buyerId}/disputes
+     */
+    @GetMapping("/api/buyers/{buyerId}/disputes")
+    @PreAuthorize("hasRole('BUYER')")
+    public ResponseEntity<Page<DisputeListRowResponse>> getBuyerDisputes(
+            @PathVariable Integer buyerId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "DESC") String sortDir,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer limit,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate) {
+        Page<DisputeListRowResponse> disputes = disputeService.getDisputesByBuyer(buyerId, status, q, sortBy, sortDir,
+                page, limit, fromDate, toDate);
+        return ResponseEntity.ok(disputes);
+    }
+
     // ==================== INSPECTOR / ADMIN SHARED ENDPOINTS ====================
 
     /**
@@ -98,8 +119,16 @@ public class DisputeController {
             @RequestParam(required = false, defaultValue = "10") Integer limit,
             @RequestParam(required = false) String fromDate,
             @RequestParam(required = false) String toDate) {
-        Page<DisputeListRowResponse> disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit,
-                fromDate, toDate);
+        String role = SecurityUtils.getAuthenticatedUserRole();
+        Page<DisputeListRowResponse> disputes;
+        if ("ROLE_INSPECTOR".equals(role)) {
+            Integer inspectorId = Integer.parseInt(SecurityUtils.getAuthenticatedUserId());
+            disputes = disputeService.getDisputesByAssignee(inspectorId, status, q, sortBy, sortDir, page, limit,
+                    fromDate, toDate);
+        } else {
+            disputes = disputeService.getDisputes(status, q, sortBy, sortDir, page, limit,
+                    fromDate, toDate);
+        }
         return ResponseEntity.ok(disputes);
     }
 
