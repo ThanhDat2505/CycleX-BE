@@ -11,6 +11,7 @@ import java.util.List;
 public class PreviewListingResponse {
     public Integer listingId;
     public Integer sellerId;
+    public String sellerName;
     public String title;
     public String description;
     public String bikeType;
@@ -45,6 +46,7 @@ public class PreviewListingResponse {
         PreviewListingResponse r = new PreviewListingResponse();
         r.listingId = b.getListingId();
         r.sellerId = b.getSeller() != null ? b.getSeller().getUserId() : null;
+        r.sellerName = b.getSeller() != null ? b.getSeller().getFullName() : null;
         r.title = b.getTitle();
         r.description = b.getDescription();
         r.bikeType = b.getBikeType();

@@ -19,42 +19,40 @@ import java.util.Optional;
 @Repository
 public interface DeliveryRepository extends JpaRepository<Delivery, Integer> {
 
-    /**
-     * Find all deliveries for a specific shipper with status
-     * Uses EntityGraph to avoid N+1 queries without JOIN FETCH
-     */
-    @EntityGraph(attributePaths = {"transaction", "listing", "listing.seller"})
-    Page<Delivery> findByShipper_UserIdAndStatus(
-            Integer shipperId,
-            String status,
-            Pageable pageable);
+        /**
+         * Find all deliveries for a specific shipper with status
+         * Uses EntityGraph to avoid N+1 queries without JOIN FETCH
+         */
+        @EntityGraph(attributePaths = { "transaction", "listing", "listing.seller" })
+        Page<Delivery> findByShipper_UserIdAndStatus(
+                        Integer shipperId,
+                        String status,
+                        Pageable pageable);
 
-    @EntityGraph(attributePaths = {"transaction", "listing", "listing.seller"})
-    Page<Delivery> findByShipper_UserIdAndStatusAndTransaction_Status(
-            Integer shipperId,
-            String deliveryStatus,
-            com.example.cyclexbe.domain.enums.PurchaseRequestStatus prStatus,
-            Pageable pageable
-    );
+        @EntityGraph(attributePaths = { "transaction", "listing", "listing.seller" })
+        Page<Delivery> findByShipper_UserIdAndStatusAndTransaction_Status(
+                        Integer shipperId,
+                        String deliveryStatus,
+                        com.example.cyclexbe.domain.enums.PurchaseRequestStatus prStatus,
+                        Pageable pageable);
 
-    /**
-     * Count deliveries by shipper and status
-     */
-    @Query("SELECT COUNT(d) FROM Delivery d " +
-           "WHERE d.shipper.userId = :shipperId " +
-           "AND d.status = :status")
-    long countByShipperAndStatus(
-            @Param("shipperId") Integer shipperId,
-            @Param("status") String status);
+        /**
+         * Count deliveries by shipper and status
+         */
+        @Query("SELECT COUNT(d) FROM Delivery d " +
+                        "WHERE d.shipper.userId = :shipperId " +
+                        "AND d.status = :status")
+        long countByShipperAndStatus(
+                        @Param("shipperId") Integer shipperId,
+                        @Param("status") String status);
 
-    @EntityGraph(attributePaths = {"transaction", "listing", "listing.seller", "shipper"})
-    Page<Delivery> findByShipper_UserIdAndStatusIn(Integer shipperId, List<String> statuses, Pageable pageable);
+        @EntityGraph(attributePaths = { "transaction", "listing", "listing.seller", "shipper" })
+        Page<Delivery> findByShipper_UserIdAndStatusIn(Integer shipperId, List<String> statuses, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"shipper", "transaction", "transaction.buyer", "listing", "listing.seller"})
-    Optional<Delivery> findByDeliveryIdAndShipper_UserId(Integer deliveryId, Integer shipperId);
+        @EntityGraph(attributePaths = { "shipper", "transaction", "transaction.buyer", "listing", "listing.seller" })
+        Optional<Delivery> findByDeliveryIdAndShipper_UserId(Integer deliveryId, Integer shipperId);
 
-    boolean existsByDeliveryId(Integer deliveryId);
+        boolean existsByDeliveryId(Integer deliveryId);
+
+        Optional<Delivery> findTopByOrder_OrderIdAndStatusOrderByUpdatedAtDesc(Integer orderId, String status);
 }
-
-
-

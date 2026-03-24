@@ -16,14 +16,17 @@ public class SellerListingResponse {
     public Integer viewsCount;
     public Integer inspectorId;
     public String inspectorName;
+    public String sellerName;
+    public String rejectionReason;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 
-    public SellerListingResponse() {}
+    public SellerListingResponse() {
+    }
 
     public SellerListingResponse(Integer listingId, String title, String brand, String model, BigDecimal price,
-                                 BikeListingStatus status, Integer viewsCount, Integer inspectorId, String inspectorName,
-                                 LocalDateTime createdAt, LocalDateTime updatedAt) {
+            BikeListingStatus status, Integer viewsCount, Integer inspectorId, String inspectorName,
+            LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.listingId = listingId;
         this.title = title;
         this.brand = brand;
@@ -38,8 +41,9 @@ public class SellerListingResponse {
     }
 
     public static SellerListingResponse from(BikeListing b) {
-        if (b == null) return null;
-        return new SellerListingResponse(
+        if (b == null)
+            return null;
+        SellerListingResponse r = new SellerListingResponse(
                 b.getListingId(),
                 b.getTitle(),
                 b.getBrand(),
@@ -50,7 +54,15 @@ public class SellerListingResponse {
                 b.getInspector() != null ? b.getInspector().getUserId() : null,
                 b.getInspector() != null ? b.getInspector().getFullName() : null,
                 b.getCreatedAt(),
-                b.getUpdatedAt()
-        );
+                b.getUpdatedAt());
+        r.sellerName = b.getSeller() != null ? b.getSeller().getFullName() : null;
+        return r;
+    }
+
+    public static SellerListingResponse from(BikeListing b, String rejectionReason) {
+        SellerListingResponse r = from(b);
+        if (r != null)
+            r.rejectionReason = rejectionReason;
+        return r;
     }
 }

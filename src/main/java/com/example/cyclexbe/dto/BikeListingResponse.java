@@ -11,6 +11,7 @@ import java.util.List;
 public class BikeListingResponse {
     public Integer listingId;
     public Integer sellerId;
+    public String sellerName;
     public Integer productId;
     public String productStatus;
     public String title;
@@ -58,6 +59,7 @@ public class BikeListingResponse {
             return r;
         r.listingId = b.getListingId();
         r.sellerId = b.getSeller() != null ? b.getSeller().getUserId() : null;
+        r.sellerName = b.getSeller() != null ? b.getSeller().getFullName() : null;
         r.productId = productId;
         r.productStatus = productStatus;
         r.title = b.getTitle();

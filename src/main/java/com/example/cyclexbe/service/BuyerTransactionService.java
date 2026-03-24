@@ -238,9 +238,7 @@ public class BuyerTransactionService {
                                         .orElse(null);
                 }
 
-                BigDecimal totalAmount = safeAmount(order.getDepositAmount())
-                                .add(safeAmount(order.getPlatformFee()))
-                                .add(safeAmount(order.getInspectionFee()));
+                BigDecimal totalAmount = safeAmount(order.getTotalAmount());
 
                 return new BuyerTransactionListItemResponse(
                                 order.getOrderId(),
