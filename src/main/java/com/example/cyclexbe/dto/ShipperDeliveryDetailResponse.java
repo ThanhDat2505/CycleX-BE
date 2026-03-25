@@ -22,6 +22,7 @@ public class ShipperDeliveryDetailResponse {
 
     private ShipperDeliveryTimelineDto timeline;
     private ShipperDeliveryActionsDto actions;
+    private java.math.BigDecimal codAmount;
 
     public ShipperDeliveryDetailResponse() {
     }
@@ -37,7 +38,8 @@ public class ShipperDeliveryDetailResponse {
             ShipperPickupLocationDto pickup,
             ShipperDeliveryLocationDto delivery,
             ShipperDeliveryTimelineDto timeline,
-            ShipperDeliveryActionsDto actions) {
+            ShipperDeliveryActionsDto actions,
+            java.math.BigDecimal codAmount) {
         this.deliveryId = deliveryId;
         this.orderId = orderId;
         this.status = status;
@@ -49,6 +51,7 @@ public class ShipperDeliveryDetailResponse {
         this.delivery = delivery;
         this.timeline = timeline;
         this.actions = actions;
+        this.codAmount = codAmount;
     }
 
     public Integer getDeliveryId() {
@@ -121,6 +124,14 @@ public class ShipperDeliveryDetailResponse {
 
     public void setDelivery(ShipperDeliveryLocationDto delivery) {
         this.delivery = delivery;
+    }
+
+    public java.math.BigDecimal getCodAmount() {
+        return codAmount;
+    }
+
+    public void setCodAmount(java.math.BigDecimal codAmount) {
+        this.codAmount = codAmount;
     }
 
     public ShipperDeliveryTimelineDto getTimeline() {

@@ -262,6 +262,14 @@ public class ShipperDeliveryService {
         ShipperDeliveryTimelineDto timeline = buildTimeline(delivery);
         ShipperDeliveryActionsDto actions = buildActions(delivery); // <-- sửa theo đề
 
+        // COD = số tiền buyer đã chấp nhận thanh toán (lấy từ Order.totalAmount hoặc listing price)
+        java.math.BigDecimal codAmount = null;
+        if (delivery.getOrder() != null && delivery.getOrder().getTotalAmount() != null) {
+            codAmount = delivery.getOrder().getTotalAmount();
+        } else if (delivery.getListing() != null && delivery.getListing().getPrice() != null) {
+            codAmount = delivery.getListing().getPrice();
+        }
+
         return new ShipperDeliveryDetailResponse(
                 delivery.getDeliveryId(),
                 delivery.getTransaction().getRequestId(),
@@ -273,7 +281,8 @@ public class ShipperDeliveryService {
                 pickup,
                 dropoff,
                 timeline,
-                actions);
+                actions,
+                codAmount);
     }
 
     /**
