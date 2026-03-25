@@ -464,7 +464,7 @@ public class DisputeService {
      * Flow: Inspector cannot handle → status = ESCALATED, assignedTo = ADMIN
      */
     @Transactional
-    public DisputeDetailResponse escalateDispute(Integer disputeId, String escalationNote) {
+    public DisputeDetailResponse escalateDispute(Integer disputeId, String escalationNote, String escalationSuggestion) {
         Dispute dispute = disputeRepository.findById(disputeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khiếu nại không tồn tại"));
 
@@ -479,14 +479,19 @@ public class DisputeService {
         }
         User admin = admins.get(0);
 
-        User previousAssignee = dispute.getAssignee();
+        // Store who escalated (inspector)
+        try {
+            String authUserId = com.example.cyclexbe.security.SecurityUtils.getAuthenticatedUserId();
+            userRepository.findById(Integer.parseInt(authUserId)).ifPresent(dispute::setEscalatedBy);
+        } catch (Exception ignored) {
+            // fallback: leave escalatedBy null
+        }
+
         dispute.setAssignee(admin);
         dispute.setStatus(DisputeStatus.ESCALATED);
-
-        // Append escalation note to resolution note
-        String existingNote = dispute.getResolutionNote() != null ? dispute.getResolutionNote() + "\n" : "";
-        dispute.setResolutionNote(
-                existingNote + "[Escalated] " + (escalationNote != null ? escalationNote : "Chuyển tiếp lên Admin"));
+        dispute.setEscalationNote(escalationNote != null ? escalationNote : "Chuyển tiếp lên Admin");
+        dispute.setEscalationSuggestion(escalationSuggestion);
+        dispute.setEscalatedAt(java.time.LocalDateTime.now());
 
         Dispute saved = disputeRepository.save(dispute);
 

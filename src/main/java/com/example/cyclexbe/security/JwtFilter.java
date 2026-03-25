@@ -37,8 +37,6 @@ public class JwtFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        System.out.println("[JWT FILTER] " + request.getMethod() + " " + request.getRequestURI());
-
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -72,9 +70,6 @@ public class JwtFilter extends OncePerRequestFilter {
                 // Spring Security convention: ROLE_*
                 SimpleGrantedAuthority authority = new SimpleGrantedAuthority(
                         role.startsWith("ROLE_") ? role : "ROLE_" + role);
-
-                System.out.println("[JWT DEBUG] subject=" + subject + " role=" + role + " authority="
-                        + authority.getAuthority() + " path=" + request.getRequestURI());
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(subject,
                         null, List.of(authority));

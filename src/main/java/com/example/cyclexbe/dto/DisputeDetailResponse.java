@@ -18,6 +18,12 @@ public class DisputeDetailResponse {
     public String resolutionAction;
     public String resolvedAt;
 
+    // Escalation info (set when status = ESCALATED)
+    public String escalationNote;
+    public String escalationSuggestion;
+    public ActorDTO escalatedBy;
+    public String escalatedAt;
+
     public ActorDTO assignee;
     public ActorDTO requester;
     public ActorDTO buyer;
@@ -99,6 +105,18 @@ public class DisputeDetailResponse {
         res.resolutionAction = d.getResolutionAction();
         res.resolvedAt = d.getResolvedAt() != null ? d.getResolvedAt().toString() : null;
 
+        // Escalation info
+        res.escalationNote = d.getEscalationNote();
+        res.escalationSuggestion = d.getEscalationSuggestion();
+        res.escalatedAt = d.getEscalatedAt() != null ? d.getEscalatedAt().toString() : null;
+        if (d.getEscalatedBy() != null) {
+            res.escalatedBy = new ActorDTO(
+                    d.getEscalatedBy().getUserId(),
+                    d.getEscalatedBy().getFullName(),
+                    d.getEscalatedBy().getEmail(),
+                    d.getEscalatedBy().getPhone());
+        }
+
         // Requester (buyer who raised the dispute)
         if (d.getRequester() != null) {
             res.requester = new ActorDTO(
@@ -148,7 +166,10 @@ public class DisputeDetailResponse {
             res.transaction.status = d.getPurchaseRequest().getStatus() != null
                     ? d.getPurchaseRequest().getStatus().name()
                     : null;
-            res.transaction.amountVnd = d.getPurchaseRequest().getDepositAmount();
+            // Use listing price as the transaction amount (full price, not deposit)
+            res.transaction.amountVnd = (product.getListing() != null && product.getListing().getPrice() != null)
+                    ? product.getListing().getPrice()
+                    : d.getPurchaseRequest().getDepositAmount();
             res.transaction.createdAt = d.getPurchaseRequest().getCreatedAt() != null
                     ? d.getPurchaseRequest().getCreatedAt().toString()
                     : null;

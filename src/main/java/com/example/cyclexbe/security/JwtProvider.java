@@ -58,8 +58,6 @@ public class JwtProvider {
                     .parseSignedClaims(token);
             return Optional.of(jws);
         } catch (Exception ex) {
-            System.err.println(
-                    "[JWT DEBUG] Token validation failed: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
             return Optional.empty();
         }
     }

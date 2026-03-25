@@ -275,7 +275,8 @@ public class DisputeController {
             @PathVariable Integer disputeId,
             @RequestBody(required = false) Map<String, String> body) {
         String note = body != null ? body.get("note") : null;
-        DisputeDetailResponse response = disputeService.escalateDispute(disputeId, note);
+        String suggestion = body != null ? body.get("suggestion") : null;
+        DisputeDetailResponse response = disputeService.escalateDispute(disputeId, note, suggestion);
         return ResponseEntity.ok(response);
     }
 
@@ -289,7 +290,8 @@ public class DisputeController {
             @PathVariable Integer disputeId,
             @RequestBody(required = false) Map<String, String> body) {
         String note = body != null ? body.get("note") : null;
-        DisputeDetailResponse response = disputeService.escalateDispute(disputeId, note);
+        String suggestion = body != null ? body.get("suggestion") : null;
+        DisputeDetailResponse response = disputeService.escalateDispute(disputeId, note, suggestion);
         return ResponseEntity.ok(response);
     }
 

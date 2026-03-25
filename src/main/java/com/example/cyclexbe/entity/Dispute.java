@@ -58,6 +58,19 @@ public class Dispute {
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 
+    @Column(name = "escalation_note", columnDefinition = "TEXT")
+    private String escalationNote;
+
+    @Column(name = "escalation_suggestion", length = 50)
+    private String escalationSuggestion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "escalated_by_id")
+    private User escalatedBy;
+
+    @Column(name = "escalated_at")
+    private LocalDateTime escalatedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -206,5 +219,37 @@ public class Dispute {
 
     public void setEvidenceList(List<DisputeEvidence> evidenceList) {
         this.evidenceList = evidenceList;
+    }
+
+    public String getEscalationNote() {
+        return escalationNote;
+    }
+
+    public void setEscalationNote(String escalationNote) {
+        this.escalationNote = escalationNote;
+    }
+
+    public String getEscalationSuggestion() {
+        return escalationSuggestion;
+    }
+
+    public void setEscalationSuggestion(String escalationSuggestion) {
+        this.escalationSuggestion = escalationSuggestion;
+    }
+
+    public User getEscalatedBy() {
+        return escalatedBy;
+    }
+
+    public void setEscalatedBy(User escalatedBy) {
+        this.escalatedBy = escalatedBy;
+    }
+
+    public LocalDateTime getEscalatedAt() {
+        return escalatedAt;
+    }
+
+    public void setEscalatedAt(LocalDateTime escalatedAt) {
+        this.escalatedAt = escalatedAt;
     }
 }
