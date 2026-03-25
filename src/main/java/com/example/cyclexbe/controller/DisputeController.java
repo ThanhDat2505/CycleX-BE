@@ -261,7 +261,7 @@ public class DisputeController {
     public ResponseEntity<DisputeDetailResponse> replyToDispute(
             @PathVariable Integer disputeId,
             @Valid @RequestBody DisputeReplyRequest req) {
-        DisputeDetailResponse response = disputeService.replyToDispute(disputeId, req.content, null);
+        DisputeDetailResponse response = disputeService.replyToDispute(disputeId, req.content, req.evidenceUrls);
         return ResponseEntity.ok(response);
     }
 
