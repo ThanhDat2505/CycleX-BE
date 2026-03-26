@@ -37,6 +37,14 @@ public class DataSeeder implements ApplicationRunner {
                         existing.setVerify(true);
                         dirty = true;
                     }
+                    if (existing.getPhone() == null || existing.getPhone().isBlank()) {
+                        existing.setPhone("09847588237");
+                        dirty = true;
+                    }
+                    if (existing.getCccd() == null || existing.getCccd().isBlank()) {
+                        existing.setCccd("072998003394");
+                        dirty = true;
+                    }
                     if (dirty) {
                         userRepository.save(existing);
                     }
@@ -49,6 +57,8 @@ public class DataSeeder implements ApplicationRunner {
                     admin.setFullName("Admin");
                     admin.setVerify(true);
                     admin.setStatus("ACTIVE");
+                    admin.setPhone("09847588237");
+                    admin.setCccd("072998003394");
                     userRepository.save(admin);
                 });
     }
