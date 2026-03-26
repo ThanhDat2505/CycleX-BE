@@ -43,7 +43,6 @@ public class SecurityConfig {
                         // Swagger UI
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 
-
                         // public endpoints - Auth
                         .requestMatchers("/api/auth/**").permitAll()
 
@@ -52,7 +51,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/bikelistings").hasRole("SELLER")
                         .requestMatchers(HttpMethod.PUT, "/api/bikelistings/**").hasRole("SELLER")
                         .requestMatchers(HttpMethod.DELETE, "/api/bikelistings/**").hasRole("SELLER")
-                        
+
                         // public endpoints - Users (Read-only public, write requires authentication)
                         .requestMatchers(HttpMethod.PUT, "/api/users/**").authenticated()
 
@@ -135,7 +134,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

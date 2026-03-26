@@ -21,15 +21,35 @@ public class DataSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (!userRepository.existsByEmail("admin@cyclex.com")) {
-            User admin = new User();
-            admin.setEmail("admin@cyclex.com");
-            admin.setPasswordHash(passwordEncoder.encode("admin123"));
-            admin.setRole(Role.ADMIN);
-            admin.setFullName("Admin");
-            admin.setVerify(true);
-            admin.setStatus("ACTIVE");
-            userRepository.save(admin);
-        }
+        userRepository.findByEmail("admin@cyclex.com").ifPresentOrElse(
+                existing -> {
+                    // Ensure the admin account is always active and has the correct role
+                    boolean dirty = false;
+                    if (!"ACTIVE".equals(existing.getStatus())) {
+                        existing.setStatus("ACTIVE");
+                        dirty = true;
+                    }
+                    if (existing.getRole() != Role.ADMIN) {
+                        existing.setRole(Role.ADMIN);
+                        dirty = true;
+                    }
+                    if (!existing.isVerify()) {
+                        existing.setVerify(true);
+                        dirty = true;
+                    }
+                    if (dirty) {
+                        userRepository.save(existing);
+                    }
+                },
+                () -> {
+                    User admin = new User();
+                    admin.setEmail("admin@cyclex.com");
+                    admin.setPasswordHash(passwordEncoder.encode("admin123"));
+                    admin.setRole(Role.ADMIN);
+                    admin.setFullName("Admin");
+                    admin.setVerify(true);
+                    admin.setStatus("ACTIVE");
+                    userRepository.save(admin);
+                });
     }
 }
