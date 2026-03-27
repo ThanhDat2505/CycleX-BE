@@ -653,9 +653,10 @@ public class SellerService {
 
         // Check file extension
         String lowerPath = imagePath.toLowerCase();
-        if (!lowerPath.endsWith(".png") && !lowerPath.endsWith(".jpg") && !lowerPath.endsWith(".jpeg")) {
+        if (!lowerPath.endsWith(".png") && !lowerPath.endsWith(".jpg")
+                && !lowerPath.endsWith(".jpeg") && !lowerPath.endsWith(".webp")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Image must be PNG, JPG, or JPEG format");
+                    "Image must be PNG, JPG, JPEG, or WEBP format");
         }
     }
 
