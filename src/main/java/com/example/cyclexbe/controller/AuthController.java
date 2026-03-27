@@ -34,4 +34,14 @@ public class AuthController {
     public SendOtpResponse resendOtp(@Valid @RequestBody SendOtpRequest req) {
         return authService.sendOtp(req);
     }
+
+    @PostMapping("/forgot-password")
+    public MessageResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
+        return authService.forgotPassword(req);
+    }
+
+    @PostMapping("/reset-password")
+    public MessageResponse resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
+        return authService.resetPassword(req);
+    }
 }

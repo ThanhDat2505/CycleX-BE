@@ -16,7 +16,9 @@ public class OtpService {
     private final OtpUtil otpUtil = new OtpUtil();
     private final UserService userService;
     private final EmailService emailService;
-    public OtpService(EmailOtpRepository emailOtpRepository, UserService userService, EmailService emailService, EmailService emailService1) {
+
+    public OtpService(EmailOtpRepository emailOtpRepository, UserService userService, EmailService emailService,
+            EmailService emailService1) {
         this.emailOtpRepository = emailOtpRepository;
         this.userService = userService;
         this.emailService = emailService1;
@@ -38,6 +40,7 @@ public class OtpService {
         System.out.println("OTP sent to " + email);
         return otp;
     }
+
     public void verifyOtp(String email, String otp) {
         User user = userService.findByEmail(email);
         EmailOtp emailOtp = emailOtpRepository.findByUser(user)
@@ -64,9 +67,49 @@ public class OtpService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP");
         }
 
-
         user.setVerify(true);
         userService.save(user);
+        emailOtpRepository.delete(emailOtp);
+    }
+
+    public String sendPasswordResetOtp(String email) {
+        User user = userService.findByEmail(email);
+        String otp = OtpUtil.generateOtp();
+        emailOtpRepository.findByUser(user).ifPresent(emailOtpRepository::delete);
+        EmailOtp emailOtp = new EmailOtp(user, otp, LocalDateTime.now().plusMinutes(5));
+        emailOtpRepository.save(emailOtp);
+        boolean statusSendEmail = emailService.sendPasswordResetEmail(email, otp);
+        if (!statusSendEmail) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error sending OTP");
+        }
+        return otp;
+    }
+
+    public void verifyPasswordResetOtp(String email, String otp) {
+        User user = userService.findByEmail(email);
+        EmailOtp emailOtp = emailOtpRepository.findByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP not found"));
+
+        if (emailOtp.isLocked()) {
+            throw new ResponseStatusException(HttpStatus.LOCKED, "OTP is locked. Please request a new OTP.");
+        }
+
+        if (emailOtp.getExpiryTime() != null && emailOtp.getExpiryTime().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP expired. Please request a new OTP.");
+        }
+
+        if (emailOtp.getAttempts() >= 5) {
+            emailOtp.setLocked(true);
+            emailOtpRepository.save(emailOtp);
+            throw new ResponseStatusException(HttpStatus.LOCKED, "OTP is locked. Please request a new OTP.");
+        }
+
+        if (emailOtp.getOtp() == null || !emailOtp.getOtp().equals(otp)) {
+            emailOtp.setAttempts(emailOtp.getAttempts() + 1);
+            emailOtpRepository.save(emailOtp);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP");
+        }
+
         emailOtpRepository.delete(emailOtp);
     }
 }

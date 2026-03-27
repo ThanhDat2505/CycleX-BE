@@ -16,7 +16,9 @@ public class AuthService {
     private final OtpService otpService;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
-    public AuthService(UserService userService, OtpService otpService, PasswordEncoder passwordEncoder, JwtProvider jwtProvider) {
+
+    public AuthService(UserService userService, OtpService otpService, PasswordEncoder passwordEncoder,
+            JwtProvider jwtProvider) {
         this.userService = userService;
         this.otpService = otpService;
         this.passwordEncoder = passwordEncoder;
@@ -28,15 +30,13 @@ public class AuthService {
         if (!passwordEncoder.matches(req.password, user.getPasswordHash())) {
             System.out.println("Invalid credentials");
             throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, "Invalid credentials"
-            );
+                    HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
         // Block suspended/banned users from logging in
         if ("SUSPENDED".equals(user.getStatus())) {
             throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
-            );
+                    HttpStatus.FORBIDDEN, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
         }
 
         LoginResponse response = new LoginResponse();
@@ -55,10 +55,10 @@ public class AuthService {
         return response;
     }
 
-    public SendOtpResponse sendOtp(@Valid @RequestBody SendOtpRequest req ) {
+    public SendOtpResponse sendOtp(@Valid @RequestBody SendOtpRequest req) {
         String otp = otpService.sendOtp(req.email);
         SendOtpResponse response = new SendOtpResponse();
-//        response.otp = otp;
+        // response.otp = otp;
         response.message = "OTP sent successfully";
         return response;
     }
@@ -72,6 +72,19 @@ public class AuthService {
         return response;
     }
 
+    public MessageResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
+        otpService.sendPasswordResetOtp(req.email);
+        MessageResponse response = new MessageResponse();
+        response.message = "Password reset OTP sent to your email";
+        return response;
+    }
 
-
+    public MessageResponse resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
+        otpService.verifyPasswordResetOtp(req.email, req.otp);
+        User user = userService.findByEmail(req.email);
+        userService.updatePassword(user, req.newPassword);
+        MessageResponse response = new MessageResponse();
+        response.message = "Password reset successfully";
+        return response;
+    }
 }

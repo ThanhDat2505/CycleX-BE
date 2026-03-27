@@ -43,6 +43,9 @@ public class SecurityConfig {
                         // Swagger UI
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 
+                        // Static file serving for uploaded files (chat images, inspection files)
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+
                         // public endpoints - Auth
                         .requestMatchers("/api/auth/**").permitAll()
 
