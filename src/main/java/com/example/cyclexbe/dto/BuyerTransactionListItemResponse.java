@@ -21,6 +21,7 @@ public class BuyerTransactionListItemResponse {
     private String status;
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
+    private boolean hasDispute;
 
     public BuyerTransactionListItemResponse() {
     }
@@ -37,7 +38,8 @@ public class BuyerTransactionListItemResponse {
             String transactionType,
             String status,
             BigDecimal totalAmount,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            boolean hasDispute
     ) {
         this.orderId = orderId;
         this.buyerId = buyerId;
@@ -51,6 +53,7 @@ public class BuyerTransactionListItemResponse {
         this.status = status;
         this.totalAmount = totalAmount;
         this.createdAt = createdAt;
+        this.hasDispute = hasDispute;
     }
 
     public Integer getOrderId() {
@@ -147,5 +150,13 @@ public class BuyerTransactionListItemResponse {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isHasDispute() {
+        return hasDispute;
+    }
+
+    public void setHasDispute(boolean hasDispute) {
+        this.hasDispute = hasDispute;
     }
 }

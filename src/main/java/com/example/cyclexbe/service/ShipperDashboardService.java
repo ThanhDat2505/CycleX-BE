@@ -40,21 +40,18 @@ public class ShipperDashboardService {
 
         // Failed = FAILED or CANCELLED
         long failedCount = deliveryRepository.countByShipperAndStatus(shipperId, "FAILED") +
-                           deliveryRepository.countByShipperAndStatus(shipperId, "CANCELLED");
+                deliveryRepository.countByShipperAndStatus(shipperId, "CANCELLED");
 
         ShipperDashboardCountsDto counts = new ShipperDashboardCountsDto(
                 (int) assignedCount,
                 (int) inProgressCount,
                 (int) deliveredCount,
-                (int) failedCount
-        );
+                (int) failedCount);
 
         ShipperDashboardSummaryResponse response = new ShipperDashboardSummaryResponse(
                 counts,
-                LocalDateTime.now()
-        );
+                LocalDateTime.now());
 
         return response;
     }
 }
-

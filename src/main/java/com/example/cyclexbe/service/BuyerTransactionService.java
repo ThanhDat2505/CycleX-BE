@@ -14,6 +14,7 @@ import com.example.cyclexbe.exception.PurchaseRequestException;
 import com.example.cyclexbe.repository.ListingImageRepository;
 import com.example.cyclexbe.repository.OrderRepository;
 import com.example.cyclexbe.repository.ProductRepository;
+import com.example.cyclexbe.repository.DisputeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,14 +35,17 @@ public class BuyerTransactionService {
         private final ProductRepository productRepository;
         private final ListingImageRepository listingImageRepository;
         private final OrderRepository orderRepository;
+        private final DisputeRepository disputeRepository;
 
         public BuyerTransactionService(
                         ProductRepository productRepository,
                         ListingImageRepository listingImageRepository,
-                        OrderRepository orderRepository) {
+                        OrderRepository orderRepository,
+                        DisputeRepository disputeRepository) {
                 this.productRepository = productRepository;
                 this.listingImageRepository = listingImageRepository;
                 this.orderRepository = orderRepository;
+                this.disputeRepository = disputeRepository;
         }
 
         @Transactional(readOnly = true)
@@ -240,6 +244,13 @@ public class BuyerTransactionService {
 
                 BigDecimal totalAmount = safeAmount(order.getTotalAmount());
 
+                // Check if this order has a dispute via PurchaseRequest
+                boolean hasDispute = false;
+                if (order.getPurchaseRequest() != null && order.getPurchaseRequest().getRequestId() != null) {
+                        hasDispute = disputeRepository.existsByPurchaseRequest_RequestId(
+                                        order.getPurchaseRequest().getRequestId());
+                }
+
                 return new BuyerTransactionListItemResponse(
                                 order.getOrderId(),
                                 buyerId,
@@ -253,7 +264,8 @@ public class BuyerTransactionService {
                                 order.getTransactionType() != null ? order.getTransactionType().name() : null,
                                 order.getStatus().name(),
                                 totalAmount,
-                                order.getCreatedAt());
+                                order.getCreatedAt(),
+                                hasDispute);
         }
 
         private BigDecimal safeAmount(BigDecimal value) {
