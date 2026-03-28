@@ -36,6 +36,7 @@ public class ShipperDashboardService {
     public ShipperDashboardSummaryResponse getSummary(Integer shipperId) {
         long assignedCount = deliveryRepository.countByShipperAndStatus(shipperId, "ASSIGNED");
         long inProgressCount = deliveryRepository.countByShipperAndStatus(shipperId, "IN_PROGRESS");
+        long deliveredCount = deliveryRepository.countByShipperAndStatus(shipperId, "DELIVERED");
 
         // Failed = FAILED or CANCELLED
         long failedCount = deliveryRepository.countByShipperAndStatus(shipperId, "FAILED") +
@@ -44,6 +45,7 @@ public class ShipperDashboardService {
         ShipperDashboardCountsDto counts = new ShipperDashboardCountsDto(
                 (int) assignedCount,
                 (int) inProgressCount,
+                (int) deliveredCount,
                 (int) failedCount
         );
 

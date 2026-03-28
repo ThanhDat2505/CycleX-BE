@@ -105,7 +105,7 @@ public class ShipperDeliveryService {
             Pageable pageable) {
 
         // Valid statuses for shipper delivery operations
-        List<String> validStatuses = Arrays.asList("ASSIGNED", "IN_PROGRESS", "FAILED");
+        List<String> validStatuses = Arrays.asList("ASSIGNED", "IN_PROGRESS", "DELIVERED", "FAILED");
         List<String> statusesToFilter;
 
         if (status == null || status.trim().isEmpty()) {
@@ -123,7 +123,7 @@ public class ShipperDeliveryService {
                 if (!validStatuses.contains(s)) {
                     throw new ResponseStatusException(
                             HttpStatus.BAD_REQUEST,
-                            "Invalid status: " + s + ". Valid values are: ASSIGNED, IN_PROGRESS, FAILED");
+                            "Invalid status: " + s + ". Valid values are: ASSIGNED, IN_PROGRESS, DELIVERED, FAILED");
                 }
             }
         }

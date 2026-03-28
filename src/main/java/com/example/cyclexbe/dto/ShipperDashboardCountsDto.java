@@ -8,13 +8,15 @@ public class ShipperDashboardCountsDto {
 
     private Integer assigned;
     private Integer inProgress;
+    private Integer delivered;
     private Integer failed;
 
     public ShipperDashboardCountsDto() {}
 
-    public ShipperDashboardCountsDto(Integer assigned, Integer inProgress, Integer failed) {
+    public ShipperDashboardCountsDto(Integer assigned, Integer inProgress, Integer delivered, Integer failed) {
         this.assigned = assigned;
         this.inProgress = inProgress;
+        this.delivered = delivered;
         this.failed = failed;
     }
 
@@ -23,6 +25,9 @@ public class ShipperDashboardCountsDto {
 
     public Integer getInProgress() { return inProgress; }
     public void setInProgress(Integer inProgress) { this.inProgress = inProgress; }
+
+    public Integer getDelivered() { return delivered; }
+    public void setDelivered(Integer delivered) { this.delivered = delivered; }
 
     public Integer getFailed() { return failed; }
     public void setFailed(Integer failed) { this.failed = failed; }
