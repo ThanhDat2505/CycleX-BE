@@ -1,4 +1,4 @@
-package com.example.cyclexbe.controller;
+﻿package com.example.cyclexbe.controller;
 
 import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.service.NotificationService;
@@ -85,23 +85,23 @@ public class NotificationController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("User is not authenticated");
+            throw new RuntimeException("Người dùng chưa đăng nhập");
         }
 
         Object principal = authentication.getPrincipal();
 
         if (principal == null || "anonymousUser".equals(principal)) {
-            throw new RuntimeException("User is not authenticated");
+            throw new RuntimeException("Người dùng chưa đăng nhập");
         }
 
         if (principal instanceof String principalStr) {
             try {
                 return Integer.parseInt(principalStr);
             } catch (NumberFormatException e) {
-                throw new RuntimeException("Invalid user ID in authentication: " + principalStr);
+                throw new RuntimeException("Mã người dùng không hợp lệ: " + principalStr);
             }
         }
 
-        throw new RuntimeException("Unsupported authentication principal type: " + principal.getClass().getName());
+        throw new RuntimeException("Loại xác thực không được hỗ trợ: " + principal.getClass().getName());
     }
 }

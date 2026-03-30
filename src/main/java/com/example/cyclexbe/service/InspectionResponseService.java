@@ -1,4 +1,4 @@
-package com.example.cyclexbe.service;
+﻿package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.dto.*;
@@ -49,13 +49,13 @@ public class InspectionResponseService {
 
     private void assertOwnerAndStatus(BikeListing listing, Integer sellerId) {
         if (!listing.getSeller().getUserId().equals(sellerId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't own this listing");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không phải chủ sở hữu tin đăng này");
         }
 
         // Need More Info / Waiting Seller Response (hoặc tương đương)
         if (listing.getStatus() != BikeListingStatus.NEED_MORE_INFO
             /* || listing.getStatus() == BikeListingStatus.WAITING_SELLER_RESPONSE */) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Listing is not eligible for S-42");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Tin đăng không đủ điều kiện để phản hồi");
         }
     }
 
@@ -67,12 +67,12 @@ public class InspectionResponseService {
     @Transactional(readOnly = true)
     public InspectionResponseLoadResponse loadScreen(Integer listingId, Integer sellerId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         assertOwnerAndStatus(listing, sellerId);
 
         InspectionRequest req = inspectionRequestRepository.findByListing_ListingId(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspection request not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu kiểm tra"));
 
         InspectionResponse response = inspectionResponseRepository
                 .findByInspectionRequest_RequestId(req.getRequestId())
@@ -105,7 +105,7 @@ public class InspectionResponseService {
                                                      MultipartFile file) {
 
         InspectionRequest req = inspectionRequestRepository.findById(inspectionRequestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspection request not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu kiểm tra"));
 
         BikeListing listing = req.getListing();
         assertOwnerAndStatus(listing, sellerId);
@@ -121,22 +121,22 @@ public class InspectionResponseService {
         // requirement phải thuộc request và đang unresolved (đúng màn S-42)
         InspectionRequirement requirement = inspectionRequirementRepository
                 .findById(requirementId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Requirement not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu bổ sung"));
 
         if (!requirement.getInspectionRequest().getRequestId().equals(inspectionRequestId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Requirement not in this inspection request");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Yêu cầu không thuộc yêu cầu kiểm tra này");
         }
         if (requirement.isResolved()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Requirement already resolved");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Yêu cầu đã được giải quyết");
         }
 
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
-            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "File type not allowed");
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Loại file không được phép");
         }
 
         if (file.getSize() > MAX_FILE_SIZE_MB * 1024L * 1024L) {
-            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "File size exceeds limit");
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Kích thước file vượt quá giới hạn");
         }
 
         long draftCount = inspectionResponseFileRepository
@@ -146,7 +146,7 @@ public class InspectionResponseService {
         }
 
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         InspectionResponseFile rf = new InspectionResponseFile();
         rf.setInspectionResponse(response);
@@ -172,10 +172,10 @@ public class InspectionResponseService {
 
         InspectionResponseFile file = inspectionResponseFileRepository
                 .findByFileIdAndInspectionResponse_InspectionRequest_RequestId(fileId, inspectionRequestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy file"));
 
         if (!file.getSeller().getUserId().equals(sellerId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't own this file");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không phải chủ sở hữu file này");
         }
 
         InspectionResponse response = file.getInspectionResponse();
@@ -187,7 +187,7 @@ public class InspectionResponseService {
         assertOwnerAndStatus(listing, sellerId);
 
         if (!"DRAFT".equalsIgnoreCase(file.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "File cannot be deleted");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Không thể xóa file");
         }
 
         inspectionResponseFileRepository.delete(file);
@@ -200,7 +200,7 @@ public class InspectionResponseService {
                                                  SubmitInspectionResponseRequest body) {
 
         InspectionRequest inspReq = inspectionRequestRepository.findById(inspectionRequestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspection request not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu kiểm tra"));
 
         BikeListing listing = inspReq.getListing();
         assertOwnerAndStatus(listing, sellerId);
@@ -224,7 +224,7 @@ public class InspectionResponseService {
         // Nếu FE gửi requirementId lạ -> 400
         for (SubmitInspectionResponseRequest.AnswerItem ans : body.getAnswers()) {
             if (ans.getRequirementId() == null || !unresolvedMap.containsKey(ans.getRequirementId())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Answer contains invalid requirementId");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Câu trả lời chứa mã yêu cầu không hợp lệ");
             }
         }
 
@@ -240,7 +240,7 @@ public class InspectionResponseService {
                 String text = answers.get(req.getRequirementId());
                 if (text == null || text.trim().isEmpty()) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "Missing required text for requirementId=" + req.getRequirementId());
+                            "Thiếu nội dung bắt buộc cho yêu cầu ID=" + req.getRequirementId());
                 }
             }
         }
@@ -253,7 +253,7 @@ public class InspectionResponseService {
                                 inspectionRequestId, "DRAFT", req.getRequirementId());
                 if (cnt == 0) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "Missing required files for requirementId=" + req.getRequirementId());
+                            "Thiếu file bắt buộc cho yêu cầu ID=" + req.getRequirementId());
                 }
             }
         }
@@ -266,7 +266,7 @@ public class InspectionResponseService {
         }
 
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         // Lưu message tổng hợp (vì entity có message 1 field)
         // Bạn có thể format từ answers để giữ log rõ ràng.

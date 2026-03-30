@@ -1,4 +1,4 @@
-package com.example.cyclexbe.service;
+﻿package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.dto.*;
@@ -55,7 +55,7 @@ public class SellerService {
      */
     public SellerDashboardStatsResponse getDashboardStats(Integer sellerId) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         long approvedCount = bikeListingRepository.countBySellerAndStatus(seller, BikeListingStatus.APPROVED);
         long pendingCount = bikeListingRepository.countBySellerAndStatus(seller, BikeListingStatus.PENDING);
@@ -81,7 +81,7 @@ public class SellerService {
             String model, BigDecimal minPrice, BigDecimal maxPrice,
             String sort, int page, int pageSize) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         // Determine sort order
         Sort.Direction direction = "oldest".equalsIgnoreCase(sort) ? Sort.Direction.ASC : Sort.Direction.DESC;
@@ -153,11 +153,11 @@ public class SellerService {
      */
     public SellerListingResponse getListingDetail(Integer sellerId, Integer listingId) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Listing not found or not owned by seller"));
+                        "Không tìm thấy tin đăng hoặc tin đăng không thuộc về bạn"));
 
         return SellerListingResponse.from(listing);
     }
@@ -167,14 +167,14 @@ public class SellerService {
      */
     public SellerListingResponse getRejectionReason(Integer sellerId, Integer listingId) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Listing not found or not owned by seller"));
+                        "Không tìm thấy tin đăng hoặc tin đăng không thuộc về bạn"));
 
         if (listing.getStatus() != BikeListingStatus.REJECTED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Listing is not rejected");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tin đăng không ở trạng thái bị từ chối");
         }
 
         return SellerListingResponse.from(listing);
@@ -187,15 +187,15 @@ public class SellerService {
      */
     public ListingResultResponse getListingResult(Integer sellerId, Integer listingId) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Listing not found or not owned by seller"));
+                        "Không tìm thấy tin đăng hoặc tin đăng không thuộc về bạn"));
 
         if (listing.getStatus() != BikeListingStatus.APPROVED && listing.getStatus() != BikeListingStatus.REJECTED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Listing has not been reviewed yet. Current status: " + listing.getStatus());
+                    "Tin đăng chưa được duyệt. Trạng thái hiện tại: " + listing.getStatus());
         }
 
         SellerListingResponse listingResponse = SellerListingResponse.from(listing);
@@ -216,7 +216,7 @@ public class SellerService {
         try {
             return BikeListingStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status: " + status);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái không hợp lệ: " + status);
         }
     }
 
@@ -225,7 +225,7 @@ public class SellerService {
      */
     public BikeListingResponse createListing(Integer sellerId, CreateListingRequest req) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         validateCreateListingRequest(req);
 
@@ -277,19 +277,19 @@ public class SellerService {
     public BikeListingResponse updateListing(Integer sellerId, Integer listingId, UpdateListingRequest req) {
         // Get seller
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         // Get listing and verify ownership
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Listing not found or not owned by seller"));
+                        "Không tìm thấy tin đăng hoặc tin đăng không thuộc về bạn"));
 
         // Check if listing status allows editing (DRAFT or REJECTED only)
         if (listing.getStatus() != BikeListingStatus.DRAFT && listing.getStatus() != BikeListingStatus.REJECTED) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Cannot edit listing with status: " + listing.getStatus()
-                            + ". Only DRAFT or REJECTED listings can be edited.");
+                    "Không thể chỉnh sửa tin đăng với trạng thái: " + listing.getStatus()
+                            + ". Chỉ tin đăng DRAFT hoặc REJECTED mới có thể chỉnh sửa.");
         }
 
         // Update fields if provided
@@ -344,17 +344,17 @@ public class SellerService {
     @Transactional
     public BikeListingResponse cancelPublishListing(Integer sellerId, Integer listingId) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Listing not found or not owned by seller"));
+                        "Không tìm thấy tin đăng hoặc tin đăng không thuộc về bạn"));
 
         BikeListingStatus status = listing.getStatus();
         if (status != BikeListingStatus.PENDING && status != BikeListingStatus.REVIEWING
                 && status != BikeListingStatus.WAITING_INSPECTOR_REVIEW) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Cancel publish is only allowed for PENDING, REVIEWING, or WAITING_INSPECTOR_REVIEW listings. Current status: "
+                    "Hủy xuất bản chỉ được phép cho tin đăng PENDING, REVIEWING hoặc WAITING_INSPECTOR_REVIEW. Trạng thái hiện tại: "
                             + status);
         }
 
@@ -368,14 +368,14 @@ public class SellerService {
      */
     public BikeListingResponse submitListing(Integer sellerId, Integer listingId) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Listing not found or not owned by seller"));
+                        "Không tìm thấy tin đăng hoặc tin đăng không thuộc về bạn"));
 
         if (listing.getStatus() != BikeListingStatus.DRAFT) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT listings can be submitted");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ tin đăng nháp mới có thể gửi duyệt");
         }
 
         validateSubmitListingFields(listing);
@@ -401,11 +401,11 @@ public class SellerService {
      */
     public PreviewListingResponse previewListing(Integer sellerId, Integer listingId) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Listing not found or not owned by seller"));
+                        "Không tìm thấy tin đăng hoặc tin đăng không thuộc về bạn"));
 
         String videoUrl = listingVideoRepository.findByBikeListing(listing)
                 .map(ListingVideo::getVideoPath)
@@ -419,7 +419,7 @@ public class SellerService {
      */
     public Page<SellerListingResponse> getDraftListings(Integer sellerId, String sort, int page, int pageSize) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         Sort.Direction direction = "oldest".equalsIgnoreCase(sort) ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by(direction, "createdAt"));
@@ -433,14 +433,14 @@ public class SellerService {
      */
     public void deleteDraft(Integer sellerId, Integer listingId) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         BikeListing listing = bikeListingRepository.findByListingIdAndSeller(listingId, seller)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Listing not found or not owned by seller"));
+                        "Không tìm thấy tin đăng hoặc tin đăng không thuộc về bạn"));
 
         if (listing.getStatus() != BikeListingStatus.DRAFT) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT listings can be deleted");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ tin đăng nháp mới có thể xóa");
         }
         listing.setStatus(BikeListingStatus.DELETED);
         bikeListingRepository.save(listing);
@@ -451,19 +451,19 @@ public class SellerService {
      */
     private void validateCreateListingRequest(CreateListingRequest req) {
         if (req.title == null || req.title.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tiêu đề là bắt buộc");
         }
         if (req.price == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Price is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giá là bắt buộc");
         }
         if (req.bikeType == null || req.bikeType.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bike type is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loại xe là bắt buộc");
         }
         if (req.brand == null || req.brand.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Brand is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hãng xe là bắt buộc");
         }
         if (req.model == null || req.model.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Model is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dòng xe là bắt buộc");
         }
     }
 
@@ -472,19 +472,19 @@ public class SellerService {
      */
     private void validateSubmitListingFields(BikeListing listing) {
         if (listing.getTitle() == null || listing.getTitle().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot submit: title is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể gửi duyệt: tiêu đề là bắt buộc");
         }
         if (listing.getPrice() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot submit: price is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể gửi duyệt: giá là bắt buộc");
         }
         if (listing.getBikeType() == null || listing.getBikeType().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot submit: bike type is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể gửi duyệt: loại xe là bắt buộc");
         }
         if (listing.getBrand() == null || listing.getBrand().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot submit: brand is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể gửi duyệt: hãng xe là bắt buộc");
         }
         if (listing.getModel() == null || listing.getModel().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot submit: model is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể gửi duyệt: dòng xe là bắt buộc");
         }
     }
 
@@ -493,19 +493,19 @@ public class SellerService {
      */
     private void validateUpdateListingFields(BikeListing listing) {
         if (listing.getTitle() == null || listing.getTitle().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tiêu đề là bắt buộc");
         }
         if (listing.getPrice() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Price is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giá là bắt buộc");
         }
         if (listing.getBikeType() == null || listing.getBikeType().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bike type is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loại xe là bắt buộc");
         }
         if (listing.getBrand() == null || listing.getBrand().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Brand is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hãng xe là bắt buộc");
         }
         if (listing.getModel() == null || listing.getModel().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Model is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dòng xe là bắt buộc");
         }
     }
 
@@ -516,15 +516,15 @@ public class SellerService {
     public ListingImageResponse uploadListingImage(Integer sellerId, Integer listingId, UploadListingImageRequest req) {
         // Validate listing exists và thuộc seller này
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         if (!listing.getSeller().getUserId().equals(sellerId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You don't have permission to upload images for this listing");
+                    "Bạn không có quyền tải ảnh lên cho tin đăng này");
         }
 
         if (!listing.getStatus().equals(BikeListingStatus.DRAFT)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT listings can have images");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ tin đăng nháp mới có thể thêm hình ảnh");
         }
 
         // ✅ Validate maximum 10 images per listing
@@ -552,11 +552,11 @@ public class SellerService {
      */
     public List<ListingImageResponse> getListingImages(Integer sellerId, Integer listingId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         if (!listing.getSeller().getUserId().equals(sellerId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You don't have permission to view images for this listing");
+                    "Bạn không có quyền xem hình ảnh của tin đăng này");
         }
 
         return listingImageRepository.findByBikeListingOrderByImageOrder(listing)
@@ -570,21 +570,21 @@ public class SellerService {
      */
     public void deleteListingImage(Integer sellerId, Integer listingId, Integer imageId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         if (!listing.getSeller().getUserId().equals(sellerId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You don't have permission to delete images for this listing");
+                    "Bạn không có quyền xóa hình ảnh của tin đăng này");
         }
 
         ListingImage image = listingImageRepository.findByImageIdAndBikeListing(imageId, listing)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Image not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy hình ảnh"));
 
         // ✅ Validate minimum 3 images - prevent deletion if it would leave less than 3
         List<ListingImage> allImages = listingImageRepository.findByBikeListingOrderByImageOrder(listing);
         if (allImages.size() <= 3) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Listing must have at least 3 images. Cannot delete - current: " + allImages.size());
+                    "Tin đăng phải có ít nhất 3 hình ảnh. Không thể xóa - hiện tại: " + allImages.size());
         }
 
         listingImageRepository.delete(image);
@@ -609,16 +609,16 @@ public class SellerService {
      */
     public void setImageAsPrimary(Integer sellerId, Integer listingId, Integer imageId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
         if (!listing.getSeller().getUserId().equals(sellerId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your listing");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tin đăng không thuộc về bạn");
         }
 
         List<ListingImage> images = listingImageRepository.findByBikeListingOrderByImageOrder(listing);
         ListingImage target = images.stream()
                 .filter(img -> img.getImageId().equals(imageId))
                 .findFirst()
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Image not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy hình ảnh"));
 
         if (target.getImageOrder() == 1)
             return; // Already primary
@@ -641,14 +641,14 @@ public class SellerService {
      */
     private void validateImagePath(String imagePath, Integer listingId) {
         if (imagePath == null || imagePath.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image path cannot be empty");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Đường dẫn hình ảnh không được để trống");
         }
 
         // Check path contains correct listingId
         String expectedPrefix = "/public/" + listingId + "/";
         if (!imagePath.startsWith(expectedPrefix)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Image path must start with /public/" + listingId + "/");
+                    "Đường dẫn hình ảnh phải bắt đầu bằng /public/" + listingId + "/");
         }
 
         // Check file extension
@@ -656,7 +656,7 @@ public class SellerService {
         if (!lowerPath.endsWith(".png") && !lowerPath.endsWith(".jpg")
                 && !lowerPath.endsWith(".jpeg") && !lowerPath.endsWith(".webp")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Image must be PNG, JPG, JPEG, or WEBP format");
+                    "Hình ảnh phải có định dạng PNG, JPG, JPEG hoặc WEBP");
         }
     }
 
@@ -666,15 +666,15 @@ public class SellerService {
     @Transactional
     public ListingVideo uploadListingVideo(Integer sellerId, Integer listingId, String videoPath) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         if (!listing.getSeller().getUserId().equals(sellerId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You don't have permission to upload video for this listing");
+                    "Bạn không có quyền tải video lên cho tin đăng này");
         }
 
         if (videoPath == null || videoPath.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Video path cannot be empty");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Đường dẫn video không được để trống");
         }
 
         // Delete existing video if any (1 video per listing)
@@ -690,11 +690,11 @@ public class SellerService {
      */
     public String getListingVideoUrl(Integer sellerId, Integer listingId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         if (!listing.getSeller().getUserId().equals(sellerId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You don't have permission to view video for this listing");
+                    "Bạn không có quyền xem video của tin đăng này");
         }
 
         return listingVideoRepository.findByBikeListing(listing)
@@ -708,11 +708,11 @@ public class SellerService {
     @Transactional
     public void deleteListingVideo(Integer sellerId, Integer listingId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         if (!listing.getSeller().getUserId().equals(sellerId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You don't have permission to delete video for this listing");
+                    "Bạn không có quyền xóa video của tin đăng này");
         }
 
         listingVideoRepository.deleteByBikeListing(listing);

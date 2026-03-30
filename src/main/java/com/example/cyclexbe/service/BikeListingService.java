@@ -1,4 +1,4 @@
-package com.example.cyclexbe.service;
+﻿package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.dto.BikeListingCreateRequest;
 import com.example.cyclexbe.dto.BikeListingResponse;
@@ -60,11 +60,11 @@ public class BikeListingService {
         // Ownership check: seller can only create listings for themselves
         if (!req.sellerId.equals(authenticatedUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You can only create listings for your own account");
+                    "Bạn chỉ có thể tạo tin đăng cho tài khoản của mình");
         }
 
         User seller = userRepository.findById(req.sellerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Seller not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người bán"));
 
         BikeListing b = new BikeListing();
         b.setSeller(seller);
@@ -162,17 +162,17 @@ public class BikeListingService {
 
     public BikeListingResponse getById(Integer id) {
         BikeListing b = bikeListingRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "BikeListing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng xe"));
         return mapToResponse(b);
     }
 
     public BikeListingResponse update(Integer id, BikeListingUpdateRequest req, Integer authenticatedUserId) {
         BikeListing b = bikeListingRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "BikeListing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng xe"));
 
         // Ownership check: only the seller who owns this listing can update it
         if (!b.getSeller().getUserId().equals(authenticatedUserId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only update your own listings");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn chỉ có thể cập nhật tin đăng của mình");
         }
 
         if (req.title != null)
@@ -208,11 +208,11 @@ public class BikeListingService {
 
     public void delete(Integer id, Integer authenticatedUserId) {
         BikeListing b = bikeListingRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "BikeListing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng xe"));
 
         // Ownership check: only the seller who owns this listing can delete it
         if (!b.getSeller().getUserId().equals(authenticatedUserId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only delete your own listings");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn chỉ có thể xóa tin đăng của mình");
         }
 
         b.setStatus(BikeListingStatus.REJECTED);

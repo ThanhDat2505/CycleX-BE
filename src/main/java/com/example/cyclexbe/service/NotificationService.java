@@ -1,4 +1,4 @@
-package com.example.cyclexbe.service;
+﻿package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.NotificationType;
 import com.example.cyclexbe.dto.*;
@@ -85,7 +85,7 @@ public class NotificationService {
         Notification notification = notificationRepository
                 .findByNotificationIdAndUser_UserId(notificationId, userId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Notification not found"));
+                        HttpStatus.NOT_FOUND, "Không tìm thấy thông báo"));
 
         notification.setRead(true);
         notificationRepository.save(notification);
@@ -93,7 +93,7 @@ public class NotificationService {
         return new NotificationMarkReadResponse(
                 notification.getNotificationId(),
                 true,
-                "Notification marked as read"
+                "Đã đánh dấu thông báo đã đọc"
         );
     }
 
@@ -102,7 +102,7 @@ public class NotificationService {
      */
     public NotificationReadAllResponse markAllAsRead(Integer userId) {
         int updatedCount = notificationRepository.markAllAsReadByUserId(userId);
-        return new NotificationReadAllResponse(updatedCount, "All notifications marked as read");
+        return new NotificationReadAllResponse(updatedCount, "Đã đánh dấu tất cả thông báo đã đọc");
     }
 
     /**
@@ -113,7 +113,7 @@ public class NotificationService {
         Notification notification = notificationRepository
                 .findByNotificationIdAndUser_UserId(notificationId, userId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Notification not found"));
+                        HttpStatus.NOT_FOUND, "Không tìm thấy thông báo"));
 
         return mapToDto(notification);
     }
@@ -137,7 +137,7 @@ public class NotificationService {
                                            Integer targetId, String targetUrl) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "User not found"));
+                        HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
         return createNotification(user, title, message, type, targetType, targetId, targetUrl);
     }
 
@@ -159,7 +159,7 @@ public class NotificationService {
         try {
             return NotificationType.valueOf(type.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid notification type: " + type);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loại thông báo không hợp lệ: " + type);
         }
     }
 }

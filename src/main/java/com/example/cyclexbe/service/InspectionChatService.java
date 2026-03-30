@@ -1,4 +1,4 @@
-package com.example.cyclexbe.service;
+﻿package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.ChatMessageType;
 import com.example.cyclexbe.domain.enums.Role;
@@ -67,7 +67,7 @@ public class InspectionChatService {
     public InspectionChatThreadResponse getChatThread(Integer requestId, Integer currentUserId, Role currentRole) {
         // Fetch inspection request
         InspectionRequest request = inspectionRequestRepository.findById(requestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspection request not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu kiểm tra"));
 
         // Permission check
         checkAccessPermission(request, currentUserId, currentRole);
@@ -100,12 +100,12 @@ public class InspectionChatService {
     public ChatMessageResponse sendTextMessage(Integer requestId, String text, Integer senderId, Role senderRole) {
         // Validate text
         if (text == null || text.trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message text cannot be empty");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nội dung tin nhắn không được để trống");
         }
 
         // Fetch inspection request
         InspectionRequest request = inspectionRequestRepository.findById(requestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspection request not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu kiểm tra"));
 
         // Permission check
         checkAccessPermission(request, senderId, senderRole);
@@ -122,7 +122,7 @@ public class InspectionChatService {
 
         // Fetch sender user
         User sender = userRepository.findById(senderId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sender not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người gửi"));
 
         // Create message
         InspectionChatMessage message = new InspectionChatMessage(thread, sender, ChatMessageType.TEXT, text);
@@ -149,12 +149,12 @@ public class InspectionChatService {
 
         // 1) Validate file
         if (file == null || file.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File cannot be empty");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File không được để trống");
         }
 
         // 2) Fetch inspection request
         InspectionRequest request = inspectionRequestRepository.findById(requestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspection request not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu kiểm tra"));
 
         // 3) Permission check
         checkAccessPermission(request, senderId, senderRole);
@@ -176,7 +176,7 @@ public class InspectionChatService {
 
         // 7) Fetch sender
         User sender = userRepository.findById(senderId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sender not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người gửi"));
 
         // 8) Create IMAGE message
         InspectionChatMessage message = new InspectionChatMessage(thread, sender, ChatMessageType.IMAGE, null);
@@ -195,19 +195,19 @@ public class InspectionChatService {
     public void markThreadAsRead(Integer requestId, Integer lastReadMessageId, Integer userId, Role userRole) {
         // Fetch inspection request
         InspectionRequest request = inspectionRequestRepository.findById(requestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspection request not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu kiểm tra"));
 
         // Permission check
         checkAccessPermission(request, userId, userRole);
 
         // Fetch chat thread
         InspectionChatThread thread = chatThreadRepository.findByInspectionRequest_RequestId(requestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chat thread not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy cuộc trò chuyện"));
 
         // Verify message exists in this thread
         if (lastReadMessageId != null) {
             chatMessageRepository.findById(lastReadMessageId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Message not found"));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin nhắn"));
         }
 
         // Update last_read_at timestamp (nếu thêm vào sau)
@@ -226,15 +226,15 @@ public class InspectionChatService {
     private void checkAccessPermission(InspectionRequest request, Integer userId, Role userRole) {
         if (userRole == Role.INSPECTOR) {
             if (!request.getInspector().getUserId().equals(userId)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not assigned to this inspection request");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không được giao cho yêu cầu kiểm tra này");
             }
         } else if (userRole == Role.SELLER) {
             BikeListing listing = request.getListing();
             if (!listing.getSeller().getUserId().equals(userId)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not the seller of this listing");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không phải là người bán của tin đăng này");
             }
         } else if (userRole != Role.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid role for chat access");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Vai trò không hợp lệ để truy cập chat");
         }
     }
 
@@ -244,7 +244,7 @@ public class InspectionChatService {
      */
     private void checkThreadLocked(BikeListing listing) {
         if (listing.getStatus() == BikeListingStatus.ARCHIVED) {
-            throw new ResponseStatusException(HttpStatus.LOCKED, "Chat is locked because listing is ARCHIVED");
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Chat đã bị khóa vì tin đăng đã được lưu trữ");
         }
     }
 }

@@ -29,7 +29,7 @@ public class UserService {
 
     public UserResponse create(UserCreateRequest req) {
         if (userRepository.existsByEmail(req.email)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã tồn tại");
         }
 
         User u = new User();
@@ -59,22 +59,22 @@ public class UserService {
 
     public UserResponse getById(Integer id) {
         User u = userRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
         return toResponse(u);
     }
 
     public User findByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
     }
 
     public UserResponse update(Integer id, UserUpdateRequest req) {
         User u = userRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
         if (req.email != null && !req.email.equalsIgnoreCase(u.getEmail())) {
             if (userRepository.existsByEmail(req.email)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã tồn tại");
             }
             u.setEmail(req.email);
         }
@@ -107,7 +107,7 @@ public class UserService {
     public void delete(Integer id) {
         User user = userRepository.findById(id).isPresent() ? userRepository.findById(id).get() : null;
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng");
         }
         user.setStatus("DELETED");
         userRepository.save(user);
@@ -120,7 +120,7 @@ public class UserService {
 
     public void changePassword(Integer id, ChangePasswordRequest req) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
         if (!passwordEncoder.matches(req.oldPassword, user.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu hiện tại không đúng");

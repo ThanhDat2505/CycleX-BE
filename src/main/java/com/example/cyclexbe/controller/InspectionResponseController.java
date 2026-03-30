@@ -1,4 +1,4 @@
-package com.example.cyclexbe.controller;
+﻿package com.example.cyclexbe.controller;
 
 import com.example.cyclexbe.dto.InspectionResponseFileResponse;
 import com.example.cyclexbe.dto.InspectionResponseLoadResponse;
@@ -53,7 +53,7 @@ public class InspectionResponseController {
         Integer sellerId = getUserIdFromAuth(authentication);
 
         if (file == null || file.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File là bắt buộc");
         }
 
         InspectionResponseFileResponse resp =
@@ -96,7 +96,7 @@ public class InspectionResponseController {
      */
     private Integer getUserIdFromAuth(Authentication authentication) {
         if (authentication == null || authentication.getPrincipal() == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Yêu cầu xác thực");
         }
 
         Object principal = authentication.getPrincipal();
@@ -106,7 +106,7 @@ public class InspectionResponseController {
             try {
                 return Integer.parseInt(s);
             } catch (NumberFormatException e) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid principal userId");
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Mã người dùng không hợp lệ");
             }
         }
 
@@ -114,7 +114,7 @@ public class InspectionResponseController {
         try {
             return Integer.parseInt(principal.toString());
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication principal");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thông tin xác thực không hợp lệ");
         }
     }
 

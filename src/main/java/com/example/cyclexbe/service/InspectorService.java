@@ -1,4 +1,4 @@
-package com.example.cyclexbe.service;
+﻿package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.domain.enums.DisputeStatus;
@@ -57,7 +57,7 @@ public class InspectorService {
      */
     public InspectorDashboardStatsResponse getDashboardStats(Integer inspectorId) {
         User inspector = userRepository.findById(inspectorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy kiểm duyệt viên"));
 
         long pendingCount = bikeListingRepository.countByInspectorAndStatus(inspector, BikeListingStatus.PENDING);
         long reviewingCount = bikeListingRepository.countByInspectorAndStatus(inspector, BikeListingStatus.REVIEWING);
@@ -76,7 +76,7 @@ public class InspectorService {
     public Page<SellerListingResponse> getListingsForReview(Integer inspectorId, String status, String sort, int page,
             int pageSize) {
         User inspector = userRepository.findById(inspectorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy kiểm duyệt viên"));
 
         Sort.Direction direction = "oldest".equalsIgnoreCase(sort) ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by(direction, "createdAt"));
@@ -105,7 +105,7 @@ public class InspectorService {
      */
     public PreviewListingResponse getListingDetail(Integer listingId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         PreviewListingResponse response = PreviewListingResponse.from(listing);
 
@@ -125,15 +125,15 @@ public class InspectorService {
      */
     public BikeListingResponse lockListing(Integer listingId, Integer inspectorId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         if (listing.getStatus() != BikeListingStatus.PENDING) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING listings can be locked");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ tin đăng PENDING mới có thể khóa");
         }
 
         // Verify listing is assigned to this inspector
         if (listing.getInspector() == null || !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This listing is not assigned to you");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tin đăng này không được giao cho bạn");
         }
 
         // Lock the listing
@@ -150,15 +150,15 @@ public class InspectorService {
      */
     public BikeListingResponse unlockListing(Integer listingId, Integer inspectorId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         if (listing.getStatus() != BikeListingStatus.REVIEWING) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only REVIEWING listings can be unlocked");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ tin đăng REVIEWING mới có thể mở khóa");
         }
 
         // Verify listing is assigned to this inspector
         if (listing.getInspector() == null || !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This listing is not assigned to you");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tin đăng này không được giao cho bạn");
         }
 
         // Revert to PENDING, keep inspector assignment
@@ -176,23 +176,23 @@ public class InspectorService {
     public BikeListingResponse approveListing(Integer listingId, Integer inspectorId,
             String reasonCode, String reasonText, String note) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         User inspector = userRepository.findById(inspectorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy kiểm duyệt viên"));
 
         if (listing.getInspector() != null && !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Only the assigned inspector can approve this listing");
+                    "Chỉ kiểm duyệt viên được giao mới có thể duyệt tin đăng này");
         }
 
         if (listing.getStatus() != BikeListingStatus.PENDING && listing.getStatus() != BikeListingStatus.REVIEWING) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING listings can be approved");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ tin đăng PENDING mới có thể duyệt");
         }
 
         // Validate reason
         if (reasonText == null || reasonText.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason text is required for approval");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lý do là bắt buộc khi duyệt");
         }
 
         // Approve the listing and ensure inspector is set
@@ -231,26 +231,26 @@ public class InspectorService {
     public BikeListingResponse rejectListing(Integer listingId, Integer inspectorId, String reasonCode,
             String reasonText, String note) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         User inspector = userRepository.findById(inspectorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy kiểm duyệt viên"));
 
         if (listing.getInspector() != null && !Objects.equals(listing.getInspector().getUserId(), inspectorId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Only the assigned inspector can reject this listing");
+                    "Chỉ kiểm duyệt viên được giao mới có thể từ chối tin đăng này");
         }
 
         if (listing.getStatus() != BikeListingStatus.PENDING && listing.getStatus() != BikeListingStatus.REVIEWING) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING listings can be rejected");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ tin đăng PENDING mới có thể từ chối");
         }
 
         // Validate reason
         if (reasonText == null || reasonText.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason text is required for rejection");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lý do là bắt buộc khi từ chối");
         }
         if (reasonCode == null || reasonCode.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason code is required for rejection");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã lý do là bắt buộc khi từ chối");
         }
 
         // Reject the listing and set inspector
@@ -275,7 +275,7 @@ public class InspectorService {
     public Page<BikeListingResponse> getReviewHistory(Integer inspectorId, String from, String to, int page,
             int pageSize) {
         User inspector = userRepository.findById(inspectorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspector not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy kiểm duyệt viên"));
 
         // Sắp xếp theo updatedAt (mới nhất trước)
         Sort sort = Sort.by(Sort.Direction.DESC, "updatedAt");
@@ -314,7 +314,7 @@ public class InspectorService {
      */
     public InspectionReportResponse getReviewDetail(Integer listingId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         InspectionReport report = inspectionReportRepository.findTopByListingOrderByCreatedAtDesc(listing)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -329,7 +329,7 @@ public class InspectorService {
      */
     public InspectionReportResponse getInspectionReportByListing(Integer listingId) {
         BikeListing listing = bikeListingRepository.findById(listingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng"));
 
         InspectionReport report = inspectionReportRepository.findTopByListingOrderByCreatedAtDesc(listing)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -363,7 +363,7 @@ public class InspectorService {
      */
     public DisputeDetailResponse getDisputeDetail(Integer disputeId) {
         var dispute = disputeRepository.findById(disputeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dispute not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy khiếu nại"));
         return DisputeDetailResponse.from(dispute);
     }
 }

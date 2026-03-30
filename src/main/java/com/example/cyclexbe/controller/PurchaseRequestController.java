@@ -1,4 +1,4 @@
-package com.example.cyclexbe.controller;
+﻿package com.example.cyclexbe.controller;
 
 import com.example.cyclexbe.dto.PurchaseRequestCreateRequest;
 import com.example.cyclexbe.dto.PurchaseRequestInitResponse;
@@ -74,13 +74,13 @@ public class PurchaseRequestController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("User is not authenticated");
+            throw new RuntimeException("Người dùng chưa đăng nhập");
         }
 
         Object principal = authentication.getPrincipal();
 
         if (principal == null || "anonymousUser".equals(principal)) {
-            throw new RuntimeException("User is not authenticated");
+            throw new RuntimeException("Người dùng chưa đăng nhập");
         }
 
         // Case 1: principal là String chứa userId (tạm thời)
@@ -88,7 +88,7 @@ public class PurchaseRequestController {
             try {
                 return Integer.parseInt(principalStr);
             } catch (NumberFormatException e) {
-                throw new RuntimeException("Invalid user ID in authentication: " + principalStr);
+                throw new RuntimeException("Mã người dùng không hợp lệ: " + principalStr);
             }
         }
 
@@ -98,6 +98,6 @@ public class PurchaseRequestController {
         //     return custom.getUserId();
         // }
 
-        throw new RuntimeException("Unsupported authentication principal type: " + principal.getClass().getName());
+        throw new RuntimeException("Loại xác thực không được hỗ trợ: " + principal.getClass().getName());
     }
 }

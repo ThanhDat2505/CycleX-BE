@@ -145,7 +145,7 @@ public class SellerController {
             @PathVariable Integer listing_id) {
         SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
         sellerService.deleteDraft(sellerId, listing_id);
-        return ResponseEntity.ok(Map.of("message", "Delete success"));
+        return ResponseEntity.ok(Map.of("message", "Xóa thành công"));
     }
 
     @PostMapping("/drafts/{listing_id}/submit")
@@ -184,7 +184,7 @@ public class SellerController {
             @PathVariable Integer image_id) {
         SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
         sellerService.deleteListingImage(sellerId, listing_id, image_id);
-        return ResponseEntity.ok(Map.of("message", "Image deleted successfully"));
+        return ResponseEntity.ok(Map.of("message", "Đã xóa ánh thành công"));
     }
 
     @PatchMapping("/listings/{listing_id}/images/{image_id}/set-primary")
@@ -194,7 +194,7 @@ public class SellerController {
             @PathVariable Integer image_id) {
         SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
         sellerService.setImageAsPrimary(sellerId, listing_id, image_id);
-        return ResponseEntity.ok(Map.of("message", "Primary image updated"));
+        return ResponseEntity.ok(Map.of("message", "Đã cập nhật ảnh chính"));
     }
 
     @PostMapping("/listings/{listing_id}/images/{image_id}/retry")
@@ -204,7 +204,7 @@ public class SellerController {
             @PathVariable Long image_id) {
         SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
         // TODO: implement retry logic if needed
-        return ResponseEntity.ok(Map.of("message", "Retry image upload completed"));
+        return ResponseEntity.ok(Map.of("message", "Tải lại ảnh thành công"));
     }
 
     // Listing Video (1 video per listing)
@@ -217,7 +217,7 @@ public class SellerController {
         String videoPath = req.get("videoPath");
         sellerService.uploadListingVideo(sellerId, listing_id, videoPath);
         return ResponseEntity.status(201)
-                .body(Map.of("message", "Video uploaded successfully", "videoPath", videoPath));
+                .body(Map.of("message", "Tải video lên thành công", "videoPath", videoPath));
     }
 
     @GetMapping("/listings/{listing_id}/video")
@@ -238,6 +238,6 @@ public class SellerController {
             @PathVariable Integer listing_id) {
         SecurityUtils.validateResourceOwner(sellerId.toString(), "SELLER");
         sellerService.deleteListingVideo(sellerId, listing_id);
-        return ResponseEntity.ok(Map.of("message", "Video deleted successfully"));
+        return ResponseEntity.ok(Map.of("message", "Đã xóa video thành công"));
     }
 }

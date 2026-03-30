@@ -43,7 +43,7 @@ public class UserAddressService {
     @Transactional
     public AddressResponse createAddress(Integer userId, CreateAddressRequest req) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
         long count = addressRepository.countByUserUserId(userId);
         if (count >= MAX_ADDRESSES_PER_USER) {

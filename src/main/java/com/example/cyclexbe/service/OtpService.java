@@ -27,7 +27,7 @@ public class OtpService {
     public String sendOtp(String email) {
         User user = userService.findByEmail(email);
         if (user.isVerify()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User already verified");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Người dùng đã được xác minh");
         }
         String otp = OtpUtil.generateOtp();
         emailOtpRepository.findByUser(user).ifPresent(emailOtpRepository::delete);
@@ -35,7 +35,7 @@ public class OtpService {
         emailOtpRepository.save(emailOtp);
         boolean statusSendEmail = emailService.sendOtpEmail(email, otp);
         if (!statusSendEmail) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error sending OTP");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Gửi mã OTP thất bại");
         }
         System.out.println("OTP sent to " + email);
         return otp;
@@ -44,19 +44,19 @@ public class OtpService {
     public void verifyOtp(String email, String otp) {
         User user = userService.findByEmail(email);
         EmailOtp emailOtp = emailOtpRepository.findByUser(user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy mã OTP"));
 
         if (emailOtp.isLocked()) {
-            throw new ResponseStatusException(HttpStatus.LOCKED, "OTP is locked. Please request a new OTP.");
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Mã OTP đã bị khóa. Vui lòng yêu cầu mã mới.");
         }
 
         if (emailOtp.getExpiryTime() != null && emailOtp.getExpiryTime().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP expired. Please request a new OTP.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.");
         }
         if (emailOtp.getAttempts() >= 5) {
             emailOtp.setLocked(true);
             emailOtpRepository.save(emailOtp);
-            throw new ResponseStatusException(HttpStatus.LOCKED, "OTP is locked. Please request a new OTP.");
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Mã OTP đã bị khóa. Vui lòng yêu cầu mã mới.");
         }
         System.out.println(emailOtp.getOtp());
         System.out.println(otp);
@@ -64,7 +64,7 @@ public class OtpService {
         if (emailOtp.getOtp() == null || !emailOtp.getOtp().equals(otp)) {
             emailOtp.setAttempts(emailOtp.getAttempts() + 1);
             emailOtpRepository.save(emailOtp);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã OTP không hợp lệ");
         }
 
         user.setVerify(true);
@@ -80,7 +80,7 @@ public class OtpService {
         emailOtpRepository.save(emailOtp);
         boolean statusSendEmail = emailService.sendPasswordResetEmail(email, otp);
         if (!statusSendEmail) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error sending OTP");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Gửi mã OTP thất bại");
         }
         return otp;
     }
@@ -88,26 +88,26 @@ public class OtpService {
     public void verifyPasswordResetOtp(String email, String otp) {
         User user = userService.findByEmail(email);
         EmailOtp emailOtp = emailOtpRepository.findByUser(user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy mã OTP"));
 
         if (emailOtp.isLocked()) {
-            throw new ResponseStatusException(HttpStatus.LOCKED, "OTP is locked. Please request a new OTP.");
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Mã OTP đã bị khóa. Vui lòng yêu cầu mã mới.");
         }
 
         if (emailOtp.getExpiryTime() != null && emailOtp.getExpiryTime().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP expired. Please request a new OTP.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.");
         }
 
         if (emailOtp.getAttempts() >= 5) {
             emailOtp.setLocked(true);
             emailOtpRepository.save(emailOtp);
-            throw new ResponseStatusException(HttpStatus.LOCKED, "OTP is locked. Please request a new OTP.");
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Mã OTP đã bị khóa. Vui lòng yêu cầu mã mới.");
         }
 
         if (emailOtp.getOtp() == null || !emailOtp.getOtp().equals(otp)) {
             emailOtp.setAttempts(emailOtp.getAttempts() + 1);
             emailOtpRepository.save(emailOtp);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã OTP không hợp lệ");
         }
 
         emailOtpRepository.delete(emailOtp);

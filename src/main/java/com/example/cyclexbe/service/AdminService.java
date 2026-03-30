@@ -31,11 +31,11 @@ public class AdminService {
     private final PasswordEncoder passwordEncoder;
 
     public AdminService(UserRepository userRepository,
-                        BikeListingRepository bikeListingRepository,
-                        ProductRepository productRepository,
-                        OrderRepository orderRepository,
-                        DisputeRepository disputeRepository,
-                        PasswordEncoder passwordEncoder) {
+            BikeListingRepository bikeListingRepository,
+            ProductRepository productRepository,
+            OrderRepository orderRepository,
+            DisputeRepository disputeRepository,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.bikeListingRepository = bikeListingRepository;
         this.productRepository = productRepository;
@@ -47,15 +47,14 @@ public class AdminService {
     // ==================== USER MANAGEMENT ====================
 
     public AdminUserListResponse getUsers(String search, String role, String status,
-                                           int page, int pageSize) {
+            int page, int pageSize) {
         Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         Page<User> userPage = userRepository.findByAdminFilters(
                 search,
                 role != null ? Role.valueOf(role) : null,
                 status,
-                pageable
-        );
+                pageable);
 
         List<UserResponse> items = userPage.getContent().stream()
                 .map(UserResponse::from)
@@ -66,21 +65,21 @@ public class AdminService {
 
     public UserResponse getUserById(Integer userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
         return UserResponse.from(user);
     }
 
     public UserResponse updateUserStatus(Integer userId, String newStatus) {
         if (!"ACTIVE".equals(newStatus) && !"SUSPENDED".equals(newStatus)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Invalid status. Must be ACTIVE or SUSPENDED");
+                    "Trạng thái không hợp lệ. Phải là ACTIVE hoặc SUSPENDED");
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
         if (user.getRole() == Role.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot change admin status");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không thể thay đổi trạng thái của admin");
         }
 
         user.setStatus(newStatus);
@@ -90,10 +89,10 @@ public class AdminService {
 
     public UserResponse updateUserRole(Integer userId, Role newRole) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
         if (user.getRole() == Role.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot change admin role");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không thể thay đổi vai trò của admin");
         }
 
         user.setRole(newRole);
@@ -104,11 +103,11 @@ public class AdminService {
     public UserResponse createAccount(AdminCreateAccountRequest req) {
         if (req.role != Role.SHIPPER && req.role != Role.INSPECTOR) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Admin can only create SHIPPER or INSPECTOR accounts");
+                    "Admin chỉ có thể tạo tài khoản SHIPPER hoặc INSPECTOR");
         }
 
         if (userRepository.existsByEmail(req.email)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã tồn tại");
         }
 
         User user = new User();
@@ -149,7 +148,8 @@ public class AdminService {
         return stats;
     }
 
-    private AdminDashboardResponse.DisputeManagementStats getDisputeManagementStats(LocalDateTime from, LocalDateTime to) {
+    private AdminDashboardResponse.DisputeManagementStats getDisputeManagementStats(LocalDateTime from,
+            LocalDateTime to) {
         var stats = new AdminDashboardResponse.DisputeManagementStats();
         stats.totalDisputes = disputeRepository.count();
         stats.pendingDisputes = disputeRepository.countByStatus(DisputeStatus.OPEN)

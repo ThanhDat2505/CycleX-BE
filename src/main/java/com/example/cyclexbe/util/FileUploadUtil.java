@@ -1,4 +1,4 @@
-package com.example.cyclexbe.util;
+﻿package com.example.cyclexbe.util;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -32,17 +32,17 @@ public class FileUploadUtil {
     public String uploadImage(MultipartFile file) throws IOException {
         // Validate file không null
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty or null");
+            throw new IllegalArgumentException("File trống hoặc không tồn tại");
         }
 
         // Validate size
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("File size exceeds 5MB limit");
+            throw new IllegalArgumentException("Kích thước file vượt quá giới hạn 5MB");
         }
 
         // Validate MIME type
         if (!isValidImageMimeType(file.getContentType())) {
-            throw new IllegalArgumentException("Invalid file type. Only images are allowed");
+            throw new IllegalArgumentException("Loại file không hợp lệ. Chỉ cho phép ảnh");
         }
 
         // Create upload directory if not exists

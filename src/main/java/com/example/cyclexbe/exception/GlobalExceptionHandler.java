@@ -19,9 +19,8 @@ public class GlobalExceptionHandler {
                 .forEach(err -> errors.put(err.getField(), err.getDefaultMessage()));
 
         return ResponseEntity.badRequest().body(Map.of(
-                "message", "Validation failed",
-                "errors", errors
-        ));
+                "message", "Dữ liệu không hợp lệ",
+                "errors", errors));
     }
 
     // ✅ THÊM ĐOẠN NÀY
@@ -32,8 +31,7 @@ public class GlobalExceptionHandler {
                 .status(ex.getStatusCode())
                 .body(Map.of(
                         "status", ex.getStatusCode().value(),
-                        "message", ex.getReason()
-                ));
+                        "message", ex.getReason()));
     }
 
     /**
@@ -54,8 +52,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> response = Map.of(
                 "status", status,
                 "errorCode", ex.getErrorCode(),
-                "message", ex.getMessage()
-        );
+                "message", ex.getMessage());
 
         return ResponseEntity.status(status).body(response);
     }
@@ -67,8 +64,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleInvalidListingException(InvalidListingException ex) {
         return ResponseEntity.badRequest().body(Map.of(
                 "errorCode", ex.getErrorCode(),
-                "message", ex.getMessage()
-        ));
+                "message", ex.getMessage()));
     }
 
     /**
@@ -79,7 +75,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                 "status", HttpStatus.FORBIDDEN.value(),
                 "errorCode", ex.getErrorCode(),
-                "message", ex.getMessage()
-        ));
+                "message", ex.getMessage()));
     }
 }

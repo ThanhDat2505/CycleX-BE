@@ -1,4 +1,4 @@
-package com.example.cyclexbe.service;
+﻿package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.OrderStatus;
 import com.example.cyclexbe.dto.BuyerCancelTransactionResponse;
@@ -74,7 +74,7 @@ public class BuyerTransactionService {
 
                 if (optionalOrder.isEmpty()) {
                         throw new PurchaseRequestException("TRANSACTION_NOT_FOUND",
-                                        "Transaction not found");
+                                        "Không tìm thấy giao dịch");
                 }
 
                 Order order = optionalOrder.get();
@@ -82,7 +82,7 @@ public class BuyerTransactionService {
                 // Check if buyer matches
                 if (!order.getBuyer().getUserId().equals(buyerId)) {
                         throw new ForbiddenException("FORBIDDEN_BUYER_MISMATCH",
-                                        "You don't have permission to view this transaction");
+                                        "Bạn không có quyền xem giao dịch này");
                 }
 
                 // Fetch with eager loading
@@ -90,7 +90,7 @@ public class BuyerTransactionService {
                                 .findByOrderIdAndBuyerIdWithEager(orderId, buyerId);
                 if (optionalOrderWithEager.isEmpty()) {
                         throw new PurchaseRequestException("TRANSACTION_NOT_FOUND",
-                                        "Transaction not found");
+                                        "Không tìm thấy giao dịch");
                 }
 
                 order = optionalOrderWithEager.get();
@@ -98,7 +98,7 @@ public class BuyerTransactionService {
                 User seller = product.getSeller();
 
                 if (seller == null) {
-                        throw new InvalidListingException("SELLER_NOT_FOUND", "Product seller not found");
+                        throw new InvalidListingException("SELLER_NOT_FOUND", "Không tìm thấy người bán của sản phẩm");
                 }
 
                 // Determine if buyer can cancel
@@ -173,7 +173,7 @@ public class BuyerTransactionService {
 
                 if (optionalOrder.isEmpty()) {
                         throw new PurchaseRequestException("TRANSACTION_NOT_FOUND",
-                                        "Transaction not found");
+                                        "Không tìm thấy giao dịch");
                 }
 
                 Order order = optionalOrder.get();
@@ -181,7 +181,7 @@ public class BuyerTransactionService {
                 // Check if buyer matches
                 if (!order.getBuyer().getUserId().equals(buyerId)) {
                         throw new ForbiddenException("FORBIDDEN_BUYER_MISMATCH",
-                                        "You don't have permission to cancel this transaction");
+                                        "Bạn không có quyền hủy giao dịch này");
                 }
 
                 // Validate order status

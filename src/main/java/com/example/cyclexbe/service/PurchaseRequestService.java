@@ -1,4 +1,4 @@
-package com.example.cyclexbe.service;
+﻿package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
 import com.example.cyclexbe.domain.enums.TransactionType;
@@ -62,7 +62,7 @@ public class PurchaseRequestService {
 
         User seller = product.getSeller();
         if (seller == null) {
-            throw new InvalidListingException("SELLER_NOT_FOUND", "Product seller not found");
+            throw new InvalidListingException("SELLER_NOT_FOUND", "Không tìm thấy người bán của sản phẩm");
         }
 
         List<String> errors = new ArrayList<>();
@@ -70,11 +70,11 @@ public class PurchaseRequestService {
 
         if (!"AVAILABLE".equals(product.getStatus())) {
             canCreateRequest = false;
-            errors.add("Product is not available for purchase (Status: " + product.getStatus() + ")");
+            errors.add("Sản phẩm không có sẵn để mua (Trạng thái: " + product.getStatus() + ")");
         }
         if (seller.getUserId().equals(buyerId)) {
             canCreateRequest = false;
-            errors.add("You cannot buy your own product");
+            errors.add("Bạn không thể mua sản phẩm của chính mình");
         }
 
 
@@ -238,10 +238,10 @@ public class PurchaseRequestService {
     // =========================================================
     public BigDecimal calculateDepositAmount(BigDecimal listingPrice) {
         if (listingPrice == null) {
-            throw new PurchaseRequestException("INVALID_PRICE", "Listing price is required");
+            throw new PurchaseRequestException("INVALID_PRICE", "Giá tin đăng là bắt buộc");
         }
         if (listingPrice.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new PurchaseRequestException("INVALID_PRICE", "Listing price must be greater than 0");
+            throw new PurchaseRequestException("INVALID_PRICE", "Giá tin đăng phải lớn hơn 0");
         }
 
         return listingPrice
@@ -270,7 +270,7 @@ public class PurchaseRequestService {
         return userRepository.findById(buyerId)
                 .orElseThrow(() -> new InvalidListingException(
                         "BUYER_NOT_FOUND",
-                        "Buyer with ID " + buyerId + " not found"
+                        "Không tìm thấy người mua với ID " + buyerId + ""
                 ));
     }
 
@@ -278,7 +278,7 @@ public class PurchaseRequestService {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new InvalidListingException(
                         "PRODUCT_NOT_FOUND",
-                        "Product with ID " + productId + " not found"
+                        "Không tìm thấy sản phẩm với ID " + productId + ""
                 ));
     }
 
@@ -291,38 +291,38 @@ public class PurchaseRequestService {
             PurchaseRequestCreateRequest request
     ) {
         if (request == null) {
-            throw new PurchaseRequestException("INVALID_REQUEST", "Request body must not be null");
+            throw new PurchaseRequestException("INVALID_REQUEST", "Nội dung yêu cầu không được để trống");
         }
 
         if (!"AVAILABLE".equals(product.getStatus())) {
              throw new InvalidListingException(
                     "INVALID_REQUEST",
-                    "Cannot create purchase request: Product is not available (Status: " + product.getStatus() + ")"
+                    "Không thể tạo yêu cầu mua: Sản phẩm không có sẵn (Trạng thái: " + product.getStatus() + ")"
             );
         }
 
         if (product.getSeller().getUserId().equals(buyerId)) {
              throw new InvalidListingException(
                     "INVALID_REQUEST",
-                    "Cannot create purchase request: You cannot buy your own product"
+                    "Không thể tạo yêu cầu mua: Bạn không thể mua sản phẩm của chính mình"
             );
         }
 
         if (request.getTransactionType() == null) {
-            throw new PurchaseRequestException("INVALID_TRANSACTION_TYPE", "Transaction type is required");
+            throw new PurchaseRequestException("INVALID_TRANSACTION_TYPE", "Loại giao dịch là bắt buộc");
         }
 
         if (request.getDesiredTransactionTime() == null) {
-            throw new PurchaseRequestException("INVALID_TIME", "Desired transaction time is required");
+            throw new PurchaseRequestException("INVALID_TIME", "Thời gian giao dịch mong muốn là bắt buộc");
         }
 
         // Re-validate at service layer (do not rely only on DTO annotations like @Future)
         if (!request.getDesiredTransactionTime().isAfter(LocalDateTime.now())) {
-            throw new PurchaseRequestException("INVALID_TIME", "Desired transaction time must be in the future");
+            throw new PurchaseRequestException("INVALID_TIME", "Thời gian giao dịch mong muốn phải ở tương lai");
         }
 
         if (request.getNote() != null && request.getNote().length() > NOTE_MAX_LENGTH) {
-            throw new PurchaseRequestException("INVALID_NOTE", "Note cannot exceed " + NOTE_MAX_LENGTH + " characters");
+            throw new PurchaseRequestException("INVALID_NOTE", "Ghi chú không được vượt quá " + NOTE_MAX_LENGTH + " ký tự");
         }
     }
 

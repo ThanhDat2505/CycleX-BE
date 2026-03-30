@@ -1,4 +1,4 @@
-package com.example.cyclexbe.service;
+﻿package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.OrderStatus;
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
@@ -58,26 +58,26 @@ public class OrderService {
     @Transactional
     public Order createOrderFromProduct(Integer productId, Integer buyerId, PurchaseRequestCreateRequest request) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sản phẩm"));
         User buyer = userRepository.findById(buyerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Buyer not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người mua"));
         User seller = product.getSeller();
 
         if (seller == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product seller not found");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy người bán của sản phẩm");
         }
         if (seller.getUserId().equals(buyerId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot buy your own product");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bạn không thể mua sản phẩm của chính mình");
         }
         if (!"AVAILABLE".equals(product.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Sản phẩm này đã có người đặt mua và đang chờ xác nhận. Vui lòng quay lại sau!");
         }
         if (request.getTransactionType() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Transaction type is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loại giao dịch là bắt buộc");
         }
         if (request.getDesiredTransactionTime() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Desired transaction time is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thời gian giao dịch mong muốn là bắt buộc");
         }
 
         BigDecimal productPrice = product.getPrice();
@@ -131,7 +131,7 @@ public class OrderService {
     @Transactional
     public Order createOrderFromPurchaseRequest(PurchaseRequest purchaseRequest, String sellerNote) {
         if (orderRepository.findByPurchaseRequest_RequestId(purchaseRequest.getRequestId()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Order already exists for this purchase request");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Đơn hàng đã tồn tại cho yêu cầu mua này");
         }
 
         Order order = new Order();
@@ -158,7 +158,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public OrderResponse getOrderById(Integer orderId, Integer userId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
         validateOrderAccess(order, userId);
         return OrderResponse.from(order);
     }
@@ -170,7 +170,7 @@ public class OrderService {
     public OrderResponse getOrderByRequestId(Integer requestId, Integer userId) {
         Order order = orderRepository.findByPurchaseRequest_RequestId(requestId)
                 .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found for this request"));
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng cho yêu cầu này"));
         validateOrderAccess(order, userId);
         return OrderResponse.from(order);
     }
@@ -179,7 +179,7 @@ public class OrderService {
         boolean isBuyer = order.getBuyer().getUserId().equals(userId);
         boolean isSeller = order.getSeller().getUserId().equals(userId);
         if (!isBuyer && !isSeller) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to access this order");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không có quyền truy cập đơn hàng này");
         }
     }
 

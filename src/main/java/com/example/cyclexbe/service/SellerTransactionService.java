@@ -1,4 +1,4 @@
-package com.example.cyclexbe.service;
+﻿package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.OrderStatus;
 import com.example.cyclexbe.domain.enums.PurchaseRequestStatus;
@@ -179,7 +179,7 @@ public class SellerTransactionService {
         Order order = orderRepository.findByOrderIdAndSeller_UserId(orderId, sellerId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Transaction not found or you don't have permission"));
+                        "Không tìm thấy giao dịch hoặc bạn không có quyền"));
 
         return mapToTransactionDetail(order);
     }
@@ -198,12 +198,12 @@ public class SellerTransactionService {
         Order order = orderRepository.findByOrderIdAndSeller_UserId(orderId, sellerId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Transaction not found or you don't have permission"));
+                        "Không tìm thấy giao dịch hoặc bạn không có quyền"));
 
         if (!order.getStatus().equals(OrderStatus.PENDING_SELLER_CONFIRM)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Transaction cannot be confirmed in current status");
+                    "Không thể xác nhận giao dịch ở trạng thái hiện tại");
         }
 
         // Update Order status
@@ -228,7 +228,7 @@ public class SellerTransactionService {
         response.setRequestId(updatedOrder.getOrderId());
         response.setStatus(updatedOrder.getStatus().name());
         response.setDisplayStatus(getOrderDisplayStatus(updatedOrder.getStatus()));
-        response.setMessage("Transaction confirmed successfully");
+        response.setMessage("Xác nhận giao dịch thành công");
         response.setUpdatedAt(updatedOrder.getUpdatedAt());
         return response;
     }
@@ -291,18 +291,18 @@ public class SellerTransactionService {
                 || request.getReason().isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Reason is required");
+                    "Lý do là bắt buộc");
         }
 
         Order order = orderRepository.findByOrderIdAndSeller_UserId(orderId, sellerId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Transaction not found or you don't have permission"));
+                        "Không tìm thấy giao dịch hoặc bạn không có quyền"));
 
         if (!order.getStatus().equals(OrderStatus.PENDING_SELLER_CONFIRM)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Transaction cannot be rejected in current status");
+                    "Không thể từ chối giao dịch ở trạng thái hiện tại");
         }
 
         // Update Order status
@@ -328,7 +328,7 @@ public class SellerTransactionService {
         response.setRequestId(order.getOrderId());
         response.setStatus(OrderStatus.CANCELLED.name());
         response.setDisplayStatus("Đã từ chối");
-        response.setMessage("Transaction rejected successfully");
+        response.setMessage("Từ chối giao dịch thành công");
         response.setUpdatedAt(order.getUpdatedAt());
         return response;
     }
@@ -341,14 +341,14 @@ public class SellerTransactionService {
         if (authentication == null || authentication.getPrincipal() == null) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
-                    "No authentication found");
+                    "Không tìm thấy thông tin xác thực");
         }
         try {
             return Integer.parseInt(authentication.getPrincipal().toString());
         } catch (NumberFormatException e) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
-                    "Invalid user ID in token");
+                    "ID người dùng trong token không hợp lệ");
         }
     }
 

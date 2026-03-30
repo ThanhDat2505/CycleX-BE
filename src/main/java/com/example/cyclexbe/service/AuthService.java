@@ -30,7 +30,7 @@ public class AuthService {
         if (!passwordEncoder.matches(req.password, user.getPasswordHash())) {
             System.out.println("Invalid credentials");
             throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, "Invalid credentials");
+                    HttpStatus.UNAUTHORIZED, "Thông tin đăng nhập không chính xác");
         }
 
         // Block suspended/banned users from logging in
@@ -50,7 +50,7 @@ public class AuthService {
     public RegisterResponse register(@Valid @RequestBody UserCreateRequest req) {
         UserResponse user = userService.create(req);
         RegisterResponse response = new RegisterResponse();
-        response.message = "Registration successful";
+        response.message = "Đăng ký thành công";
         response.user = user;
         return response;
     }
@@ -59,7 +59,7 @@ public class AuthService {
         String otp = otpService.sendOtp(req.email);
         SendOtpResponse response = new SendOtpResponse();
         // response.otp = otp;
-        response.message = "OTP sent successfully";
+        response.message = "Đã gửi mã OTP thành công";
         return response;
     }
 
@@ -67,7 +67,7 @@ public class AuthService {
         User user = userService.findByEmail(req.email);
         otpService.verifyOtp(req.email, req.otp);
         VerifyOtpResponse response = new VerifyOtpResponse();
-        response.message = "Email verified successfully";
+        response.message = "Xác minh email thành công";
         response.user = UserResponse.from(user);
         return response;
     }
@@ -75,7 +75,7 @@ public class AuthService {
     public MessageResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
         otpService.sendPasswordResetOtp(req.email);
         MessageResponse response = new MessageResponse();
-        response.message = "Password reset OTP sent to your email";
+        response.message = "Đã gửi mã OTP đặt lại mật khẩu đến email của bạn";
         return response;
     }
 
@@ -84,7 +84,7 @@ public class AuthService {
         User user = userService.findByEmail(req.email);
         userService.updatePassword(user, req.newPassword);
         MessageResponse response = new MessageResponse();
-        response.message = "Password reset successfully";
+        response.message = "Đặt lại mật khẩu thành công";
         return response;
     }
 }

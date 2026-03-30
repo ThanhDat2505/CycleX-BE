@@ -1,4 +1,4 @@
-package com.example.cyclexbe.security;
+﻿package com.example.cyclexbe.security;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -23,7 +23,7 @@ public class SecurityUtils {
     public static String getAuthenticatedUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Chưa xác thực");
         }
         return auth.getName(); // Spring Security convention: principal name is subject
     }
@@ -42,7 +42,7 @@ public class SecurityUtils {
         if (!authenticatedUserId.equals(requestedUserId)) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "You don't have permission to access this " + resourceOwnerType + "'s resources"
+                    "Bạn không có quyền truy cập tài nguyên của " + resourceOwnerType + " này"
             );
         }
     }
@@ -54,7 +54,7 @@ public class SecurityUtils {
     public static String getAuthenticatedUserRole() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Chưa xác thực");
         }
         return auth.getAuthorities().stream()
                 .findFirst()

@@ -1,4 +1,4 @@
-package com.example.cyclexbe.service;
+﻿package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.domain.enums.NotificationType;
@@ -123,7 +123,8 @@ public class ShipperDeliveryService {
                 if (!validStatuses.contains(s)) {
                     throw new ResponseStatusException(
                             HttpStatus.BAD_REQUEST,
-                            "Invalid status: " + s + ". Valid values are: ASSIGNED, IN_PROGRESS, DELIVERED, FAILED");
+                            "Trạng thái không hợp lệ: " + s
+                                    + ". Giá trị hợp lệ: ASSIGNED, IN_PROGRESS, DELIVERED, FAILED");
                 }
             }
         }
@@ -323,15 +324,15 @@ public class ShipperDeliveryService {
 
         if ("ASSIGNED".equals(status)) {
             canStart = true;
-            message = "Delivery is assigned. Press Start to begin delivery.";
+            message = "Đơn giao hàng đã được phân công. Nhấn Bắt đầu để giao hàng.";
         } else if ("IN_PROGRESS".equals(status)) {
             canConfirm = true;
             canReportFailed = true;
         } else if ("FAILED".equals(status)) {
             canReportFailed = true;
-            message = "Delivery is marked as FAILED.";
+            message = "Đơn giao hàng được đánh dấu là THẤT BẠI.";
         } else {
-            message = "Delivery status changed. No actions available.";
+            message = "Trạng thái đơn giao hàng đã thay đổi. Không có hành động nào khả dụng.";
         }
 
         return new ShipperDeliveryActionsDto(canStart, canConfirm, canReportFailed, message);
@@ -355,7 +356,8 @@ public class ShipperDeliveryService {
         if (!"ASSIGNED".equals(delivery.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Delivery can only be started when status is ASSIGNED. Current status: " + delivery.getStatus());
+                    "Chỉ có thể bắt đầu giao hàng khi trạng thái là ASSIGNED. Trạng thái hiện tại: "
+                            + delivery.getStatus());
         }
 
         delivery.setStatus("IN_PROGRESS");
@@ -368,7 +370,7 @@ public class ShipperDeliveryService {
         return new ShipperStartDeliveryResponse(
                 delivery.getDeliveryId(),
                 delivery.getStatus(),
-                "Delivery started successfully",
+                "Bắt đầu giao hàng thành công",
                 LocalDateTime.now());
     }
 
@@ -425,7 +427,7 @@ public class ShipperDeliveryService {
         if (!"IN_PROGRESS".equals(delivery.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Delivery cannot be confirmed in current status: " + delivery.getStatus());
+                    "Không thể xác nhận giao hàng ở trạng thái hiện tại: " + delivery.getStatus());
         }
 
         // 1. delivery.status → DELIVERED
@@ -453,7 +455,7 @@ public class ShipperDeliveryService {
                 delivery.getStatus(),
                 transaction.getStatus().name(),
                 listing.getStatus().name(),
-                "Delivery confirmed successfully",
+                "Xác nhận giao hàng thành công",
                 LocalDateTime.now());
     }
 
@@ -498,9 +500,9 @@ public class ShipperDeliveryService {
         if (delivery == null) {
             if (deliveryRepository.existsByDeliveryId(deliveryId)) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "You don't have permission to access this delivery");
+                        "Bạn không có quyền truy cập đơn giao hàng này");
             }
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn giao hàng");
         }
         return delivery;
     }
@@ -521,7 +523,7 @@ public class ShipperDeliveryService {
         if (!"IN_PROGRESS".equals(delivery.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Can only report failure for deliveries with status IN_PROGRESS. Current status: "
+                    "Chỉ có thể báo lỗi cho đơn giao hàng có trạng thái IN_PROGRESS. Trạng thái hiện tại: "
                             + delivery.getStatus());
         }
 
@@ -558,7 +560,7 @@ public class ShipperDeliveryService {
         if (!"IN_PROGRESS".equals(delivery.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Can only report failure for deliveries with status IN_PROGRESS. Current status: "
+                    "Chỉ có thể báo lỗi cho đơn giao hàng có trạng thái IN_PROGRESS. Trạng thái hiện tại: "
                             + delivery.getStatus());
         }
 
@@ -579,7 +581,7 @@ public class ShipperDeliveryService {
         sendDeliveryFailedNotifications(delivery, transaction);
 
         return new ShipperFailureReportResponse(
-                "Delivery failed report submitted successfully",
+                "Báo cáo giao hàng thất bại đã được gửi thành công",
                 delivery.getDeliveryId(),
                 delivery.getStatus(),
                 transaction.getStatus().name());
