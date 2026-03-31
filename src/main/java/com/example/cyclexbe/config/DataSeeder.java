@@ -21,6 +21,46 @@ public class DataSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        // Seed SHIPPER account
+        userRepository.findByEmail("shipper@cyclex.com").ifPresentOrElse(
+                existing -> {
+                    boolean dirty = false;
+                    if (!"ACTIVE".equals(existing.getStatus())) {
+                        existing.setStatus("ACTIVE");
+                        dirty = true;
+                    }
+                    if (existing.getRole() != Role.SHIPPER) {
+                        existing.setRole(Role.SHIPPER);
+                        dirty = true;
+                    }
+                    if (!existing.isVerify()) {
+                        existing.setVerify(true);
+                        dirty = true;
+                    }
+                    if (existing.getPhone() == null || existing.getPhone().isBlank()) {
+                        existing.setPhone("09847588237");
+                        dirty = true;
+                    }
+                    if (existing.getCccd() == null || existing.getCccd().isBlank()) {
+                        existing.setCccd("072998003394");
+                        dirty = true;
+                    }
+                    if (dirty) {
+                        userRepository.save(existing);
+                    }
+                },
+                () -> {
+                    User shipper = new User();
+                    shipper.setEmail("shipper@cyclex.com");
+                    shipper.setPasswordHash(passwordEncoder.encode("123456"));
+                    shipper.setRole(Role.SHIPPER);
+                    shipper.setFullName("Shipper");
+                    shipper.setVerify(true);
+                    shipper.setStatus("ACTIVE");
+                    shipper.setPhone("09847588237");
+                    shipper.setCccd("072998003394");
+                    userRepository.save(shipper);
+                });
         userRepository.findByEmail("admin@cyclex.com").ifPresentOrElse(
                 existing -> {
                     // Ensure the admin account is always active and has the correct role
