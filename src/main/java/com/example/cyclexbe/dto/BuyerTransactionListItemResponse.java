@@ -39,8 +39,7 @@ public class BuyerTransactionListItemResponse {
             String status,
             BigDecimal totalAmount,
             LocalDateTime createdAt,
-            boolean hasDispute
-    ) {
+            boolean hasDispute) {
         this.orderId = orderId;
         this.buyerId = buyerId;
         this.sellerId = sellerId;
