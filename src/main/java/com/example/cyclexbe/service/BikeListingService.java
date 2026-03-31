@@ -92,7 +92,7 @@ public class BikeListingService {
         return mapToResponse(saved);
     }
 
-    public Page<BikeListingResponse> getAll(int page, int size, BikeListingStatus status, String city, String title,
+    public Page<BikeListingResponse> getAll(int page, int size, @SuppressWarnings("unused") BikeListingStatus status, String city, String title,
             List<String> bikeType, List<String> brand, List<String> condition,
             Double minPrice, Double maxPrice, String sortBy) {
         Sort sort;
@@ -113,12 +113,16 @@ public class BikeListingService {
         }
         Pageable pageable = PageRequest.of(page, size, sort);
 
+        // Public browse always restricts to APPROVED only (never expose DELETED/DRAFT/etc).
+        // Explicit status filter is ignored for safety — buyer sees only what's available.
+        final BikeListingStatus effectiveStatus = BikeListingStatus.APPROVED;
+
         Specification<BikeListing> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (status != null) {
-                predicates.add(cb.equal(root.get("status"), status));
-            }
+            // Always filter to APPROVED for public browse
+            predicates.add(cb.equal(root.get("status"), effectiveStatus));
+
             if (city != null && !city.isBlank()) {
                 predicates.add(cb.like(cb.lower(root.get("locationCity")), "%" + city.toLowerCase() + "%"));
             }
@@ -144,14 +148,12 @@ public class BikeListingService {
                 predicates.add(cb.lessThanOrEqualTo(root.get("price"), BigDecimal.valueOf(maxPrice)));
             }
 
-            // For public view (APPROVED listings), only show products that are AVAILABLE
-            if (status == BikeListingStatus.APPROVED) {
-                Subquery<Integer> productSubquery = query.subquery(Integer.class);
-                Root<Product> productRoot = productSubquery.from(Product.class);
-                productSubquery.select(productRoot.get("listing").get("listingId"))
-                        .where(cb.equal(productRoot.get("status"), "AVAILABLE"));
-                predicates.add(root.get("listingId").in(productSubquery));
-            }
+            // Only show listings whose product is AVAILABLE
+            Subquery<Integer> productSubquery = query.subquery(Integer.class);
+            Root<Product> productRoot = productSubquery.from(Product.class);
+            productSubquery.select(productRoot.get("listing").get("listingId"))
+                    .where(cb.equal(productRoot.get("status"), "AVAILABLE"));
+            predicates.add(root.get("listingId").in(productSubquery));
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
@@ -163,6 +165,10 @@ public class BikeListingService {
     public BikeListingResponse getById(Integer id) {
         BikeListing b = bikeListingRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng xe"));
+        // Public endpoint — only expose APPROVED listings
+        if (b.getStatus() != BikeListingStatus.APPROVED) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng xe");
+        }
         return mapToResponse(b);
     }
 
