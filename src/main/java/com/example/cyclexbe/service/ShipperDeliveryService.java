@@ -8,10 +8,13 @@ import com.example.cyclexbe.dto.*;
 import com.example.cyclexbe.entity.BikeListing;
 import com.example.cyclexbe.entity.Delivery;
 import com.example.cyclexbe.entity.ListingImage;
+import com.example.cyclexbe.entity.Product;
 import com.example.cyclexbe.entity.PurchaseRequest;
 import com.example.cyclexbe.entity.User;
+import com.example.cyclexbe.repository.BikeListingRepository;
 import com.example.cyclexbe.repository.DeliveryRepository;
 import com.example.cyclexbe.repository.ListingImageRepository;
+import com.example.cyclexbe.repository.ProductRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -35,15 +38,21 @@ public class ShipperDeliveryService {
     private final NotificationService notificationService;
     private final ListingImageRepository listingImageRepository;
     private final OrderService orderService;
+    private final BikeListingRepository bikeListingRepository;
+    private final ProductRepository productRepository;
 
     public ShipperDeliveryService(DeliveryRepository deliveryRepository,
             NotificationService notificationService,
             ListingImageRepository listingImageRepository,
-            OrderService orderService) {
+            OrderService orderService,
+            BikeListingRepository bikeListingRepository,
+            ProductRepository productRepository) {
         this.deliveryRepository = deliveryRepository;
         this.notificationService = notificationService;
         this.listingImageRepository = listingImageRepository;
         this.orderService = orderService;
+        this.bikeListingRepository = bikeListingRepository;
+        this.productRepository = productRepository;
     }
 
     /**
@@ -577,9 +586,20 @@ public class ShipperDeliveryService {
         // 3. order.status → CANCELLED
         orderService.updateOrderStatus(transaction.getRequestId(), OrderStatus.CANCELLED);
 
+        // 4. listing.status → DRAFT (seller có thể cập nhật lại)
+        BikeListing listing = delivery.getListing();
+        listing.setStatus(BikeListingStatus.DRAFT);
+        bikeListingRepository.save(listing);
+
+        // 5. product.status → UNAVAILABLE
+        productRepository.findByListing_ListingId(listing.getListingId()).ifPresent(product -> {
+            product.setStatus("UNAVAILABLE");
+            productRepository.save(product);
+        });
+
         deliveryRepository.save(delivery);
 
-        // 3. Send notifications to buyer and seller
+        // Send notifications to buyer and seller
         sendDeliveryFailedNotifications(delivery, transaction);
 
         return new ShipperFailureReportResponse(
@@ -608,16 +628,18 @@ public class ShipperDeliveryService {
                 requestId,
                 "/buyer/transactions/" + requestId);
 
-        // Notify seller
+        // Notify seller — link to listing so they can edit and resubmit
         User seller = delivery.getListing().getSeller();
+        Integer listingId = delivery.getListing().getListingId();
         notificationService.createNotification(
                 seller,
-                "Giao hàng thất bại",
+                "Giao hàng thất bại - Tin đăng đã về Bản nháp",
                 "Đơn hàng #" + requestId + " (" + listingTitle + ") giao hàng thất bại. Lý do: "
-                        + delivery.getFailureReason(),
+                        + delivery.getFailureReason()
+                        + ". Tin đăng đã được chuyển về Bản nháp. Vui lòng cập nhật và đăng lại.",
                 NotificationType.DELIVERY_FAILED,
-                "TRANSACTION",
-                requestId,
-                "/seller/transactions/" + requestId);
+                "LISTING",
+                listingId,
+                "/seller/my-listings?status=draft");
     }
 }
