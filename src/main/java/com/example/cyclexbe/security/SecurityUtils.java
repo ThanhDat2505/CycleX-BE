@@ -1,4 +1,4 @@
-﻿package com.example.cyclexbe.security;
+package com.example.cyclexbe.security;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
