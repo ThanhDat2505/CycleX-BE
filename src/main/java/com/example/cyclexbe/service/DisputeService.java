@@ -242,9 +242,9 @@ public class DisputeService {
         purchaseRequestRepository.save(pr);
 
         // Also sync Order status to DISPUTED
-        orderRepository.findByPurchaseRequest_RequestId(pr.getRequestId()).ifPresent(order -> {
-            order.setStatus(com.example.cyclexbe.domain.enums.OrderStatus.DISPUTED);
-            orderRepository.save(order);
+        orderRepository.findByPurchaseRequest_RequestId(pr.getRequestId()).ifPresent(linkedOrder -> {
+            linkedOrder.setStatus(com.example.cyclexbe.domain.enums.OrderStatus.DISPUTED);
+            orderRepository.save(linkedOrder);
         });
 
         Dispute saved = disputeRepository.save(dispute);

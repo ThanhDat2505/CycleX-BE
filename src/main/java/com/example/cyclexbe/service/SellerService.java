@@ -1,4 +1,4 @@
-﻿package com.example.cyclexbe.service;
+package com.example.cyclexbe.service;
 
 import com.example.cyclexbe.domain.enums.BikeListingStatus;
 import com.example.cyclexbe.dto.*;
