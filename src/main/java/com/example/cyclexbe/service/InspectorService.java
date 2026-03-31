@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class InspectorService {
@@ -208,16 +209,27 @@ public class InspectorService {
                 reasonText, note);
         inspectionReportRepository.save(report);
 
-        // Create Product
-        Product product = new Product();
-        product.setListing(savedListing);
-        product.setSeller(savedListing.getSeller());
-        product.setName(savedListing.getTitle());
-        product.setDescription(savedListing.getDescription());
-        product.setPrice(savedListing.getPrice());
-        product.setStatus("AVAILABLE");
-
-        productRepository.save(product);
+        // Create or update Product
+        // If product already exists (re-approve after delivery failure), update it to AVAILABLE
+        // Otherwise create a new product record
+        Optional<Product> existingProduct = productRepository.findByListing_ListingId(savedListing.getListingId());
+        if (existingProduct.isPresent()) {
+            Product product = existingProduct.get();
+            product.setName(savedListing.getTitle());
+            product.setDescription(savedListing.getDescription());
+            product.setPrice(savedListing.getPrice());
+            product.setStatus("AVAILABLE");
+            productRepository.save(product);
+        } else {
+            Product product = new Product();
+            product.setListing(savedListing);
+            product.setSeller(savedListing.getSeller());
+            product.setName(savedListing.getTitle());
+            product.setDescription(savedListing.getDescription());
+            product.setPrice(savedListing.getPrice());
+            product.setStatus("AVAILABLE");
+            productRepository.save(product);
+        }
 
         return BikeListingResponse.from(savedListing);
     }
@@ -264,6 +276,12 @@ public class InspectorService {
                 saved, inspector, "REJECTED",
                 reasonCode, reasonText, note);
         inspectionReportRepository.save(report);
+
+        // If product exists (re-review after delivery failure), set it to UNAVAILABLE
+        productRepository.findByListing_ListingId(saved.getListingId()).ifPresent(product -> {
+            product.setStatus("UNAVAILABLE");
+            productRepository.save(product);
+        });
 
         return BikeListingResponse.from(saved);
     }
