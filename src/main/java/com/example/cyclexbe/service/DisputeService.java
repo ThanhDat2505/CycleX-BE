@@ -130,9 +130,9 @@ public class DisputeService {
         if (pr == null)
             return false;
 
-        // Must be COMPLETED or DISPUTED status (DISPUTED means a previous dispute was
-        // resolved)
+        // Must be COMPLETED, CANCELLED (delivery failed), or DISPUTED status
         if (pr.getStatus() != PurchaseRequestStatus.COMPLETED
+                && pr.getStatus() != PurchaseRequestStatus.CANCELLED
                 && pr.getStatus() != PurchaseRequestStatus.DISPUTED)
             return false;
 
@@ -168,10 +168,11 @@ public class DisputeService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu mua hàng liên kết");
         }
 
-        // Must be COMPLETED or DISPUTED to dispute
+        // Must be COMPLETED, CANCELLED (delivery failed), or DISPUTED to dispute
         if (pr.getStatus() != PurchaseRequestStatus.COMPLETED
+                && pr.getStatus() != PurchaseRequestStatus.CANCELLED
                 && pr.getStatus() != PurchaseRequestStatus.DISPUTED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ có thể khiếu nại đơn hàng đã hoàn thành");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ có thể khiếu nại đơn hàng đã hoàn thành hoặc bị hủy do giao hàng thất bại");
         }
 
         // Check 24h time window from delivery (success or failure)
@@ -239,6 +240,12 @@ public class DisputeService {
         // Update purchase request status to DISPUTED
         pr.setStatus(PurchaseRequestStatus.DISPUTED);
         purchaseRequestRepository.save(pr);
+
+        // Also sync Order status to DISPUTED
+        orderRepository.findByPurchaseRequest_RequestId(pr.getRequestId()).ifPresent(order -> {
+            order.setStatus(com.example.cyclexbe.domain.enums.OrderStatus.DISPUTED);
+            orderRepository.save(order);
+        });
 
         Dispute saved = disputeRepository.save(dispute);
 

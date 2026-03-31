@@ -548,9 +548,11 @@ public class ShipperDeliveryService {
      *
      * Actions:
      * - delivery.status → FAILED
-     * - transaction.status → DISPUTED
+     * - transaction.status → CANCELLED
+     * - order.status → CANCELLED
      * - Save failureReason
      * - Notify buyer and seller
+     * Buyer can then open a dispute from the CANCELLED state → DISPUTED
      */
     @Transactional
     public ShipperFailureReportResponse submitFailureReport(Integer deliveryId, Integer shipperId, String reason) {
@@ -568,12 +570,12 @@ public class ShipperDeliveryService {
         delivery.setStatus("FAILED");
         delivery.setFailureReason(reason);
 
-        // 2. transaction.status → DISPUTED
+        // 2. transaction.status → CANCELLED
         PurchaseRequest transaction = delivery.getTransaction();
-        transaction.setStatus(PurchaseRequestStatus.DISPUTED);
+        transaction.setStatus(PurchaseRequestStatus.CANCELLED);
 
-        // 3. order.status → DISPUTED
-        orderService.updateOrderStatus(transaction.getRequestId(), OrderStatus.DISPUTED);
+        // 3. order.status → CANCELLED
+        orderService.updateOrderStatus(transaction.getRequestId(), OrderStatus.CANCELLED);
 
         deliveryRepository.save(delivery);
 
