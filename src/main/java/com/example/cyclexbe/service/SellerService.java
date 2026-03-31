@@ -114,6 +114,9 @@ public class SellerService {
             // Filter by seller (required)
             predicates.add(cb.equal(root.get("seller"), seller));
 
+            // Always exclude DELETED (soft-deleted listings must never appear in any seller view)
+            predicates.add(cb.notEqual(root.get("status"), BikeListingStatus.DELETED));
+
             // Filter by status (optional)
             if (status != null && !status.isEmpty()) {
                 BikeListingStatus bikeStatus = parseBikeListingStatus(status);
