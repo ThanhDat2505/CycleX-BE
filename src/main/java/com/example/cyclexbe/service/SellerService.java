@@ -339,7 +339,7 @@ public class SellerService {
     }
 
     /**
-     * Cancel publish: revert PENDING/REVIEWING/WAITING_INSPECTOR_REVIEW → DRAFT
+     * Cancel publish: revert PENDING/REVIEWING/WAITING_INSPECTOR_REVIEW/APPROVED → DRAFT
      */
     @Transactional
     public BikeListingResponse cancelPublishListing(Integer sellerId, Integer listingId) {
@@ -352,9 +352,10 @@ public class SellerService {
 
         BikeListingStatus status = listing.getStatus();
         if (status != BikeListingStatus.PENDING && status != BikeListingStatus.REVIEWING
-                && status != BikeListingStatus.WAITING_INSPECTOR_REVIEW) {
+                && status != BikeListingStatus.WAITING_INSPECTOR_REVIEW
+                && status != BikeListingStatus.APPROVED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Hủy xuất bản chỉ được phép cho tin đăng PENDING, REVIEWING hoặc WAITING_INSPECTOR_REVIEW. Trạng thái hiện tại: "
+                    "Hủy xuất bản chỉ được phép cho tin đăng PENDING, REVIEWING, WAITING_INSPECTOR_REVIEW hoặc APPROVED. Trạng thái hiện tại: "
                             + status);
         }
 
