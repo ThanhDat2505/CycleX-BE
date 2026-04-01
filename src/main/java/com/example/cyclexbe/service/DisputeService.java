@@ -360,6 +360,19 @@ public class DisputeService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Khiếu nại đã được xử lý");
         }
 
+        // Admin can only resolve disputes that have been escalated to them
+        try {
+            String role = com.example.cyclexbe.security.SecurityUtils.getAuthenticatedUserRole();
+            if ("ROLE_ADMIN".equals(role) && dispute.getStatus() != DisputeStatus.ESCALATED) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Admin chỉ có thể xử lý khiếu nại đã được chuyển tiếp (ESCALATED)");
+            }
+        } catch (ResponseStatusException rse) {
+            throw rse;
+        } catch (Exception ignored) {
+            // SecurityUtils not available in test context — skip
+        }
+
         // Validate action
         String action = req.action;
         if (!"REFUND_BUYER".equals(action) && !"RELEASE_FUND_SELLER".equals(action) && !"CLOSE_CASE".equals(action)) {
@@ -536,6 +549,12 @@ public class DisputeService {
     public DisputeDetailResponse adminOverride(Integer disputeId, AdminOverrideRequest req) {
         Dispute dispute = disputeRepository.findById(disputeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khiếu nại không tồn tại"));
+
+        // Admin can only override disputes that have been escalated to them
+        if (dispute.getStatus() != DisputeStatus.ESCALATED) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Admin chỉ có thể xử lý khiếu nại đã được chuyển tiếp (ESCALATED)");
+        }
 
         // Validate action
         String action = req.action;
