@@ -265,7 +265,10 @@ public class SellerTransactionService {
         }
         delivery.setStatus("ASSIGNED");
 
-        String dropoffAddr = order.getBuyerNote();
+        String dropoffAddr = order.getReceiverAddress();
+        if (dropoffAddr == null || dropoffAddr.isBlank()) {
+            dropoffAddr = order.getBuyerNote();
+        }
         delivery.setDropoffAddress(dropoffAddr != null && !dropoffAddr.isBlank()
                 ? dropoffAddr
                 : "Địa chỉ người mua");

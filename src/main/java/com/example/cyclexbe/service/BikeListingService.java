@@ -92,7 +92,8 @@ public class BikeListingService {
         return mapToResponse(saved);
     }
 
-    public Page<BikeListingResponse> getAll(int page, int size, @SuppressWarnings("unused") BikeListingStatus status, String city, String title,
+    public Page<BikeListingResponse> getAll(int page, int size, @SuppressWarnings("unused") BikeListingStatus status,
+            String city, String title,
             List<String> bikeType, List<String> brand, List<String> condition,
             Double minPrice, Double maxPrice, String sortBy) {
         Sort sort;
@@ -113,8 +114,10 @@ public class BikeListingService {
         }
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        // Public browse always restricts to APPROVED only (never expose DELETED/DRAFT/etc).
-        // Explicit status filter is ignored for safety — buyer sees only what's available.
+        // Public browse always restricts to APPROVED only (never expose
+        // DELETED/DRAFT/etc).
+        // Explicit status filter is ignored for safety — buyer sees only what's
+        // available.
         final BikeListingStatus effectiveStatus = BikeListingStatus.APPROVED;
 
         Specification<BikeListing> spec = (root, query, cb) -> {
@@ -165,8 +168,8 @@ public class BikeListingService {
     public BikeListingResponse getById(Integer id) {
         BikeListing b = bikeListingRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng xe"));
-        // Public endpoint — only expose APPROVED listings
-        if (b.getStatus() != BikeListingStatus.APPROVED) {
+        // Public endpoint — only expose APPROVED or SOLD listings
+        if (b.getStatus() != BikeListingStatus.APPROVED && b.getStatus() != BikeListingStatus.SOLD) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tin đăng xe");
         }
         return mapToResponse(b);

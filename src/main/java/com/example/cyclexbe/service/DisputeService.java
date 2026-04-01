@@ -172,7 +172,8 @@ public class DisputeService {
         if (pr.getStatus() != PurchaseRequestStatus.COMPLETED
                 && pr.getStatus() != PurchaseRequestStatus.CANCELLED
                 && pr.getStatus() != PurchaseRequestStatus.DISPUTED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ có thể khiếu nại đơn hàng đã hoàn thành hoặc bị hủy do giao hàng thất bại");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Chỉ có thể khiếu nại đơn hàng đã hoàn thành hoặc bị hủy do giao hàng thất bại");
         }
 
         // Check 24h time window from delivery (success or failure)
@@ -484,7 +485,8 @@ public class DisputeService {
      * Flow: Inspector cannot handle → status = ESCALATED, assignedTo = ADMIN
      */
     @Transactional
-    public DisputeDetailResponse escalateDispute(Integer disputeId, String escalationNote, String escalationSuggestion) {
+    public DisputeDetailResponse escalateDispute(Integer disputeId, String escalationNote,
+            String escalationSuggestion) {
         Dispute dispute = disputeRepository.findById(disputeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khiếu nại không tồn tại"));
 
@@ -768,8 +770,12 @@ public class DisputeService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Khiếu nại đã được xử lý");
         }
 
-        // Set status back to IN_PROGRESS
-        dispute.setStatus(DisputeStatus.IN_PROGRESS);
+        // Keep ESCALATED status if dispute was escalated to admin;
+        // only revert to IN_PROGRESS if it was in NEED_MORE_INFO or other non-escalated
+        // states
+        if (dispute.getStatus() != DisputeStatus.ESCALATED) {
+            dispute.setStatus(DisputeStatus.IN_PROGRESS);
+        }
 
         // Determine uploader role from auth context
         String uploaderRole = "BUYER";
