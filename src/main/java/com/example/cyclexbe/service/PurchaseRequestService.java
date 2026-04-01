@@ -33,9 +33,8 @@ public class PurchaseRequestService {
     private static final int DEPOSIT_RATE_PERCENT = 10;      // 10%
     private static final int NOTE_MAX_LENGTH = 500;
 
-    // TODO: Replace with actual business rules / config if your team defines later
-    private static final BigDecimal DEFAULT_PLATFORM_FEE = BigDecimal.ZERO;
-    private static final BigDecimal DEFAULT_INSPECTION_FEE = BigDecimal.ZERO;
+    private static final BigDecimal DEFAULT_PLATFORM_FEE = BigDecimal.valueOf(50000);
+    private static final BigDecimal DEFAULT_INSPECTION_FEE = BigDecimal.valueOf(100000);
 
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final UserRepository userRepository;
@@ -254,12 +253,10 @@ public class PurchaseRequestService {
     }
 
     public BigDecimal getPlatformFee(BigDecimal listingPrice) {
-        // TODO: Replace with actual business rules if defined by BA/team
         return DEFAULT_PLATFORM_FEE;
     }
 
     public BigDecimal getInspectionFee(BigDecimal listingPrice) {
-        // TODO: Replace with actual business rules if defined by BA/team
         return DEFAULT_INSPECTION_FEE;
     }
 

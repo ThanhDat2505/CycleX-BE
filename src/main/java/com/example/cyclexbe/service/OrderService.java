@@ -29,8 +29,8 @@ import java.math.RoundingMode;
 public class OrderService {
 
     private static final int DEPOSIT_RATE_PERCENT = 10;
-    private static final BigDecimal DEFAULT_PLATFORM_FEE = BigDecimal.ZERO;
-    private static final BigDecimal DEFAULT_INSPECTION_FEE = BigDecimal.ZERO;
+    private static final BigDecimal DEFAULT_PLATFORM_FEE = BigDecimal.valueOf(50000);
+    private static final BigDecimal DEFAULT_INSPECTION_FEE = BigDecimal.valueOf(100000);
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
